@@ -38,7 +38,7 @@ impl Sound<'_> {
         for c in 0..BUFFER_SIZE {
             let a: f32 = ( c as f32 ) / (BUFFER_SIZE as f32 ) * 2.0*3.14159265358979323846264338327950288_f32;
             let s = micromath::F32Ext::sin( a );
-            let ints = (s * 127.0 + 128.0 ) as u8;
+            let _ints = (s * 127.0 + 128.0 ) as u8;
 
             unsafe {
                 //BUFFER[c as usize] = ints;
