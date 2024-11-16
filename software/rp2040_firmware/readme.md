@@ -14,7 +14,7 @@ https://www.rust-lang.org/tools/install
 
 ```
 rustup target add thumbv6m-none-eabi
-cargo install elf2uf2-r
+cargo install elf2uf2-rs
 ```
 
 ### Building and running
