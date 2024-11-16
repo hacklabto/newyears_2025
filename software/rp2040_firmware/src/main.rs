@@ -31,7 +31,7 @@ async fn main(_spawner: embassy_executor::Spawner) {
     leds.set( 3, 1, true );
     leds.set( 3, 3, true );
 
-    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(1));
+    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(200));
     loop {
         ticker.next().await;
         display.update();
