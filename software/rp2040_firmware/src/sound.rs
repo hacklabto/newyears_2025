@@ -8,30 +8,26 @@ use embassy_rp::interrupt;
 use portable_atomic::{AtomicU32, Ordering};
 use fixed::{FixedU16};
 
-use embassy_rp::gpio;
-use gpio::{Level, Output};
-
 static COUNTER: AtomicU32 = AtomicU32::new(0);
-static PWM: Mutex<CriticalSectionRawMutex, RefCell<Option<Pwm>>> = Mutex::new(RefCell::new(None));
+static PWM_AB: Mutex<CriticalSectionRawMutex, RefCell<Option<Pwm>>> = Mutex::new(RefCell::new(None));
 const BUFFER_SIZE: usize =256;
 const CONFIG_TOP: u16 = 256;
 static mut BUFFER: [u8; BUFFER_SIZE ] = [0; BUFFER_SIZE ];
 static mut BUFFER_POS: usize = 0;
 // target frequency is 48 khz
-// PWM 62.5Mhz
+// PWM 125Mhz.  PWM resoltion is 8 bits, or 256.
 // 125*1024*1024/256 (states)/48k
-// = 10.4
+// = 10.6666666
 //
-const CLOCK_DIVIDER: u16 = 10*16+10;
+const CLOCK_DIVIDER: u16 = 10*16+11;
 
-pub struct Sound<'a> {
-    debug_out: Output<'a>,
+pub struct Sound {
 }
 
-impl Sound<'_> {
+impl Sound {
     pub fn new(
-        pin: embassy_rp::peripherals::PIN_1,
-        debug_pin: embassy_rp::peripherals::PIN_2,
+        pin_pos: embassy_rp::peripherals::PIN_0,
+        pin_neg: embassy_rp::peripherals::PIN_1,
         pwm_slice: embassy_rp::peripherals::PWM_SLICE0 
     ) -> Self {
 
@@ -46,19 +42,14 @@ impl Sound<'_> {
             }
         }
 
-        let debug_out: Output<'_> = Output::new(debug_pin, Level::High );
-        let pwm = embassy_rp::pwm::Pwm::new_output_b(pwm_slice, pin, Default::default());
-        PWM.lock(|p| p.borrow_mut().replace(pwm));
-
-        // PWM frequency is 62.5Mhz
-        // Divided by 128, 268353
-        // Top 65535,  4hz
+        let pwm_ab = embassy_rp::pwm::Pwm::new_output_ab(pwm_slice, pin_pos, pin_neg, Default::default());
+        PWM_AB.lock(|p| p.borrow_mut().replace(pwm_ab));
 
         let mut config = Config::default();
         config.top = CONFIG_TOP;
         config.compare_b = config.top/2;
         config.divider= FixedU16::from_bits( CLOCK_DIVIDER );
-        PWM.lock(|p| p.borrow_mut().as_mut().unwrap().set_config(&config));
+        PWM_AB.lock(|p| p.borrow_mut().as_mut().unwrap().set_config(&config));
 
         // Enable the interrupt for pwm slice 0
         embassy_rp::pac::PWM.inte().modify(|w| w.set_ch0(true));
@@ -66,22 +57,11 @@ impl Sound<'_> {
             cortex_m::peripheral::NVIC::unmask(interrupt::PWM_IRQ_WRAP);
         }
 
-        Self {debug_out}
+        Self {}
     }
 
-    // Entirely for debugging.
     pub fn update(&mut self)
     {
-        let counter = COUNTER.load(Ordering::Relaxed);
-
-        match counter % 2 {
-            0 => {
-                self.debug_out.set_high();
-            }
-            1..=u32::MAX => {
-                self.debug_out.set_low();
-            }
-        }
     }
 }
 
@@ -97,11 +77,13 @@ fn PWM_IRQ_WRAP() {
             let mut config: Config = Config::default();
             config.divider= FixedU16::from_bits( CLOCK_DIVIDER );
             config.top = 256;
+            config.compare_a = value as u16;
             config.compare_b = value as u16;
-            PWM.lock(|p| p.borrow_mut().as_mut().unwrap().set_config(&config));
+            config.invert_b = true;
+            PWM_AB.lock(|p| p.borrow_mut().as_mut().unwrap().set_config(&config));
         }
 
-        PWM.borrow(cs).borrow_mut().as_mut().unwrap().clear_wrapped();
+        PWM_AB.borrow(cs).borrow_mut().as_mut().unwrap().clear_wrapped();
     });
     COUNTER.fetch_add(1, Ordering::Relaxed);
 }

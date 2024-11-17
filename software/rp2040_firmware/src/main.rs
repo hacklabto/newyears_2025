@@ -21,8 +21,8 @@ async fn main(_spawner: embassy_executor::Spawner) {
     );
 
     let mut gsound = hackernewyears::Sound::new(
+        p.PIN_0,
         p.PIN_1,
-        p.PIN_2,
         p.PWM_SLICE0
     );
 
