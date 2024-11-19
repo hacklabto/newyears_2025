@@ -8,6 +8,9 @@ use embassy_sync::blocking_mutex::Mutex;
 use fixed::FixedU16;
 //use portable_atomic::{AtomicU32, Ordering};
 
+const AUDIO_SIZE : usize = 1462987;
+const AUDIO: &[u8; AUDIO_SIZE] = include_bytes!("../assets/ode.bin");
+
 //static COUNTER: AtomicU32 = AtomicU32::new(0);
 static PWM_AB: Mutex<CriticalSectionRawMutex, RefCell<Option<Pwm>>> =
     Mutex::new(RefCell::new(None));
@@ -24,8 +27,9 @@ static mut SOUND_PIPE_WRITE: usize = 0;
 const CLOCK_DIVIDER: u16 = 10 * 16 + 11;
 
 pub struct Sound {
-    state: bool,
-    time_to_state_change: u32
+    //state: bool,
+    //time_to_state_change: u32
+    audio_pos: usize
 }
 
 impl Sound {
@@ -51,20 +55,13 @@ impl Sound {
         }
 
         Self { 
-            state: false,
-            time_to_state_change: 0,
+            audio_pos: 0
         }
     }
 
     pub fn update_one(&mut self) {
-        if self.time_to_state_change == 0 {
-            self.time_to_state_change = 48;
-            self.state = !self.state;
-        }
-        else {
-            self.time_to_state_change = self.time_to_state_change - 1;
-        }
-        let value: u8 = if self.state { 255 } else { 0 };
+        let value: u8 = AUDIO[ self.audio_pos/2 ];
+        self.audio_pos = ( self.audio_pos + 1 ) % (AUDIO_SIZE*2);
         unsafe {
             SOUND_PIPE[ SOUND_PIPE_WRITE ] = value;
             SOUND_PIPE_WRITE = ( SOUND_PIPE_WRITE + 1 ) % BUFFER_SIZE;
