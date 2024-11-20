@@ -1,30 +1,26 @@
 // Resistor 32 ohm
 
-use core::cell::RefCell;
 use embassy_rp::interrupt;
 use embassy_rp::pwm::{Config, Pwm};
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::blocking_mutex::Mutex;
 use fixed::FixedU16;
-//use portable_atomic::{AtomicU32, Ordering};
 
 const AUDIO_SIZE : usize = 1462987;
 const AUDIO: &[u8; AUDIO_SIZE] = include_bytes!("../assets/ode.bin");
 
-//static COUNTER: AtomicU32 = AtomicU32::new(0);
-static PWM_AB: Mutex<CriticalSectionRawMutex, RefCell<Option<Pwm>>> =
-    Mutex::new(RefCell::new(None));
 const BUFFER_SIZE: usize = 48000;
 const CONFIG_TOP: u16 = 256;
 static mut SOUND_PIPE: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
 static mut SOUND_PIPE_READ: usize = 0;
 static mut SOUND_PIPE_WRITE: usize = 0;
+static mut PWM_AB: Option<Pwm> = None;
+static mut PWM_CONFIG: Option<Config> = None;
 // target frequency is 48 khz
 // PWM 125Mhz.  PWM resoltion is 8 bits, or 256.
 // 125*1024*1024/256 (states)/48k
 // = 10.6666666
 //
-const CLOCK_DIVIDER: u16 = 10 * 16 + 11;
+const CLOCK_DIVIDER_U16: u16 = 10 * 16 + 11;
+//const CLOCK_DIVIDER = FixedU16::from_bits(CLOCK_DIVIDER_U16);
 
 pub struct Sound {
     //state: bool,
@@ -40,13 +36,17 @@ impl Sound {
     ) -> Self {
         let pwm_ab =
             embassy_rp::pwm::Pwm::new_output_ab(pwm_slice, pin_pos, pin_neg, Default::default());
-        PWM_AB.lock(|p| p.borrow_mut().replace(pwm_ab));
 
-        let mut config = Config::default();
-        config.top = CONFIG_TOP;
-        config.compare_b = config.top / 2;
-        config.divider = FixedU16::from_bits(CLOCK_DIVIDER);
-        PWM_AB.lock(|p| p.borrow_mut().as_mut().unwrap().set_config(&config));
+        unsafe {
+            PWM_AB = Some(pwm_ab);
+            PWM_CONFIG = Some(Config::default());
+            let config = PWM_CONFIG.as_mut().unwrap();
+            config.top = CONFIG_TOP;
+            config.compare_b = CONFIG_TOP / 2;
+            config.divider = FixedU16::from_bits(CLOCK_DIVIDER_U16);
+            config.invert_b = true;
+            PWM_AB.as_mut().unwrap().set_config(config);
+        }
 
         // Enable the interrupt for pwm slice 0
         embassy_rp::pac::PWM.inte().modify(|w| w.set_ch0(true));
@@ -81,31 +81,23 @@ impl Sound {
 
 #[interrupt]
 fn PWM_IRQ_WRAP() {
-    critical_section::with(|cs| {
-        let value: u8;
         unsafe {
-            value = if SOUND_PIPE_READ == SOUND_PIPE_WRITE {
+            let value: u8 = if SOUND_PIPE_READ == SOUND_PIPE_WRITE {
                 0
             }
             else {
                 let rval = SOUND_PIPE[ SOUND_PIPE_READ ];
                 SOUND_PIPE_READ = ( SOUND_PIPE_READ + 1 ) % BUFFER_SIZE;
                 rval
-            }
-        }
-        let mut config: Config = Config::default();
-        config.divider = FixedU16::from_bits(CLOCK_DIVIDER);
-        config.top = 256;
-        config.compare_a = value as u16;
-        config.compare_b = value as u16;
-        config.invert_b = true;
-        PWM_AB.lock(|p| p.borrow_mut().as_mut().unwrap().set_config(&config));
+            };
 
-        PWM_AB
-            .borrow(cs)
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .clear_wrapped();
-    });
+            let config = PWM_CONFIG.as_mut().unwrap();
+            config.compare_a = value as u16;
+            config.compare_b = value as u16;
+
+            let pwm = PWM_AB.as_mut().unwrap();
+            pwm.set_config(&config);
+            pwm.clear_wrapped();
+        }
 }
+
