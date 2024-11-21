@@ -4,7 +4,7 @@ use embassy_rp::interrupt;
 use embassy_rp::pwm::{Config, Pwm};
 use fixed::FixedU16;
 
-const AUDIO_SIZE : usize = 1462987;
+const AUDIO_SIZE: usize = 1462987;
 const AUDIO: &[u8; AUDIO_SIZE] = include_bytes!("../assets/ode.bin");
 
 const BUFFER_SIZE: usize = 48000;
@@ -26,7 +26,7 @@ const CLOCK_DIVIDER_U16: u16 = 5 * 16 + 5;
 pub struct Sound {
     //state: bool,
     //time_to_state_change: u32
-    audio_pos: usize
+    audio_pos: usize,
 }
 
 impl Sound {
@@ -55,26 +55,24 @@ impl Sound {
             cortex_m::peripheral::NVIC::unmask(interrupt::PWM_IRQ_WRAP);
         }
 
-        Self { 
-            audio_pos: 0
-        }
+        Self { audio_pos: 0 }
     }
 
     pub fn update_one(&mut self) {
-        let value: u8 = AUDIO[ self.audio_pos/2 ];
-        self.audio_pos = ( self.audio_pos + 1 ) % (AUDIO_SIZE*2);
+        let value: u8 = AUDIO[self.audio_pos / 2];
+        self.audio_pos = (self.audio_pos + 1) % (AUDIO_SIZE * 2);
         unsafe {
-            SOUND_PIPE[ SOUND_PIPE_WRITE ] = value;
-            SOUND_PIPE_WRITE = ( SOUND_PIPE_WRITE + 1 ) % BUFFER_SIZE;
+            SOUND_PIPE[SOUND_PIPE_WRITE] = value;
+            SOUND_PIPE_WRITE = (SOUND_PIPE_WRITE + 1) % BUFFER_SIZE;
         }
     }
 
     pub fn update(&mut self) {
         unsafe {
-            let mut next_write: usize = (SOUND_PIPE_WRITE+1) % BUFFER_SIZE;
+            let mut next_write: usize = (SOUND_PIPE_WRITE + 1) % BUFFER_SIZE;
             while next_write != SOUND_PIPE_READ {
                 self.update_one();
-                next_write = (SOUND_PIPE_WRITE+1) % BUFFER_SIZE;
+                next_write = (SOUND_PIPE_WRITE + 1) % BUFFER_SIZE;
             }
         }
     }
@@ -82,23 +80,21 @@ impl Sound {
 
 #[interrupt]
 fn PWM_IRQ_WRAP() {
-        unsafe {
-            let value: u8 = if SOUND_PIPE_READ == SOUND_PIPE_WRITE {
-                0
-            }
-            else {
-                let rval = SOUND_PIPE[ SOUND_PIPE_READ ];
-                SOUND_PIPE_READ = ( SOUND_PIPE_READ + 1 ) % BUFFER_SIZE;
-                rval
-            };
+    unsafe {
+        let value: u8 = if SOUND_PIPE_READ == SOUND_PIPE_WRITE {
+            0
+        } else {
+            let rval = SOUND_PIPE[SOUND_PIPE_READ];
+            SOUND_PIPE_READ = (SOUND_PIPE_READ + 1) % BUFFER_SIZE;
+            rval
+        };
 
-            let config = PWM_CONFIG.as_mut().unwrap();
-            config.compare_a = value as u16;
-            config.compare_b = value as u16;
+        let config = PWM_CONFIG.as_mut().unwrap();
+        config.compare_a = value as u16;
+        config.compare_b = value as u16;
 
-            let pwm = PWM_AB.as_mut().unwrap();
-            pwm.set_config(&config);
-            pwm.clear_wrapped();
-        }
+        let pwm = PWM_AB.as_mut().unwrap();
+        pwm.set_config(&config);
+        pwm.clear_wrapped();
+    }
 }
-

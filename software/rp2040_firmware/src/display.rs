@@ -1,3 +1,4 @@
+use embassy_rp::i2c;
 use embassy_rp::peripherals::I2C0;
 use ssd1306::mode::BufferedGraphicsMode;
 use ssd1306::mode::DisplayConfig;
@@ -6,7 +7,6 @@ use ssd1306::rotation::DisplayRotation;
 use ssd1306::size::DisplaySize128x32;
 use ssd1306::Ssd1306;
 use tinygif;
-use embassy_rp::i2c;
 
 use embedded_graphics::{
     pixelcolor::BinaryColor,
@@ -29,7 +29,7 @@ pub struct Display<'a> {
         BufferedGraphicsMode<DisplaySize128x32>,
     >,
 
-    eyes: tinygif::Gif::<'a, BinaryColor>,
+    eyes: tinygif::Gif<'a, BinaryColor>,
 
     frame: u32,
 }
@@ -51,11 +51,16 @@ impl Display<'_> {
             .into_buffered_graphics_mode();
         display.init().unwrap();
 
-        let eyes = tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/eyes.gif")).unwrap();
+        let eyes =
+            tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/eyes.gif")).unwrap();
 
         let frame = 0;
 
-        Self { display, eyes, frame }
+        Self {
+            display,
+            eyes,
+            frame,
+        }
     }
 
     pub fn update(&mut self) {
@@ -70,7 +75,7 @@ impl Display<'_> {
             self.frame = 1;
             image = self.eyes.frames().next();
         }
-        image.unwrap().draw( &mut self.display ).unwrap();
+        image.unwrap().draw(&mut self.display).unwrap();
         self.display.flush().unwrap();
         self.frame = self.frame + 1;
     }

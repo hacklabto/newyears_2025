@@ -5,43 +5,43 @@ const XSIZE: usize = 8;
 const YSIZE: usize = 8;
 
 pub struct LEDs<'a> {
-    led_state: [bool; XSIZE * YSIZE ],
+    led_state: [bool; XSIZE * YSIZE],
 
     clock: Output<'a>,
     data: Output<'a>,
     release: Output<'a>,
-    state: u32
+    state: u32,
 }
 
 impl LEDs<'_> {
     pub fn new(
         pin_11: embassy_rp::peripherals::PIN_11,
         pin_12: embassy_rp::peripherals::PIN_12,
-        pin_13: embassy_rp::peripherals::PIN_13
+        pin_13: embassy_rp::peripherals::PIN_13,
     ) -> Self {
-        let led_state: [bool; XSIZE * YSIZE] = [false; XSIZE * YSIZE ];
+        let led_state: [bool; XSIZE * YSIZE] = [false; XSIZE * YSIZE];
 
-        let clock: Output<'_> = Output::new(pin_11, Level::Low );
-        let data: Output<'_> = Output::new(pin_12, Level::Low );
-        let release: Output<'_> = Output::new(pin_13, Level::Low );
+        let clock: Output<'_> = Output::new(pin_11, Level::Low);
+        let data: Output<'_> = Output::new(pin_12, Level::Low);
+        let release: Output<'_> = Output::new(pin_13, Level::Low);
 
-        Self { clock, data, release, state:0, led_state }
+        Self {
+            clock,
+            data,
+            release,
+            state: 0,
+            led_state,
+        }
     }
 
-    pub fn set(
-        &mut self,
-        x: usize, 
-        y: usize,
-        state: bool )
-    {
-        self.led_state[ y * XSIZE + x ] = state;
+    pub fn set(&mut self, x: usize, y: usize, state: bool) {
+        self.led_state[y * XSIZE + x] = state;
     }
 
-    pub fn update(&mut self)
-    {
+    pub fn update(&mut self) {
         let cycle = self.state % 4;
-        let pixel = ( self.state / 4 ) % ( (XSIZE * YSIZE) as u32 );
-        let led = self.led_state[ pixel as usize ];
+        let pixel = (self.state / 4) % ((XSIZE * YSIZE) as u32);
+        let led = self.led_state[pixel as usize];
 
         match cycle {
             0 => {
@@ -51,8 +51,7 @@ impl LEDs<'_> {
             1 => {
                 if led {
                     self.data.set_high();
-                }
-                else {
+                } else {
                     self.data.set_low();
                 }
             }
@@ -67,4 +66,3 @@ impl LEDs<'_> {
         self.state = self.state + 1;
     }
 }
-
