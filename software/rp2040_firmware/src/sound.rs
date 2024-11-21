@@ -8,7 +8,7 @@ const AUDIO_SIZE : usize = 1462987;
 const AUDIO: &[u8; AUDIO_SIZE] = include_bytes!("../assets/ode.bin");
 
 const BUFFER_SIZE: usize = 48000;
-const CONFIG_TOP: u16 = 256;
+const CONFIG_TOP: u16 = 512;
 static mut SOUND_PIPE: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
 static mut SOUND_PIPE_READ: usize = 0;
 static mut SOUND_PIPE_WRITE: usize = 0;
@@ -19,7 +19,8 @@ static mut PWM_CONFIG: Option<Config> = None;
 // 125*1024*1024/256 (states)/48k
 // = 10.6666666
 //
-const CLOCK_DIVIDER_U16: u16 = 10 * 16 + 11;
+//const CLOCK_DIVIDER_U16: u16 = 10 * 16 + 11;
+const CLOCK_DIVIDER_U16: u16 = 5 * 16 + 5;
 //const CLOCK_DIVIDER = FixedU16::from_bits(CLOCK_DIVIDER_U16);
 
 pub struct Sound {
