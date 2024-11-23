@@ -6,7 +6,6 @@ use ssd1306::prelude::I2CInterface;
 use ssd1306::rotation::DisplayRotation;
 use ssd1306::size::DisplaySize128x32;
 use ssd1306::Ssd1306;
-use tinygif;
 
 use embedded_graphics::{
     pixelcolor::BinaryColor,
@@ -14,24 +13,12 @@ use embedded_graphics::{
     primitives::{Circle, PrimitiveStyleBuilder, Rectangle, Triangle},
 };
 
-/*
- TODO
-#[derive(PartialEq, Copy, Clone)]
-pub enum DisplayArt {
-    Eyes,
-}
-*/
-
 pub struct Display<'a> {
-    display: Ssd1306<
+    pub display: Ssd1306<
         I2CInterface<i2c::I2c<'a, I2C0, i2c::Blocking>>,
         DisplaySize128x32,
         BufferedGraphicsMode<DisplaySize128x32>,
     >,
-
-    eyes: tinygif::Gif<'a, BinaryColor>,
-
-    frame: u32,
 }
 
 impl Display<'_> {
@@ -51,33 +38,9 @@ impl Display<'_> {
             .into_buffered_graphics_mode();
         display.init().unwrap();
 
-        let eyes =
-            tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/eyes.gif")).unwrap();
-
-        let frame = 0;
-
         Self {
             display,
-            eyes,
-            frame,
         }
-    }
-
-    pub fn update(&mut self) {
-        let mut iterator = self.eyes.frames();
-        let mut image = iterator.next();
-        let mut c = 1;
-        while c < self.frame && image.is_some() {
-            image = iterator.next();
-            c = c + 1;
-        }
-        if image.is_none() {
-            self.frame = 1;
-            image = self.eyes.frames().next();
-        }
-        image.unwrap().draw(&mut self.display).unwrap();
-        self.display.flush().unwrap();
-        self.frame = self.frame + 1;
     }
 
     pub fn drawing_reference(&mut self) {
