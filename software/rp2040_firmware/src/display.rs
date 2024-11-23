@@ -43,6 +43,7 @@ impl Display<'_> {
         }
     }
 
+    /*
     pub fn drawing_reference(&mut self) {
         let yoffset = 8;
 
@@ -82,4 +83,5 @@ impl Display<'_> {
 
         self.display.flush().unwrap();
     }
+    */
 }
