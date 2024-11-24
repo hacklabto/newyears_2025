@@ -1,3 +1,5 @@
+//! Friendly wrapper (DisplaySSD) for the OLED display class and initializer
+
 use embassy_rp::i2c;
 use embassy_rp::peripherals::I2C0;
 use ssd1306::mode::BufferedGraphicsMode;
@@ -7,12 +9,7 @@ use ssd1306::rotation::DisplayRotation;
 use ssd1306::size::DisplaySize128x32;
 use ssd1306::Ssd1306;
 
-//use embedded_graphics::{
-    //pixelcolor::BinaryColor,
-    //prelude::*,
-    //primitives::{Circle, PrimitiveStyleBuilder, Rectangle, Triangle},
-//};
-
+/// Turn the actual display class into something readable.
 pub type DisplaySSD<'a> = 
     Ssd1306<
         I2CInterface<i2c::I2c<'a, I2C0, i2c::Blocking>>,
@@ -20,32 +17,35 @@ pub type DisplaySSD<'a> =
         BufferedGraphicsMode<DisplaySize128x32>,
     >;
 
-pub struct Display<'a> {
-    pub display: DisplaySSD<'a>,
+/// Create a display
+///
+/// i2c0, sclr, and sda are the I2C interface and I2C Pins
+/// Takes ownership of interface and pins from the caller.
+/// If the interface is changed, the pins need to change to match
+/// the new interface.
+///
+pub fn create_ssd_display<'a>(
+    i2c0: embassy_rp::peripherals::I2C0,
+    sclr: embassy_rp::peripherals::PIN_17,
+    sda: embassy_rp::peripherals::PIN_16,
+) -> DisplaySSD<'a> 
+{
+    let i2c = embassy_rp::i2c::I2c::new_blocking(
+        i2c0,
+        sclr, // SCLR
+        sda,  // SDA
+        Default::default(),
+    );
+    let interface = ssd1306::I2CDisplayInterface::new(i2c);
+    let mut display = Ssd1306::new(interface, DisplaySize128x32, DisplayRotation::Rotate0)
+        .into_buffered_graphics_mode();
+    display.init().unwrap();
+    display
 }
 
-impl Display<'_> {
-    pub fn new(
-        i2c0: embassy_rp::peripherals::I2C0,
-        sclr: embassy_rp::peripherals::PIN_17,
-        sda: embassy_rp::peripherals::PIN_16,
-    ) -> Self {
-        let i2c = embassy_rp::i2c::I2c::new_blocking(
-            i2c0,
-            sclr, // SCLR
-            sda,  // SDA
-            Default::default(),
-        );
-        let interface = ssd1306::I2CDisplayInterface::new(i2c);
-        let mut display = Ssd1306::new(interface, DisplaySize128x32, DisplayRotation::Rotate0)
-            .into_buffered_graphics_mode();
-        display.init().unwrap();
-
-        Self {
-            display,
-        }
-    }
-
+// Some sample code for drawing on the display
+// TODO - this could just be a link to the github example I used.
+ 
     /*
     pub fn drawing_reference(&mut self) {
         let yoffset = 8;
@@ -87,4 +87,3 @@ impl Display<'_> {
         self.display.flush().unwrap();
     }
     */
-}

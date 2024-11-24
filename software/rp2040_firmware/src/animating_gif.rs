@@ -1,4 +1,4 @@
-use crate::Display;
+use crate::display::DisplaySSD;
 use tinygif;
 
 use embedded_graphics::{
@@ -33,7 +33,7 @@ impl AnimatingGif<'_> {
         }
     }
 
-    pub fn update(&mut self, display: &mut Display) {
+    pub fn update(&mut self, display: &mut DisplaySSD) {
         let mut iterator = self.eyes.frames();
         let mut image = iterator.next();
         let mut c = 1;
@@ -45,8 +45,8 @@ impl AnimatingGif<'_> {
             self.frame = 1;
             image = self.eyes.frames().next();
         }
-        image.unwrap().draw(&mut display.display).unwrap();
-        display.display.flush().unwrap();
+        image.unwrap().draw(display).unwrap();
+        display.flush().unwrap();
         self.frame = self.frame + 1;
     }
 }

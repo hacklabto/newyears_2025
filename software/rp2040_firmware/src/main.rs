@@ -7,7 +7,7 @@ use panic_probe as _;
 #[embassy_executor::main]
 async fn main(_spawner: embassy_executor::Spawner) {
     let p = embassy_rp::init(Default::default());
-    let mut display = hackernewyears::Display::new(
+    let mut display = hackernewyears::display::create_ssd_display(
         p.I2C0, p.PIN_17, // SCLR
         p.PIN_16, // SDA
     );

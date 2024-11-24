@@ -1,7 +1,7 @@
 #![no_std]
 
-mod display;
-pub use display::Display;
+pub mod display;
+pub use display::DisplaySSD;
 
 mod leds;
 pub use leds::LEDs;
