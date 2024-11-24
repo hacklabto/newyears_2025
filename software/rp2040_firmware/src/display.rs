@@ -7,18 +7,21 @@ use ssd1306::rotation::DisplayRotation;
 use ssd1306::size::DisplaySize128x32;
 use ssd1306::Ssd1306;
 
-use embedded_graphics::{
-    pixelcolor::BinaryColor,
-    prelude::*,
-    primitives::{Circle, PrimitiveStyleBuilder, Rectangle, Triangle},
-};
+//use embedded_graphics::{
+    //pixelcolor::BinaryColor,
+    //prelude::*,
+    //primitives::{Circle, PrimitiveStyleBuilder, Rectangle, Triangle},
+//};
 
-pub struct Display<'a> {
-    pub display: Ssd1306<
+pub type DisplaySSD<'a> = 
+    Ssd1306<
         I2CInterface<i2c::I2c<'a, I2C0, i2c::Blocking>>,
         DisplaySize128x32,
         BufferedGraphicsMode<DisplaySize128x32>,
-    >,
+    >;
+
+pub struct Display<'a> {
+    pub display: DisplaySSD<'a>,
 }
 
 impl Display<'_> {
