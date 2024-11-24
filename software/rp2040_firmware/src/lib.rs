@@ -12,3 +12,6 @@ pub use animating_gif::AnimatingGif;
 
 mod sound;
 pub use sound::Sound;
+
+pub mod backlight;
+pub use backlight::{Config, PioBacklight};
