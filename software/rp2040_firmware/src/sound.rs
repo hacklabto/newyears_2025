@@ -54,10 +54,11 @@ static mut PWM_CONFIG: Option<Config> = None;
 // 125*1024*1024/256 (states)/48k
 // = 10.6666666
 //
+const FRACTION_BITS_IN_CLOCK_DIVIDER: u16 = 16;
+const RPI_FREQUENCY : u128 = 133000000;
 //const CLOCK_DIVIDER_U16: u16 = 10 * 16 + 11;
-const CLOCK_DIVIDER_U16: u16 = 5 * 16 + 5;
-//const CLOCK_DIVIDER = FixedU16::from_bits(CLOCK_DIVIDER_U16);
-const COUNTER_DIVIDER: u128 = (125000000) / (( CLOCK_DIVIDER_U16 as u128) * 256 / 16 );
+const CLOCK_DIVIDER_U16: u16 = 5 * FRACTION_BITS_IN_CLOCK_DIVIDER + 5;
+const PWM_INTERRUPTS_PER_SECOND: u128 = RPI_FREQUENCY / (( CLOCK_DIVIDER_U16 as u128) * (CONFIG_TOP as u128) / FRACTION_BITS_IN_CLOCK_DIVIDER as u128 );
 
 static mut COUNTER: u64 = 0;
 
@@ -69,10 +70,7 @@ impl Timer {
         unsafe {
             COUNTER as u128
         };
-        // Let's pretend that 2000 is 1000, which is what it should be
-        // if the code is working correctly.
-        //
-        (big_counter * 2000 / COUNTER_DIVIDER )  as u64
+        (big_counter * 1000 / PWM_INTERRUPTS_PER_SECOND)  as u64
     }
 }
 
