@@ -49,7 +49,6 @@ impl AnimatingGif<'_> {
             image = self.eyes.frames().next();
         }
         image.unwrap().draw(display).unwrap();
-        display.flush().unwrap();
         self.frame = self.frame + 1;
     }
 }
