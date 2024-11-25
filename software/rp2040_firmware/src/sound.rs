@@ -56,8 +56,14 @@ static mut PWM_CONFIG: Option<Config> = None;
 //
 const FRACTION_BITS_IN_CLOCK_DIVIDER: u16 = 16;
 const RPI_FREQUENCY : u128 = 133000000;
-//const CLOCK_DIVIDER_U16: u16 = 10 * 16 + 11;
-const CLOCK_DIVIDER_U16: u16 = 5 * FRACTION_BITS_IN_CLOCK_DIVIDER + 5;
+//const TARGET_FREQUENCY : u128 = 48000;  bad squee sound
+//const TARGET_FREQUENCY : u128 = 51853;  bad squee sound
+//const TARGET_FREQUENCY : u128 = 43294;  bad squee sound
+//const TARGET_FREQUENCY : u128 = 47500;  bad squee sound
+const TARGET_FREQUENCY : u128 = 48800;    // cound sound, but why?
+const CLOCK_DIVIDER : u128 = (FRACTION_BITS_IN_CLOCK_DIVIDER as u128) * RPI_FREQUENCY / (CONFIG_TOP as u128) / TARGET_FREQUENCY;
+const CLOCK_DIVIDER_U16 : u16 = CLOCK_DIVIDER as u16;
+
 const PWM_INTERRUPTS_PER_SECOND: u128 = RPI_FREQUENCY / (( CLOCK_DIVIDER_U16 as u128) * (CONFIG_TOP as u128) / FRACTION_BITS_IN_CLOCK_DIVIDER as u128 );
 
 static mut COUNTER: u64 = 0;
