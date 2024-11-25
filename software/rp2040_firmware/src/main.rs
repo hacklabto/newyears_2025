@@ -24,9 +24,9 @@ async fn main(_spawner: embassy_executor::Spawner) {
 
     let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(200));
     loop {
-        ticker.next().await;
         animating_gif.update( &mut display );
         leds.update();
         gsound.update();
+        ticker.next().await;
     }
 }

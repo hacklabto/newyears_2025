@@ -58,6 +58,20 @@ static mut PWM_CONFIG: Option<Config> = None;
 const CLOCK_DIVIDER_U16: u16 = 5 * 16 + 5;
 //const CLOCK_DIVIDER = FixedU16::from_bits(CLOCK_DIVIDER_U16);
 
+static mut COUNTER: u64 = 0;
+
+pub struct Timer {}
+
+impl Timer {
+    pub fn ms_from_start() -> u64 {
+        let big_counter : u128  =
+        unsafe {
+            COUNTER as u128
+        };
+        (big_counter * 16000 / CLOCK_DIVIDER_U16 as u128)  as u64
+    }
+}
+
 pub struct Sound {
     //state: bool,
     //time_to_state_change: u32
@@ -112,6 +126,7 @@ impl Sound {
 #[interrupt]
 fn PWM_IRQ_WRAP() {
     unsafe {
+        COUNTER = COUNTER + 1;
         let value = SOUND_PIPE.as_mut().unwrap().get();
         let config = PWM_CONFIG.as_mut().unwrap();
         config.compare_a = value as u16;

@@ -1,3 +1,6 @@
+//! Bind preloaed animating gifs emums so Rust doesn't taz library users
+//! Expose a simple way to play the animating gifs
+
 use crate::display::DisplaySSD;
 use tinygif;
 
