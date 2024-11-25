@@ -6,6 +6,10 @@ pub use display::DisplaySSD;
 mod leds;
 pub use leds::LEDs;
 
+mod buttons;
+pub use buttons::Buttons;
+pub use buttons::Button;
+
 mod animating_gif;
 pub use animating_gif::AnimatingGif;
 

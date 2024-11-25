@@ -1,9 +1,6 @@
-// Resistor 32 ohm
-
 use embassy_rp::interrupt;
 use embassy_rp::pwm::{Config, Pwm};
 use fixed::FixedU16;
-//#use core::include_bytes;
 
 const AUDIO_SIZE: usize = 1462987;
 const AUDIO: &[u8; AUDIO_SIZE] = include_bytes!("../assets/ode.bin");
