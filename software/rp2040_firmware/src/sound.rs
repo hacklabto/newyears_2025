@@ -57,6 +57,7 @@ static mut PWM_CONFIG: Option<Config> = None;
 //const CLOCK_DIVIDER_U16: u16 = 10 * 16 + 11;
 const CLOCK_DIVIDER_U16: u16 = 5 * 16 + 5;
 //const CLOCK_DIVIDER = FixedU16::from_bits(CLOCK_DIVIDER_U16);
+const COUNTER_DIVIDER: u128 = (125000000) / (( CLOCK_DIVIDER_U16 as u128) * 256 / 16 );
 
 static mut COUNTER: u64 = 0;
 
@@ -68,7 +69,10 @@ impl Timer {
         unsafe {
             COUNTER as u128
         };
-        (big_counter * 16000 / CLOCK_DIVIDER_U16 as u128)  as u64
+        // Let's pretend that 2000 is 1000, which is what it should be
+        // if the code is working correctly.
+        //
+        (big_counter * 2000 / COUNTER_DIVIDER )  as u64
     }
 }
 

@@ -10,6 +10,8 @@ use embedded_graphics::text::Text;
 use embedded_graphics::prelude::Point;
 use embedded_graphics::Drawable;
 use embedded_graphics::pixelcolor::BinaryColor;
+use heapless::String;
+use embedded_graphics::draw_target::DrawTarget;
 
 use defmt_rtt as _;
 use panic_probe as _;
@@ -34,7 +36,10 @@ async fn main(_spawner: embassy_executor::Spawner) {
 
     let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(200));
     loop {
+        display.clear(BinaryColor::Off).unwrap();
+
         animating_gif.update( &mut display );
+        let time = hackernewyears::Timer::ms_from_start() as u32;
 
         // Create a new character style.
         let character_style = MonoTextStyle::new(&FONT_10X20, BinaryColor::On);
@@ -45,7 +50,8 @@ async fn main(_spawner: embassy_executor::Spawner) {
                 .line_height(LineHeight::Percent(150))
                 .build();
 
-        let _ = Text::with_text_style("FOO!",
+        let time_as_str: String<100> = String::try_from(time).unwrap(); 
+        let _ = Text::with_text_style(&time_as_str,
                 Point::new(64,15),
                 character_style,
                 text_style).draw( &mut display );
