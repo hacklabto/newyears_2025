@@ -5,9 +5,15 @@ use embedded_graphics::pixelcolor::BinaryColor;
 use heapless::String;
 use embedded_graphics::draw_target::DrawTarget;
 use hackernewyears::Button;
+use hackernewyears::Devices;
+use hackernewyears::MenuItem;
 
 use defmt_rtt as _;
 use panic_probe as _;
+
+fn run_test( _device: &mut Devices<'_> )
+{
+}
 
 #[embassy_executor::main]
 async fn main(_spawner: embassy_executor::Spawner) {
@@ -25,6 +31,11 @@ async fn main(_spawner: embassy_executor::Spawner) {
         p.PIN_0,    // Sound "a" output
         p.PIN_1,    // Sound "b" output
     );
+
+    hackernewyears::menu::run_menu( 
+        &MenuItem{ text: "Main Menu" , on_select: &run_test},
+        &mut devices
+    ).await;
 
     let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(200));
     loop {
