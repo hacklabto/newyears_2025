@@ -1,17 +1,20 @@
 #![no_std]
 
-pub mod display;
-pub use display::DisplaySSD;
-
-mod leds;
-pub use leds::LEDs;
+mod animating_gif;
+pub use animating_gif::AnimatingGif;
 
 mod buttons;
 pub use buttons::Buttons;
 pub use buttons::Button;
 
-mod animating_gif;
-pub use animating_gif::AnimatingGif;
+pub mod display;
+pub use display::DisplaySSD;
+
+pub mod devices;
+pub use devices::Devices;
+
+mod leds;
+pub use leds::LEDs;
 
 
 mod sound;

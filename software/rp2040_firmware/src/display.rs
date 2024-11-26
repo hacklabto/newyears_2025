@@ -1,4 +1,5 @@
 //! Friendly wrapper (DisplaySSD) for the OLED display class and initializer
+//! Plus some utilities
 
 use embassy_rp::i2c;
 use embassy_rp::peripherals::I2C0;
@@ -66,7 +67,7 @@ pub fn draw_text<'a>( display: &mut DisplaySSD<'a>, text: &str, line: i32, bold:
         .build();
 
     let _ = Text::with_text_style(text,
-                Point::new(0, line * 16 + 15),
+                Point::new(0, line ),
                 character_style,
                 text_style).draw( display );
 }
