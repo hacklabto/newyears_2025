@@ -20,7 +20,6 @@ mod leds;
 pub use leds::LEDs;
 
 pub mod menu;
-pub use menu::MenuItem;
 
 mod sound;
 pub use sound::Sound;
