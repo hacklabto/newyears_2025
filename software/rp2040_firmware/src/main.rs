@@ -21,18 +21,10 @@ async fn main(_spawner: embassy_executor::Spawner) {
         p.I2C0,  // Display I2C channel
         p.PIN_17, // Display I2C SCLR
         p.PIN_16, // Display I2C SDA
+        p.PWM_SLICE0,   // Sound PWM slice
+        p.PIN_0,    // Sound "a" output
+        p.PIN_1,    // Sound "b" output
     );
-
-    let mut _animating_gif = hackernewyears::AnimatingGif::new();
-
-    let mut leds = hackernewyears::LEDs::new(p.PIN_11, p.PIN_12, p.PIN_13);
-
-    let mut gsound = hackernewyears::Sound::new(p.PIN_0, p.PIN_1, p.PWM_SLICE0);
-
-    leds.set(1, 1, true);
-    leds.set(1, 3, true);
-    leds.set(3, 1, true);
-    leds.set(3, 3, true);
 
     let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(200));
     loop {
@@ -58,8 +50,6 @@ async fn main(_spawner: embassy_executor::Spawner) {
         }
         hackernewyears::display::draw_text(&mut devices.display, time_as_str.as_str(), 15 , true );
         hackernewyears::display::draw_text(&mut devices.display, button_status.as_str(), 31, false );
-        leds.update();
-        gsound.update();
         ticker.next().await;
         devices.display.flush().unwrap();
     }
