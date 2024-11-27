@@ -1,4 +1,5 @@
 //! Friendly wrapper (DisplaySSD) for the OLED display class and initializer
+//! Plus some utilities
 
 use embassy_rp::i2c;
 use embassy_rp::i2c::{Instance, SclPin, SdaPin};
@@ -9,8 +10,18 @@ use ssd1306::prelude::I2CInterface;
 use ssd1306::rotation::DisplayRotation;
 use ssd1306::size::DisplaySize128x32;
 use ssd1306::Ssd1306;
+use embedded_graphics::mono_font::MonoTextStyle;
+use embedded_graphics::mono_font::ascii::FONT_9X18;
+use embedded_graphics::mono_font::ascii::FONT_9X18_BOLD;
+use embedded_graphics::text::TextStyleBuilder;
+use embedded_graphics::text::Alignment;
+use embedded_graphics::text::LineHeight;
+use embedded_graphics::text::Text;
+use embedded_graphics::prelude::Point;
+use embedded_graphics::pixelcolor::BinaryColor;
+use embedded_graphics::Drawable;
 
-/// Turn the actual display class into something readable.
+/// Turn the actual display class into something readable
 pub type DisplaySSD<'a, I2C> = Ssd1306<
     I2CInterface<i2c::I2c<'a, I2C, i2c::Blocking>>,
     DisplaySize128x32,
@@ -38,6 +49,24 @@ pub fn create_ssd_display<'a, I2C: Instance>(
         .into_buffered_graphics_mode();
     display.init().unwrap();
     display
+}
+
+pub fn draw_text<'a, I2C: Instance>( display: &mut DisplaySSD<'a, I2C>, text: &str, line: i32, bold: bool )
+{
+    // Create the character style.
+    let character_style = MonoTextStyle::new(
+        if bold { &FONT_9X18_BOLD } else {&FONT_9X18} , BinaryColor::On);
+
+    // Create a new text style.
+    let text_style = TextStyleBuilder::new()
+        .alignment(Alignment::Left)
+        .line_height(LineHeight::Percent(120))
+        .build();
+
+    let _ = Text::with_text_style(text,
+                Point::new(0, line ),
+                character_style,
+                text_style).draw( display );
 }
 
 // Some sample code for drawing on the display
