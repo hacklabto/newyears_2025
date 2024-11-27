@@ -1,3 +1,4 @@
+use embassy_rp::dma::Channel;
 use embassy_rp::gpio::Level;
 use embassy_rp::pio::{
     Common, Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
@@ -15,19 +16,25 @@ pub struct Config {
     pub num_intensity_levels: u8,
 }
 
-pub struct PioBacklight<'d, PIO: Instance, const SM: usize> {
+pub struct PioBacklight<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
     pub config: Config,
-    pub sm: StateMachine<'d, PIO, SM>,
+    pub state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
+
+    // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
+    pub dma_channel: DMA,
 }
-impl<'d, PIO: Instance, const SM: usize> PioBacklight<'d, PIO, SM> {
+impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
+    PioBacklight<'d, PIO, STATE_MACHINE_IDX, DMA>
+{
     pub fn new(
-        common: &mut Common<'d, PIO>,
-        mut sm: StateMachine<'d, PIO, SM>,
         config: Config,
+        common: &mut Common<'d, PIO>,
+        mut sm: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
         led_data_pin: impl PioPin,
         led_clk_pin: impl PioPin,
         led_latch_pin: impl PioPin,
         led_clear_pin: impl PioPin,
+        dma_channel: DMA,
     ) -> Self {
         /*
             We are using daisy-chained TLC5926IDBQR shift registers, and supply
@@ -175,10 +182,14 @@ impl<'d, PIO: Instance, const SM: usize> PioBacklight<'d, PIO, SM> {
         let prg = common.load_program(&prg.program);
         pio_cfg.use_program(&prg, &[&led_clk_pin, &led_latch_pin]);
         sm.set_config(&pio_cfg);
-        Self { config, sm }
+        Self {
+            config: config,
+            state_machine: sm,
+            dma_channel: dma_channel,
+        }
     }
 
     pub fn start(&mut self) {
-        self.sm.set_enable(true);
+        self.state_machine.set_enable(true);
     }
 }

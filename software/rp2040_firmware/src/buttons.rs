@@ -1,7 +1,7 @@
 //! A class to abstract buttons
 
 use embassy_rp::gpio;
-use gpio::{Input, Pull};
+use gpio::{Input, Pin, Pull};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum Button{
@@ -11,7 +11,6 @@ pub enum Button{
     B3,
 }
 
-
 pub struct Buttons<'a> {
     b0: Input<'a>,
     b1: Input<'a>,
@@ -20,17 +19,12 @@ pub struct Buttons<'a> {
 }
 
 impl Buttons<'_> {
-    pub fn new(
-        pin_2: embassy_rp::peripherals::PIN_2,
-        pin_3: embassy_rp::peripherals::PIN_3,
-        pin_4: embassy_rp::peripherals::PIN_4,
-        pin_5: embassy_rp::peripherals::PIN_5,
-    ) -> Self {
-        let b0: Input<'_> = Input::new( pin_2, Pull::Up );
-        let b1: Input<'_> = Input::new( pin_3, Pull::Up );
-        let b2: Input<'_> = Input::new( pin_4, Pull::Up );
-        let b3: Input<'_> = Input::new( pin_5, Pull::Up );
-        Self{ b0, b1, b2, b3 }
+    pub fn new(b0_pin: impl Pin, b1_pin: impl Pin, b2_pin: impl Pin, b3_pin: impl Pin) -> Self {
+        let b0: Input<'_> = Input::new(b0_pin, Pull::Up);
+        let b1: Input<'_> = Input::new(b1_pin, Pull::Up);
+        let b2: Input<'_> = Input::new(b2_pin, Pull::Up);
+        let b3: Input<'_> = Input::new(b3_pin, Pull::Up);
+        Self { b0, b1, b2, b3 }
     }
 
     pub fn is_pressed( &self, button: Button ) -> bool {
@@ -71,4 +65,3 @@ impl Buttons<'_> {
         }
     }
 }
-

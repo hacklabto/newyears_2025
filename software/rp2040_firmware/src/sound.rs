@@ -1,5 +1,7 @@
+use core::marker::PhantomData;
 use embassy_rp::interrupt;
-use embassy_rp::pwm::{Config, Pwm};
+use embassy_rp::pwm::{ChannelAPin, ChannelBPin, Config, Pwm, Slice};
+use embassy_rp::Peripheral;
 use fixed::FixedU16;
 
 const AUDIO_SIZE: usize = 1462987;
@@ -77,17 +79,21 @@ impl Timer {
     }
 }
 
-pub struct Sound {
+pub struct Sound<PwmSlice: Slice> {
     //state: bool,
     //time_to_state_change: u32
     audio_pos: usize,
+    // Add a dummy member so the struct can be tied to the PWM
+    // interface being used
+    pwm_device: PhantomData<PwmSlice>,
 }
 
-impl Sound {
+impl<PwmSlice: Slice> Sound<PwmSlice> {
+    // These are hardware interfaces, so they will live for the entire program (+ 'static)
     pub fn new(
-        pin_pos: embassy_rp::peripherals::PIN_0,
-        pin_neg: embassy_rp::peripherals::PIN_1,
-        pwm_slice: embassy_rp::peripherals::PWM_SLICE0,
+        pin_pos: impl Peripheral<P = impl ChannelAPin<PwmSlice>> + 'static,
+        pin_neg: impl Peripheral<P = impl ChannelBPin<PwmSlice>> + 'static,
+        pwm_slice: impl Peripheral<P = PwmSlice> + 'static,
     ) -> Self {
         let pwm_ab =
             embassy_rp::pwm::Pwm::new_output_ab(pwm_slice, pin_pos, pin_neg, Default::default());
@@ -110,7 +116,10 @@ impl Sound {
             cortex_m::peripheral::NVIC::unmask(interrupt::PWM_IRQ_WRAP);
         }
 
-        Self { audio_pos: 0 }
+        Self {
+            audio_pos: 0,
+            pwm_device: PhantomData,
+        }
     }
 
     pub fn update(&mut self) {

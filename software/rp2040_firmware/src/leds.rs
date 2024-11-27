@@ -1,5 +1,5 @@
 use embassy_rp::gpio;
-use gpio::{Level, Output};
+use gpio::{Level, Output, Pin};
 
 const XSIZE: usize = 8;
 const YSIZE: usize = 8;
@@ -14,16 +14,12 @@ pub struct LEDs<'a> {
 }
 
 impl LEDs<'_> {
-    pub fn new(
-        pin_11: embassy_rp::peripherals::PIN_11,
-        pin_12: embassy_rp::peripherals::PIN_12,
-        pin_13: embassy_rp::peripherals::PIN_13,
-    ) -> Self {
+    pub fn new(clock_pin: impl Pin, data_pin: impl Pin, release_pin: impl Pin) -> Self {
         let led_state: [bool; XSIZE * YSIZE] = [false; XSIZE * YSIZE];
 
-        let clock: Output<'_> = Output::new(pin_11, Level::Low);
-        let data: Output<'_> = Output::new(pin_12, Level::Low);
-        let release: Output<'_> = Output::new(pin_13, Level::Low);
+        let clock: Output<'_> = Output::new(clock_pin, Level::Low);
+        let data: Output<'_> = Output::new(data_pin, Level::Low);
+        let release: Output<'_> = Output::new(release_pin, Level::Low);
 
         Self {
             clock,

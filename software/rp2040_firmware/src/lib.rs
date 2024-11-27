@@ -24,4 +24,3 @@ pub mod menu;
 mod sound;
 pub use sound::Sound;
 pub use sound::Timer;
-
