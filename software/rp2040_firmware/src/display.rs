@@ -1,7 +1,8 @@
 //! Friendly wrapper (DisplaySSD) for the OLED display class and initializer
 
 use embassy_rp::i2c;
-use embassy_rp::peripherals::I2C0;
+use embassy_rp::i2c::{Instance, SclPin, SdaPin};
+use embassy_rp::Peripheral;
 use ssd1306::mode::BufferedGraphicsMode;
 use ssd1306::mode::DisplayConfig;
 use ssd1306::prelude::I2CInterface;
@@ -10,28 +11,24 @@ use ssd1306::size::DisplaySize128x32;
 use ssd1306::Ssd1306;
 
 /// Turn the actual display class into something readable.
-pub type DisplaySSD<'a> = 
-    Ssd1306<
-        I2CInterface<i2c::I2c<'a, I2C0, i2c::Blocking>>,
-        DisplaySize128x32,
-        BufferedGraphicsMode<DisplaySize128x32>,
-    >;
+pub type DisplaySSD<'a, I2C> = Ssd1306<
+    I2CInterface<i2c::I2c<'a, I2C, i2c::Blocking>>,
+    DisplaySize128x32,
+    BufferedGraphicsMode<DisplaySize128x32>,
+>;
 
 /// Create a display
 ///
 /// i2c0, sclr, and sda are the I2C interface and I2C Pins
 /// Takes ownership of interface and pins from the caller.
-/// If the interface is changed, the pins need to change to match
-/// the new interface.
 ///
-pub fn create_ssd_display<'a>(
-    i2c0: embassy_rp::peripherals::I2C0,
-    sclr: embassy_rp::peripherals::PIN_17,
-    sda: embassy_rp::peripherals::PIN_16,
-) -> DisplaySSD<'a> 
-{
+pub fn create_ssd_display<'a, I2C: Instance>(
+    i2c_interface: impl Peripheral<P = I2C> + 'a,
+    sclr: impl Peripheral<P = impl SclPin<I2C>> + 'a,
+    sda: impl Peripheral<P = impl SdaPin<I2C>> + 'a,
+) -> DisplaySSD<'a, I2C> {
     let i2c = embassy_rp::i2c::I2c::new_blocking(
-        i2c0,
+        i2c_interface,
         sclr, // SCLR
         sda,  // SDA
         Default::default(),
@@ -45,7 +42,7 @@ pub fn create_ssd_display<'a>(
 
 // Some sample code for drawing on the display
 // TODO - this could just be a link to the github example I used.
- 
+
     /*
     pub fn drawing_reference(&mut self) {
         let yoffset = 8;

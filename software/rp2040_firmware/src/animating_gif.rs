@@ -2,6 +2,7 @@
 //! Expose a simple way to play the animating gifs
 
 use crate::display::DisplaySSD;
+use embassy_rp::i2c::Instance;
 use tinygif;
 
 use embedded_graphics::{
@@ -25,7 +26,6 @@ pub struct AnimatingGif<'a> {
 impl AnimatingGif<'_> {
     pub fn new(
     ) -> Self {
-
         let frame = 0;
         let eyes =
             tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/eyes.gif")).unwrap();
@@ -36,7 +36,7 @@ impl AnimatingGif<'_> {
         }
     }
 
-    pub fn update(&mut self, display: &mut DisplaySSD) {
+    pub fn update<I2C: Instance>(&mut self, display: &mut DisplaySSD<'_, I2C>) {
         let mut iterator = self.eyes.frames();
         let mut image = iterator.next();
         let mut c = 1;
@@ -52,4 +52,3 @@ impl AnimatingGif<'_> {
         self.frame = self.frame + 1;
     }
 }
-
