@@ -1,54 +1,69 @@
-//! Bind preloaed animating gifs emums so Rust doesn't taz library users
+//! Bind preloaed animating gifs emums so Rust doesn't taze library users
 //! Expose a simple way to play the animating gifs
 
-use crate::display::DisplaySSD;
-use embassy_rp::i2c::Instance;
-use tinygif;
+use crate::devices::Devices;
+use crate::Timer;
+use crate::Button;
 
 use embedded_graphics::{
     pixelcolor::BinaryColor,
     prelude::*,
 };
 
-/*
- TODO
 #[derive(PartialEq, Copy, Clone)]
-pub enum DisplayArt {
+pub enum AnimatingGif {
     Eyes,
+    Abstract,
+    Logo,
 }
-*/
 
-pub struct AnimatingGif<'a> {
+pub struct AnimatingGifs<'a> {
     eyes: tinygif::Gif<'a, BinaryColor>,
-    frame: u32,
+    abstract_animation: tinygif::Gif<'a, BinaryColor>,
+    logo: tinygif::Gif<'a, BinaryColor>,
 }
 
-impl AnimatingGif<'_> {
+impl AnimatingGifs<'_> {
     pub fn new(
     ) -> Self {
-        let frame = 0;
         let eyes =
             tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/eyes.gif")).unwrap();
+        let abstract_animation =
+            tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/abstract.gif")).unwrap();
+        let logo =
+            tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/logo.gif")).unwrap();
 
         Self {
             eyes,
-            frame,
+            abstract_animation,
+            logo,
         }
     }
 
-    pub fn update<I2C: Instance>(&mut self, display: &mut DisplaySSD<'_, I2C>) {
-        let mut iterator = self.eyes.frames();
-        let mut image = iterator.next();
-        let mut c = 1;
-        while c < self.frame && image.is_some() {
-            image = iterator.next();
-            c = c + 1;
+    pub async fn animate(&self, animating_gif: AnimatingGif, devices: &mut Devices<'_> ) {
+        let start_time = Timer::ms_from_start();
+        let mut animation_time: i32 = 0;
+
+        let gif = match animating_gif {
+            AnimatingGif::Eyes => &self.eyes,
+            AnimatingGif::Abstract => &self.abstract_animation,
+            AnimatingGif::Logo=> &self.logo,
+        };
+        devices.display.clear(BinaryColor::Off).unwrap();
+
+        for frame in gif.frames() {
+            if devices.buttons.is_pressed( Button::B0 ) {
+                break;  // "escape"
+            }
+            let ms_since_start = (Timer::ms_from_start() - start_time) as i32;
+            let time_to_frame = animation_time - ms_since_start;
+            if time_to_frame >= 0 {
+                let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(time_to_frame.try_into().unwrap()));
+                ticker.next().await;
+                frame.draw(&mut devices.display).unwrap();
+                devices.display.flush().unwrap();
+            }
+            animation_time += (frame.delay_centis as i32) * 10;
         }
-        if image.is_none() {
-            self.frame = 1;
-            image = self.eyes.frames().next();
-        }
-        image.unwrap().draw(display).unwrap();
-        self.frame = self.frame + 1;
     }
 }

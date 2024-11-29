@@ -1,10 +1,8 @@
 #![no_std]
 #![no_main]
 
-use embedded_graphics::pixelcolor::BinaryColor;
-use embedded_graphics::draw_target::DrawTarget;
-use hackernewyears::Button;
-use heapless::String;
+use hackernewyears::AnimatingGif;
+use hackernewyears::AnimatingGifs;
 
 use defmt_rtt as _;
 use panic_probe as _;
@@ -13,37 +11,23 @@ use panic_probe as _;
 async fn main(_spawner: embassy_executor::Spawner) {
     let p = embassy_rp::init(Default::default());
     let mut devices = hackernewyears::Devices::new(p);
+    let animating_gifs = AnimatingGifs::new();
 
-    hackernewyears::menu::run_menu(
-        &[ "Main Menu", "Eyes Animated Gif", "Ode to Joy" ], &mut devices
-    ).await;
+    for _ in 0..5 {
+        animating_gifs.animate(AnimatingGif::Logo, &mut devices).await;
+    }
 
-    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(200));
     loop {
-        devices.display.clear(BinaryColor::Off).unwrap();
+        let result = hackernewyears::menu::run_menu(
+                &[ "Main Menu", "Eyes Animated Gif", "Abstract" ], &mut devices
+        ).await;
 
-        //animating_gif.update( &mut devices.display );
-        let time = hackernewyears::Timer::ms_from_start() as u32;
-
-        let time_as_str: String<100> = String::try_from(time).unwrap();
-
-        let mut button_status : String<100> = Default::default();
-        if devices.buttons.is_pressed(Button::B0) {
-            button_status.push('A').unwrap();
+        match result {
+            None => {} ,
+            Some(0) => todo!(),
+            Some(1) => animating_gifs.animate(AnimatingGif::Eyes, &mut devices).await,
+            Some(2) => animating_gifs.animate(AnimatingGif::Abstract, &mut devices).await,
+            Some(3..) => todo!(),
         }
-        if devices.buttons.is_pressed(Button::B1) {
-            button_status.push('B').unwrap();
-        }
-        if devices.buttons.is_pressed(Button::B2) {
-            button_status.push('C').unwrap();
-        }
-        if devices.buttons.is_pressed(Button::B3) {
-            button_status.push('D').unwrap();
-        }
-        hackernewyears::display::draw_text(&mut devices.display, time_as_str.as_str(), 15 , true );
-        hackernewyears::display::draw_text(&mut devices.display, button_status.as_str(), 31, false );
-
-        ticker.next().await;
-        devices.display.flush().unwrap();
     }
 }
