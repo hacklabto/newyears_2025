@@ -19,26 +19,26 @@ async fn main(_spawner: embassy_executor::Spawner) {
     }
 
     loop {
-/*
+
+        #[derive(Copy, Clone, PartialEq)]
         pub enum MainMenu {
             UpMenu,
             Eyes,
             Abstract
         }
-*/
-        let result = hackernewyears::menu::run_menu (
-                &[ &MenuBinding::new("Main Menu", 0),
-                   &MenuBinding::new("Eyes Animated Gif", 1),
-                   &MenuBinding::new("Abstract", 2)],
+
+        let result = hackernewyears::menu::run_menu::<MainMenu> (
+                &[ &MenuBinding::new("Main Menu", MainMenu::UpMenu),
+                   &MenuBinding::new("Eyes Animated Gif", MainMenu::Eyes),
+                   &MenuBinding::new("Abstract", MainMenu::Abstract)],
+                MainMenu::UpMenu,
                 &mut devices
         ).await;
-//, "Eyes Animated Gif", "Abstract" ], &mut devices
 
         match result {
-            0 => {} ,
-            1 => animating_gifs.animate(AnimatingGif::Eyes, &mut devices).await,
-            2 => animating_gifs.animate(AnimatingGif::Abstract, &mut devices).await,
-            3.. => todo!(),
+            MainMenu::UpMenu => {} ,
+            MainMenu::Eyes => animating_gifs.animate(AnimatingGif::Eyes, &mut devices).await,
+            MainMenu::Abstract => animating_gifs.animate(AnimatingGif::Abstract, &mut devices).await,
         }
     }
 }

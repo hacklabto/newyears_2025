@@ -5,19 +5,22 @@ use crate::Button;
 use embedded_graphics::pixelcolor::BinaryColor;
 use crate::Timer;
 
-pub struct MenuBinding<'a>
+pub struct MenuBinding<'a, T>
+    where T: Clone
 {
     text: &'a str,
-    binding: u32
+    binding: T 
 }
 
-impl<'a> MenuBinding<'a> {
-    pub const fn new( text: &'a str, binding: u32 ) -> Self {
+impl<'a, T> MenuBinding<'a, T>
+    where T: Clone 
+{
+    pub const fn new( text: &'a str, binding: T ) -> Self {
         Self{ text, binding }
     }
 }
 
-fn draw_menu(menu_items: &[&MenuBinding], devices: &mut Devices<'_>, menu_item: usize, percent: i32 )
+fn draw_menu<T: Clone>(menu_items: &[&MenuBinding<T>], devices: &mut Devices<'_>, menu_item: usize, percent: i32 )
 {
     const GAP: i32 = 16;
     const MID: i32 = 18;
@@ -35,7 +38,7 @@ fn draw_menu(menu_items: &[&MenuBinding], devices: &mut Devices<'_>, menu_item: 
     devices.display.flush().unwrap();
 }
 
-pub async fn transition_upwards(menu_items: &[&MenuBinding<'_>], devices: &mut Devices<'_>, new_pos: usize )
+pub async fn transition_upwards<T: Clone>(menu_items: &[&MenuBinding<'_, T>], devices: &mut Devices<'_>, new_pos: usize )
 {
     let start_time = Timer::ms_from_start() as u32;
     let mut current_time = start_time;
@@ -46,7 +49,7 @@ pub async fn transition_upwards(menu_items: &[&MenuBinding<'_>], devices: &mut D
     }
 }
 
-pub async fn transition_downwards(menu_items: &[&MenuBinding<'_>], devices: &mut Devices<'_>, new_pos: usize )
+pub async fn transition_downwards<T: Clone>(menu_items: &[&MenuBinding<'_, T>], devices: &mut Devices<'_>, new_pos: usize )
 {
     let start_time = Timer::ms_from_start() as u32;
     let mut current_time = start_time;
@@ -58,7 +61,7 @@ pub async fn transition_downwards(menu_items: &[&MenuBinding<'_>], devices: &mut
 }
 
 
-pub async fn run_menu(menu_items: &[&MenuBinding<'_>], devices: &mut Devices<'_> ) -> u32 
+pub async fn run_menu<T: Clone>(menu_items: &[&MenuBinding<'_, T>], up_menu: T, devices: &mut Devices<'_> ) -> T
 {
     let mut current_pos : usize = 0;
     let max_items = menu_items.len();
@@ -67,10 +70,10 @@ pub async fn run_menu(menu_items: &[&MenuBinding<'_>], devices: &mut Devices<'_>
         draw_menu(menu_items, devices, current_pos, 0 );
         let button = devices.buttons.wait_for_press().await;
         if button == Button::B0 {
-            return 0;
+            return up_menu;
         }
         if button == Button::B3 {
-            return menu_items[current_pos].binding;
+            return menu_items[current_pos].binding.clone();
         }
         if button == Button::B1 && current_pos > 0 {
             current_pos = current_pos - 1;
