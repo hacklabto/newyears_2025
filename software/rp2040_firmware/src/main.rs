@@ -1,9 +1,9 @@
 #![no_std]
 #![no_main]
 
+use hackernewyears::menu::MenuBinding;
 use hackernewyears::AnimatingGif;
 use hackernewyears::AnimatingGifs;
-use hackernewyears::menu::MenuBinding;
 
 use defmt_rtt as _;
 use panic_probe as _;
@@ -15,30 +15,42 @@ async fn main(_spawner: embassy_executor::Spawner) {
     let animating_gifs = AnimatingGifs::new();
 
     for _ in 0..5 {
-        animating_gifs.animate(AnimatingGif::Logo, &mut devices).await;
+        animating_gifs
+            .animate(AnimatingGif::Logo, &mut devices)
+            .await;
     }
 
     loop {
-
-        #[derive(Copy, Clone, PartialEq)]
-        pub enum MainMenu {
+        #[derive(Clone)]
+        pub enum MainMenuResult {
             UpMenu,
             Eyes,
-            Abstract
+            Abstract,
         }
 
-        let result = hackernewyears::menu::run_menu::<MainMenu> (
-                &[ &MenuBinding::new("Main Menu", MainMenu::UpMenu),
-                   &MenuBinding::new("Eyes Animated Gif", MainMenu::Eyes),
-                   &MenuBinding::new("Abstract", MainMenu::Abstract)],
-                MainMenu::UpMenu,
-                &mut devices
-        ).await;
+        let result = hackernewyears::menu::run_menu::<MainMenuResult>(
+            &[
+                MenuBinding::new("Main Menu", None),
+                MenuBinding::new("Eyes Animated Gif", Some(MainMenuResult::Eyes)),
+                MenuBinding::new("Abstract", Some(MainMenuResult::Abstract)),
+            ],
+            MainMenuResult::UpMenu,
+            &mut devices,
+        )
+        .await;
 
         match result {
-            MainMenu::UpMenu => {} ,
-            MainMenu::Eyes => animating_gifs.animate(AnimatingGif::Eyes, &mut devices).await,
-            MainMenu::Abstract => animating_gifs.animate(AnimatingGif::Abstract, &mut devices).await,
+            MainMenuResult::UpMenu => {} // Already at the top
+            MainMenuResult::Eyes => {
+                animating_gifs
+                    .animate(AnimatingGif::Eyes, &mut devices)
+                    .await
+            }
+            MainMenuResult::Abstract => {
+                animating_gifs
+                    .animate(AnimatingGif::Abstract, &mut devices)
+                    .await
+            }
         }
     }
 }
