@@ -3,6 +3,7 @@
 
 use hackernewyears::AnimatingGif;
 use hackernewyears::AnimatingGifs;
+use hackernewyears::menu::MenuBinding;
 
 use defmt_rtt as _;
 use panic_probe as _;
@@ -18,16 +19,26 @@ async fn main(_spawner: embassy_executor::Spawner) {
     }
 
     loop {
-        let result = hackernewyears::menu::run_menu(
-                &[ "Main Menu", "Eyes Animated Gif", "Abstract" ], &mut devices
+/*
+        pub enum MainMenu {
+            UpMenu,
+            Eyes,
+            Abstract
+        }
+*/
+        let result = hackernewyears::menu::run_menu (
+                &[ &MenuBinding::new("Main Menu", 0),
+                   &MenuBinding::new("Eyes Animated Gif", 1),
+                   &MenuBinding::new("Abstract", 2)],
+                &mut devices
         ).await;
+//, "Eyes Animated Gif", "Abstract" ], &mut devices
 
         match result {
-            None => {} ,
-            Some(0) => todo!(),
-            Some(1) => animating_gifs.animate(AnimatingGif::Eyes, &mut devices).await,
-            Some(2) => animating_gifs.animate(AnimatingGif::Abstract, &mut devices).await,
-            Some(3..) => todo!(),
+            0 => {} ,
+            1 => animating_gifs.animate(AnimatingGif::Eyes, &mut devices).await,
+            2 => animating_gifs.animate(AnimatingGif::Abstract, &mut devices).await,
+            3.. => todo!(),
         }
     }
 }
