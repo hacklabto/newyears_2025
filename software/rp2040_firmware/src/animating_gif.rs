@@ -2,8 +2,9 @@
 //! Expose a simple way to play the animating gifs
 
 use crate::devices::Devices;
-use crate::Timer;
+//use crate::Timer;
 use crate::Button;
+use embassy_time::Instant;
 
 use embedded_graphics::{
     pixelcolor::BinaryColor,
@@ -41,7 +42,7 @@ impl AnimatingGifs<'_> {
     }
 
     pub async fn animate(&self, animating_gif: AnimatingGif, devices: &mut Devices<'_> ) {
-        let start_time = Timer::ms_from_start();
+        let start_time = Instant::now();
         let mut animation_time: i32 = 0;
 
         let gif = match animating_gif {
@@ -55,7 +56,7 @@ impl AnimatingGifs<'_> {
             if devices.buttons.is_pressed( Button::B0 ) {
                 break;  // "escape"
             }
-            let ms_since_start = (Timer::ms_from_start() - start_time) as i32;
+            let ms_since_start = start_time.elapsed().as_millis() as i32;
             let time_to_frame = animation_time - ms_since_start;
             if time_to_frame >= 0 {
                 let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(time_to_frame.try_into().unwrap()));

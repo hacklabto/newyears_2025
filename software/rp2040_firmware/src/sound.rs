@@ -63,22 +63,6 @@ const TARGET_FREQUENCY : u128 = 48800;    // cound sound, but why?
 const CLOCK_DIVIDER : u128 = (FRACTION_BITS_IN_CLOCK_DIVIDER as u128) * RPI_FREQUENCY / (CONFIG_TOP as u128) / TARGET_FREQUENCY;
 const CLOCK_DIVIDER_U16 : u16 = CLOCK_DIVIDER as u16;
 
-const PWM_INTERRUPTS_PER_SECOND: u128 = RPI_FREQUENCY / (( CLOCK_DIVIDER_U16 as u128) * (CONFIG_TOP as u128) / FRACTION_BITS_IN_CLOCK_DIVIDER as u128 );
-
-static mut COUNTER: u64 = 0;
-
-pub struct Timer {}
-
-impl Timer {
-    pub fn ms_from_start() -> u64 {
-        let big_counter : u128  =
-        unsafe {
-            COUNTER as u128
-        };
-        (big_counter * 1000 / PWM_INTERRUPTS_PER_SECOND)  as u64
-    }
-}
-
 pub struct Sound<PwmSlice: Slice> {
     //state: bool,
     //time_to_state_change: u32
@@ -140,7 +124,6 @@ impl<PwmSlice: Slice> Sound<PwmSlice> {
 #[interrupt]
 fn PWM_IRQ_WRAP() {
     unsafe {
-        COUNTER = COUNTER + 1;
         let value = SOUND_PIPE.as_mut().unwrap().get();
         let config = PWM_CONFIG.as_mut().unwrap();
         config.compare_a = value as u16;

@@ -1,9 +1,9 @@
 use crate::display;
 use crate::Button;
 use crate::Devices;
-use crate::Timer;
 use embedded_graphics::draw_target::DrawTarget;
 use embedded_graphics::pixelcolor::BinaryColor;
+use embassy_time::Instant;
 
 pub struct MenuBinding<'a, T: Clone> {
     text: &'a str,
@@ -58,12 +58,10 @@ pub async fn transition_upwards<T: Clone>(
     devices: &mut Devices<'_>,
     new_pos: usize,
 ) {
-    let start_time = Timer::ms_from_start() as u32;
-    let mut current_time = start_time;
-    while current_time - start_time < 200 {
-        let percent: i32 = (100 - (current_time - start_time) / 2).try_into().unwrap();
+    let start_time = Instant::now();
+    while start_time.elapsed().as_millis() < 200 {
+        let percent: i32 = (100 - (start_time.elapsed().as_millis()) / 2).try_into().unwrap();
         draw_menu(menu_items, devices, new_pos, percent);
-        current_time = Timer::ms_from_start() as u32;
     }
 }
 
@@ -72,12 +70,10 @@ pub async fn transition_downwards<T: Clone>(
     devices: &mut Devices<'_>,
     new_pos: usize,
 ) {
-    let start_time = Timer::ms_from_start() as u32;
-    let mut current_time = start_time;
-    while current_time - start_time < 200 {
-        let percent: i32 = ((current_time - start_time) / 2).try_into().unwrap();
+    let start_time = Instant::now();
+    while start_time.elapsed().as_millis() < 200 {
+        let percent: i32 = ((start_time.elapsed().as_millis()) / 2).try_into().unwrap();
         draw_menu(menu_items, devices, new_pos, percent);
-        current_time = Timer::ms_from_start() as u32;
     }
 }
 
