@@ -96,9 +96,14 @@ pub async fn transition_to_new_target_pos<T: Clone>(
 pub async fn run_menu<T: Clone>(
     menu_items: &[MenuBinding<'_, T>],
     up_menu: T,
+    start_pos: Option<usize>,
     devices: &mut Devices<'_>,
-) -> T {
-    let mut current_pos: usize = 0;
+) -> (T, usize) {
+    let mut current_pos: usize = if start_pos.is_some() {
+        start_pos.unwrap()
+    } else {
+        0
+    };
     let max_items = menu_items.len();
 
     loop {
@@ -106,11 +111,14 @@ pub async fn run_menu<T: Clone>(
         let button = devices.buttons.wait_for_press().await;
         if button == Button::B0 {
             // Exit out of the menu
-            return up_menu;
+            return (up_menu, current_pos);
         }
         if button == Button::B3 && menu_items[current_pos].binding.is_some() {
             // Menu item selected.  Return the binding if it exists.
-            return menu_items[current_pos].binding.as_ref().unwrap().clone();
+            return (
+                menu_items[current_pos].binding.as_ref().unwrap().clone(),
+                current_pos,
+            );
         }
         if button == Button::B2 && current_pos + 1 < max_items {
             // "Down arrow" button.

@@ -20,6 +20,7 @@ async fn main(_spawner: embassy_executor::Spawner) {
             .await;
     }
 
+    let mut current_pos: Option<usize> = None;
     loop {
         #[derive(Clone)]
         pub enum MainMenuResult {
@@ -28,16 +29,18 @@ async fn main(_spawner: embassy_executor::Spawner) {
             Abstract,
         }
 
-        let result = hackernewyears::menu::run_menu::<MainMenuResult>(
+        let (result, return_pos) = hackernewyears::menu::run_menu::<MainMenuResult>(
             &[
                 MenuBinding::new("Main Menu", None),
                 MenuBinding::new("Eyes Animated Gif", Some(MainMenuResult::Eyes)),
                 MenuBinding::new("Abstract", Some(MainMenuResult::Abstract)),
             ],
             MainMenuResult::UpMenu,
+            current_pos,
             &mut devices,
         )
         .await;
+        current_pos = Some(return_pos);
 
         match result {
             MainMenuResult::UpMenu => {} // Already at the top
