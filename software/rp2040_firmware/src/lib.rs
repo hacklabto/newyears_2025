@@ -17,9 +17,6 @@ pub use devices::Devices;
 pub mod display;
 pub use display::DisplaySSD;
 
-mod leds;
-pub use leds::LEDs;
-
 pub mod menu;
 
 mod sound;
