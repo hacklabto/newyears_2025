@@ -2,7 +2,7 @@
 
 Hacky New Years is an annual collaborative project, where a hackerspace's 
 members produce an artifact in quantity to be sent to other spaces. This can 
-be a piece art, electronics, or literature. What ever the collaborators of 
+be a piece art, electronics, or literature. Whatever the collaborators of 
 that year come to consensus on. 
 
 https://knowledge.hacklab.to/wiki/Hacky_New_Years
