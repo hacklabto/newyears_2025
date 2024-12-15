@@ -8,7 +8,7 @@ that year come to consensus on.
 https://knowledge.hacklab.to/wiki/Hacky_New_Years
 
 ## Hacklab's artifact for 2025 
-An collaborative, interdisciplinary technology based art project.
+A collaborative, interdisciplinary technology based art project.
 
 https://knowledge.hacklab.to/wiki/Hacky_New_Years/2025
 
