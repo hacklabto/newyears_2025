@@ -3,6 +3,8 @@ use embassy_rp::interrupt;
 use embassy_rp::pwm::{ChannelAPin, ChannelBPin, Config, Pwm, Slice};
 use embassy_rp::Peripheral;
 use fixed::FixedU16;
+use crate::Button;
+use crate::devices::Devices;
 
 const AUDIO_SIZE: usize = 1462987;
 const AUDIO: &[u8; AUDIO_SIZE] = include_bytes!("../assets/ode.bin");
@@ -54,19 +56,18 @@ static mut PWM_CONFIG: Option<Config> = None;
 // = 10.6666666
 //
 const FRACTION_BITS_IN_CLOCK_DIVIDER: u16 = 16;
-const RPI_FREQUENCY : u128 = 133000000;
+const RPI_FREQUENCY: u128 = 133000000;
 //const TARGET_FREQUENCY : u128 = 48000;  bad squee sound
 //const TARGET_FREQUENCY : u128 = 51853;  bad squee sound
 //const TARGET_FREQUENCY : u128 = 43294;  bad squee sound
 //const TARGET_FREQUENCY : u128 = 47500;  bad squee sound
-const TARGET_FREQUENCY : u128 = 48800;    // cound sound, but why?
-const CLOCK_DIVIDER : u128 = (FRACTION_BITS_IN_CLOCK_DIVIDER as u128) * RPI_FREQUENCY / (CONFIG_TOP as u128) / TARGET_FREQUENCY;
-const CLOCK_DIVIDER_U16 : u16 = CLOCK_DIVIDER as u16;
+const TARGET_FREQUENCY: u128 = 48800; // cound sound, but why?
+const CLOCK_DIVIDER: u128 = (FRACTION_BITS_IN_CLOCK_DIVIDER as u128) * RPI_FREQUENCY
+    / (CONFIG_TOP as u128)
+    / TARGET_FREQUENCY;
+const CLOCK_DIVIDER_U16: u16 = CLOCK_DIVIDER as u16;
 
 pub struct Sound<PwmSlice: Slice> {
-    //state: bool,
-    //time_to_state_change: u32
-    audio_pos: usize,
     // Add a dummy member so the struct can be tied to the PWM
     // interface being used
     pwm_device: PhantomData<PwmSlice>,
@@ -101,21 +102,30 @@ impl<PwmSlice: Slice> Sound<PwmSlice> {
         }
 
         Self {
-            audio_pos: 0,
             pwm_device: PhantomData,
         }
     }
 
-    pub fn update(&mut self) {
+    pub async fn add_value(value: u8) {
         unsafe {
-            let mut try_to_add_next: bool = true;
-            while try_to_add_next {
-                let value: u8 = AUDIO[self.audio_pos / 2];
-                let added = SOUND_PIPE.as_mut().unwrap().add(value);
-                if added {
-                    self.audio_pos = (self.audio_pos + 1) % (AUDIO_SIZE * 2);
-                }
-                try_to_add_next = added;
+            let mut added = SOUND_PIPE.as_mut().unwrap().add(value);
+            while !added {
+                // sound pipe is full, wait a bit for it to clear.
+                let mut ticker =
+                    embassy_time::Ticker::every(embassy_time::Duration::from_millis(50));
+                ticker.next().await;
+                added = SOUND_PIPE.as_mut().unwrap().add(value);
+            }
+        }
+    }
+
+    pub async fn play_sound(&self, devices: &Devices<'_> ) {
+        for value in AUDIO.iter() {
+            Self::add_value(*value).await;
+            Self::add_value(*value).await;
+
+            if devices.buttons.is_pressed( Button::B0 ) {
+                break;  // "escape"
             }
         }
     }
