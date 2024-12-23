@@ -1,10 +1,13 @@
+use crate::devices::Devices;
+use crate::Button;
 use core::marker::PhantomData;
+use core::sync::atomic::AtomicU16;
+use core::sync::atomic::AtomicU32;
+use core::sync::atomic::Ordering;
 use embassy_rp::interrupt;
 use embassy_rp::pwm::{ChannelAPin, ChannelBPin, Config, Pwm, Slice};
 use embassy_rp::Peripheral;
 use fixed::FixedU16;
-use crate::Button;
-use crate::devices::Devices;
 
 const AUDIO_SIZE: usize = 1462987;
 const AUDIO: &[u8; AUDIO_SIZE] = include_bytes!("../assets/ode.bin");
@@ -35,6 +38,7 @@ impl<T: Copy + Default, const N: usize> Pipe<T, N> {
         return true;
     }
 
+    /*
     pub fn get(&mut self) -> T {
         if self.read_idx == self.write_idx {
             T::default()
@@ -44,10 +48,57 @@ impl<T: Copy + Default, const N: usize> Pipe<T, N> {
             rval
         }
     }
+    */
 }
 
+pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
+    buffer: [[u8; BUFSIZE]; BUFFERS],
+    being_dmaed: AtomicU16,
+    next_to_be_dmaed: AtomicU16,
+    first_writable_buffer: AtomicU16,
+    fakey_fakey_dma_pos: AtomicU32,
+}
+
+impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
+    pub const fn new() -> Self {
+        Self {
+            buffer: [[0x80; BUFSIZE]; BUFFERS],
+            being_dmaed: AtomicU16::new(0),
+            next_to_be_dmaed: AtomicU16::new(1),
+            first_writable_buffer: AtomicU16::new(2),
+            fakey_fakey_dma_pos: AtomicU32::new(0),
+        }
+    }
+    pub fn next_to_go_to_sound(&mut self) -> u8 {
+        let dma_buffer_u16: u16 = self.being_dmaed.load(Ordering::Relaxed);
+        let dma_buffer: usize = dma_buffer_u16 as usize;
+        let mut fakey_fakey_dma_pos_u32: u32 = self.fakey_fakey_dma_pos.load(Ordering::Relaxed);
+        let dma_pos: usize = fakey_fakey_dma_pos_u32 as usize;
+        let value = self.buffer[dma_buffer][dma_pos];
+
+        fakey_fakey_dma_pos_u32 = fakey_fakey_dma_pos_u32 + 1;
+        if fakey_fakey_dma_pos_u32 == BUFSIZE as u32 {
+            fakey_fakey_dma_pos_u32 = 0;
+        }
+
+        self.fakey_fakey_dma_pos
+            .store(fakey_fakey_dma_pos_u32, Ordering::Relaxed);
+
+        /*
+            self.fakey_fakey_dma_pos = 0;
+            self.being_dmaed = (self.being_dmaed+1) % BUFFERS;
+            self.next_to_be_dmaed= (self.next_to_be_dmaed+1) % BUFFERS;
+            self.first_writable_buffer= (self.first_writable_buffer+1) % BUFFERS;
+        }*/
+        value
+    }
+}
+
+static mut SOUND_DMA: SoundDma<3, 16384> = SoundDma::new();
+
 const CONFIG_TOP: u16 = 512;
-static mut SOUND_PIPE: Option<Pipe<u8, 48000>> = None;
+//static mut SOUND_PIPE: Option<Pipe<u8, 48000>> = None;
+static mut SOUND_PIPE: Option<Pipe<u8, 4800>> = None;
 static mut PWM_AB: Option<Pwm> = None;
 static mut PWM_CONFIG: Option<Config> = None;
 // target frequency is 48 khz
@@ -60,7 +111,7 @@ const RPI_FREQUENCY: u128 = 133000000;
 //const TARGET_FREQUENCY : u128 = 48000;  bad squee sound
 //const TARGET_FREQUENCY : u128 = 51853;  bad squee sound
 //const TARGET_FREQUENCY : u128 = 43294;  bad squee sound
-//const TARGET_FREQUENCY : u128 = 47500;  bad squee sound
+//const TARGET_FREQUENCY : u128 = 47500;  //bad squee sound
 const TARGET_FREQUENCY: u128 = 48800; // cound sound, but why?
 const CLOCK_DIVIDER: u128 = (FRACTION_BITS_IN_CLOCK_DIVIDER as u128) * RPI_FREQUENCY
     / (CONFIG_TOP as u128)
@@ -119,13 +170,13 @@ impl<PwmSlice: Slice> Sound<PwmSlice> {
         }
     }
 
-    pub async fn play_sound(&self, devices: &Devices<'_> ) {
+    pub async fn play_sound(&self, devices: &Devices<'_>) {
         for value in AUDIO.iter() {
             Self::add_value(*value).await;
             Self::add_value(*value).await;
 
-            if devices.buttons.is_pressed( Button::B0 ) {
-                break;  // "escape"
+            if devices.buttons.is_pressed(Button::B0) {
+                break; // "escape"
             }
         }
     }
@@ -134,7 +185,8 @@ impl<PwmSlice: Slice> Sound<PwmSlice> {
 #[interrupt]
 fn PWM_IRQ_WRAP() {
     unsafe {
-        let value = SOUND_PIPE.as_mut().unwrap().get();
+        //        let value = SOUND_PIPE.as_mut().unwrap().get();
+        let value = SOUND_DMA.next_to_go_to_sound();
         let config = PWM_CONFIG.as_mut().unwrap();
         config.compare_a = value as u16;
         config.compare_b = value as u16;
