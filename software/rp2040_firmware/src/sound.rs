@@ -54,23 +54,19 @@ impl<T: Copy + Default, const N: usize> Pipe<T, N> {
 pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
     buffer: [[u8; BUFSIZE]; BUFFERS],
     being_dmaed: AtomicU16,
-    next_to_be_dmaed: AtomicU16,
-    first_writable_buffer: AtomicU16,
     fakey_fakey_dma_pos: AtomicU32,
 }
 
 impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
     pub const fn new() -> Self {
         Self {
-            buffer: [[0x80; BUFSIZE]; BUFFERS],
+            buffer: [[0x0; BUFSIZE]; BUFFERS],
             being_dmaed: AtomicU16::new(0),
-            next_to_be_dmaed: AtomicU16::new(1),
-            first_writable_buffer: AtomicU16::new(2),
             fakey_fakey_dma_pos: AtomicU32::new(0),
         }
     }
     pub fn next_to_go_to_sound(&mut self) -> u8 {
-        let dma_buffer_u16: u16 = self.being_dmaed.load(Ordering::Relaxed);
+        let mut dma_buffer_u16: u16 = self.being_dmaed.load(Ordering::Relaxed);
         let dma_buffer: usize = dma_buffer_u16 as usize;
         let mut fakey_fakey_dma_pos_u32: u32 = self.fakey_fakey_dma_pos.load(Ordering::Relaxed);
         let dma_pos: usize = fakey_fakey_dma_pos_u32 as usize;
@@ -79,17 +75,13 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
         fakey_fakey_dma_pos_u32 = fakey_fakey_dma_pos_u32 + 1;
         if fakey_fakey_dma_pos_u32 == BUFSIZE as u32 {
             fakey_fakey_dma_pos_u32 = 0;
+            dma_buffer_u16 = (dma_buffer_u16 + 1) % (BUFFERS as u16);
         }
 
         self.fakey_fakey_dma_pos
             .store(fakey_fakey_dma_pos_u32, Ordering::Relaxed);
+        self.being_dmaed.store(dma_buffer_u16, Ordering::Relaxed);
 
-        /*
-            self.fakey_fakey_dma_pos = 0;
-            self.being_dmaed = (self.being_dmaed+1) % BUFFERS;
-            self.next_to_be_dmaed= (self.next_to_be_dmaed+1) % BUFFERS;
-            self.first_writable_buffer= (self.first_writable_buffer+1) % BUFFERS;
-        }*/
         value
     }
 }
@@ -185,7 +177,6 @@ impl<PwmSlice: Slice> Sound<PwmSlice> {
 #[interrupt]
 fn PWM_IRQ_WRAP() {
     unsafe {
-        //        let value = SOUND_PIPE.as_mut().unwrap().get();
         let value = SOUND_DMA.next_to_go_to_sound();
         let config = PWM_CONFIG.as_mut().unwrap();
         config.compare_a = value as u16;
