@@ -9,52 +9,13 @@ use embassy_rp::pwm::{ChannelAPin, ChannelBPin, Config, Pwm, Slice};
 use embassy_rp::Peripheral;
 use fixed::FixedU16;
 
-const AUDIO_SIZE: usize = 1462987;
-const AUDIO: &[u8; AUDIO_SIZE] = include_bytes!("../assets/ode.bin");
-
-pub struct Pipe<T: Copy + Default, const N: usize> {
-    buffer: [T; N],
-    read_idx: usize,
-    write_idx: usize,
-}
-
-impl<T: Copy + Default, const N: usize> Pipe<T, N> {
-    pub fn new() -> Self {
-        Self {
-            buffer: [T::default(); N],
-            read_idx: 0,
-            write_idx: 0,
-        }
-    }
-
-    pub fn add(&mut self, value: T) -> bool {
-        let next_write_idx = (self.write_idx + 1) % N;
-        if next_write_idx == self.read_idx {
-            // Hit the read head - return false as "unable to add"
-            return false;
-        }
-        self.buffer[self.write_idx] = value;
-        self.write_idx = next_write_idx;
-        return true;
-    }
-
-    /*
-    pub fn get(&mut self) -> T {
-        if self.read_idx == self.write_idx {
-            T::default()
-        } else {
-            let rval = self.buffer[self.read_idx];
-            self.read_idx = (self.read_idx + 1) % N;
-            rval
-        }
-    }
-    */
-}
+const AUDIO: &[u8] = include_bytes!("../assets/ode.bin");
 
 pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
     buffer: [[u8; BUFSIZE]; BUFFERS],
     being_dmaed: AtomicU16,
     fakey_fakey_dma_pos: AtomicU32,
+    next_available_slot: u16
 }
 
 impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
@@ -63,8 +24,19 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
             buffer: [[0x0; BUFSIZE]; BUFFERS],
             being_dmaed: AtomicU16::new(0),
             fakey_fakey_dma_pos: AtomicU32::new(0),
+            next_available_slot: 2,
         }
     }
+    pub fn next_writable(&mut self) -> Option<&mut [u8]> {
+        let buffer_being_dmaed: u16 = self.being_dmaed.load(Ordering::Relaxed);
+
+        if self.next_available_slot == buffer_being_dmaed {
+            return None
+        }
+        self.next_available_slot = self.next_available_slot + 1;
+        Some(&mut self.buffer[ self.next_available_slot as usize ])
+    }
+
     pub fn next_to_go_to_sound(&mut self) -> u8 {
         let mut dma_buffer_u16: u16 = self.being_dmaed.load(Ordering::Relaxed);
         let dma_buffer: usize = dma_buffer_u16 as usize;
@@ -90,7 +62,6 @@ static mut SOUND_DMA: SoundDma<3, 16384> = SoundDma::new();
 
 const CONFIG_TOP: u16 = 512;
 //static mut SOUND_PIPE: Option<Pipe<u8, 48000>> = None;
-static mut SOUND_PIPE: Option<Pipe<u8, 4800>> = None;
 static mut PWM_AB: Option<Pwm> = None;
 static mut PWM_CONFIG: Option<Config> = None;
 // target frequency is 48 khz
@@ -135,7 +106,6 @@ impl<PwmSlice: Slice> Sound<PwmSlice> {
             config.divider = FixedU16::from_bits(CLOCK_DIVIDER_U16);
             config.invert_b = true;
             PWM_AB.as_mut().unwrap().set_config(config);
-            SOUND_PIPE = Some(Pipe::new());
         }
 
         // Enable the interrupt for pwm slice 0
@@ -149,26 +119,33 @@ impl<PwmSlice: Slice> Sound<PwmSlice> {
         }
     }
 
-    pub async fn add_value(value: u8) {
-        unsafe {
-            let mut added = SOUND_PIPE.as_mut().unwrap().add(value);
-            while !added {
-                // sound pipe is full, wait a bit for it to clear.
-                let mut ticker =
-                    embassy_time::Ticker::every(embassy_time::Duration::from_millis(50));
-                ticker.next().await;
-                added = SOUND_PIPE.as_mut().unwrap().add(value);
-            }
-        }
-    }
-
     pub async fn play_sound(&self, devices: &Devices<'_>) {
-        for value in AUDIO.iter() {
-            Self::add_value(*value).await;
-            Self::add_value(*value).await;
+        let mut iter = AUDIO.iter();
 
-            if devices.buttons.is_pressed(Button::B0) {
-                break; // "escape"
+        loop {
+            unsafe {
+                let writable_maybe = SOUND_DMA.next_writable();
+                let mut done=false;
+
+                if writable_maybe.is_some() {
+                    let writable = writable_maybe.unwrap();
+                    for entry in writable.iter_mut() {
+                        let next_audio = iter.next();
+                        if next_audio.is_some() {
+                            *entry = *next_audio.unwrap();
+                        }
+                        else {
+                            *entry = 0x80;
+                            done = true;
+                        }
+                    }
+                }
+                if devices.buttons.is_pressed(Button::B0) {
+                    done = true;    // escape
+                }
+                if done {
+                    break;
+                }
             }
         }
     }
