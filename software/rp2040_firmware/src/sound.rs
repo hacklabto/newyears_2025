@@ -15,26 +15,29 @@ pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
     buffer: [[u8; BUFSIZE]; BUFFERS],
     being_dmaed: AtomicU16,
     fakey_fakey_dma_pos: AtomicU32,
-    next_available_slot: u16
+    next_available_slot: u16,
 }
 
 impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
     pub const fn new() -> Self {
         Self {
-            buffer: [[0x0; BUFSIZE]; BUFFERS],
+            buffer: [[0x80; BUFSIZE]; BUFFERS],
             being_dmaed: AtomicU16::new(0),
             fakey_fakey_dma_pos: AtomicU32::new(0),
             next_available_slot: 2,
         }
     }
     pub fn next_writable(&mut self) -> Option<&mut [u8]> {
+        let buffers_u16 = BUFFERS as u16;
         let buffer_being_dmaed: u16 = self.being_dmaed.load(Ordering::Relaxed);
+        let next_available_slot = self.next_available_slot;
 
-        if self.next_available_slot == buffer_being_dmaed {
-            return None
+        if next_available_slot == buffer_being_dmaed {
+            return None;
         }
-        self.next_available_slot = self.next_available_slot + 1;
-        Some(&mut self.buffer[ self.next_available_slot as usize ])
+
+        self.next_available_slot = (self.next_available_slot + 1) % buffers_u16;
+        Some(&mut self.buffer[next_available_slot as usize])
     }
 
     pub fn next_to_go_to_sound(&mut self) -> u8 {
@@ -125,7 +128,7 @@ impl<PwmSlice: Slice> Sound<PwmSlice> {
         loop {
             unsafe {
                 let writable_maybe = SOUND_DMA.next_writable();
-                let mut done=false;
+                let mut done = false;
 
                 if writable_maybe.is_some() {
                     let writable = writable_maybe.unwrap();
@@ -133,15 +136,19 @@ impl<PwmSlice: Slice> Sound<PwmSlice> {
                         let next_audio = iter.next();
                         if next_audio.is_some() {
                             *entry = *next_audio.unwrap();
-                        }
-                        else {
+                        } else {
                             *entry = 0x80;
                             done = true;
                         }
                     }
+                } else {
+                    let mut ticker =
+                        embassy_time::Ticker::every(embassy_time::Duration::from_millis(50));
+                    ticker.next().await;
                 }
+
                 if devices.buttons.is_pressed(Button::B0) {
-                    done = true;    // escape
+                    done = true; // escape
                 }
                 if done {
                     break;
