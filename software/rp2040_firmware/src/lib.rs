@@ -8,11 +8,11 @@ pub mod backlight;
 pub use backlight::{Config, PioBacklight};
 
 pub mod piosound;
-pub use piosound::{PioSoundConfig, PioSound};
+pub use piosound::PioSound;
 
 mod buttons;
-pub use buttons::Buttons;
 pub use buttons::Button;
+pub use buttons::Buttons;
 
 pub mod devices;
 pub use devices::Devices;

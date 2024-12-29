@@ -4,7 +4,7 @@ use embassy_rp::gpio;
 use gpio::{Input, Pin, Pull};
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum Button{
+pub enum Button {
     B0,
     B1,
     B2,
@@ -27,7 +27,7 @@ impl Buttons<'_> {
         Self { b0, b1, b2, b3 }
     }
 
-    pub fn is_pressed( &self, button: Button ) -> bool {
+    pub fn is_pressed(&self, button: Button) -> bool {
         match button {
             Button::B0 => !self.b0.is_high(),
             Button::B1 => !self.b1.is_high(),
@@ -36,7 +36,7 @@ impl Buttons<'_> {
         }
     }
 
-    fn index_to_button( &self, index: usize) -> Button {
+    fn index_to_button(&self, index: usize) -> Button {
         match index {
             0 => Button::B0,
             1 => Button::B1,
@@ -46,11 +46,16 @@ impl Buttons<'_> {
         }
     }
 
-    pub fn all_buttons( &self ) -> [ bool; 4 ] {
-        return [ self.is_pressed( Button::B0 ), self.is_pressed( Button::B1 ), self.is_pressed( Button::B2 ), self.is_pressed( Button::B3 ) ];
+    pub fn all_buttons(&self) -> [bool; 4] {
+        return [
+            self.is_pressed(Button::B0),
+            self.is_pressed(Button::B1),
+            self.is_pressed(Button::B2),
+            self.is_pressed(Button::B3),
+        ];
     }
 
-    pub async fn wait_for_press( &self ) -> Button {
+    pub async fn wait_for_press(&self) -> Button {
         let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(100));
         let mut last_state = self.all_buttons();
         loop {
