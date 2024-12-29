@@ -1,22 +1,11 @@
-use core::time::Duration;
-use embassy_rp::clocks;
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio::Level;
 use embassy_rp::pio::{Common, Direction, Instance, PioPin, StateMachine};
 use embassy_time::Timer;
 use pio::InstructionOperands;
 
-// Time (in microseconds) for a PWM.  Effectively top on the PWM hardware.
-const REFRESH_INTERVAL: u64 = 1000;
-
-pub fn to_pio_cycles(duration: Duration) -> u32 {
-    (clocks::clk_sys_freq() / 1_000_000) / 3 * duration.as_micros() as u32 // parentheses are required to prevent overflow
-}
-
 pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
     pub state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
-
-    // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
     pub dma_channel: DMA,
 }
 impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
@@ -32,11 +21,11 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         let prg = pio_proc::pio_asm!(
             // From the PIO PWN embassy example, for now
              ".side_set 1 opt"
-                // Get a new state or (noblock) reuse the last state?
+                // Get a new state or (noblock) reuse the last state
                 "pull noblock    side 0"
                 "mov x, osr"
                 // y is the pwm hardware's equivalent of top
-                // loaded using set_period
+                // loaded using set_top
                 "mov y, isr"
 
             // Loop y times, which is effectively top
@@ -66,16 +55,22 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             state_machine: sm,
             dma_channel: dma_channel,
         };
-        return_value.set_period(Duration::from_micros(REFRESH_INTERVAL));
+        // for the LED test, we'll PWM values from 0-255 with a top of 512.
+        return_value.set_top(512);
         return_value.start();
         return_value
     }
 
-    pub fn set_period(&mut self, duration: Duration) {
+    //
+    // Set the "top" of the PWM.  The PIO assembly doesn't seem to have
+    // a suitable load immediate instruction, so instead we'll put top's
+    // value into the ISR
+    //
+    pub fn set_top(&mut self, top: u32) {
         let is_enabled = self.state_machine.is_enabled();
         while !self.state_machine.tx().empty() {} // Make sure that the queue is empty
         self.state_machine.set_enable(false);
-        self.state_machine.tx().push(to_pio_cycles(duration));
+        self.state_machine.tx().push(top);
         unsafe {
             self.state_machine.exec_instr(
                 InstructionOperands::PULL {
@@ -109,14 +104,10 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         self.state_machine.tx().push(level);
     }
 
-    pub fn write(&mut self, duration: Duration) {
-        self.set_level(to_pio_cycles(duration));
-    }
-
     pub async fn strobe_led_3x(&mut self) {
         for _i in 0..3 {
-            for duration in 0..1000 {
-                self.write(Duration::from_micros(duration));
+            for duration in 0..256 {
+                self.set_level(duration);
                 Timer::after_millis(5).await;
             }
         }
