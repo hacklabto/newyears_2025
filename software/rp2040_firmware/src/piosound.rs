@@ -26,7 +26,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
                 // Set the output to 0
                 //"pull side 0"
                 //"mov x, osr"
-                "out x,32  side 0"
+                "out x,8 side 0"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
                 "mov y, isr"
@@ -109,18 +109,21 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         self.state_machine.set_enable(false);
     }
 
-    pub fn set_level(&mut self, level: u32) {
-        while !self.state_machine.tx().try_push(level) {}
+    pub fn set_level(&mut self, level: u8 ) {
+        let level_u32 = level as u32;
+        let value_to_send = level_u32 | (level_u32 << 8) | (level_u32 << 16) | (level_u32 << 24);
+        while !self.state_machine.tx().try_push(value_to_send) {}
     }
 
     pub async fn strobe_led_3x(&mut self) {
         for _i in 0..3 {
-            for duration in 0..256 {
+            for duration in 0..=255 {
                 // Target 2 seconds for each strobe.
                 // clock speed is 125000000 , top is 512, 256 updates
-                // 2 seconds * 125000000 / 512 / 256 / 3 = 635
+                // Send 4 samples at once. 
+                // 2 seconds * 125000000 / 512 / 256 / 3 / 4 = 159
                 // Confirmed this is close by manually timing
-                for _j in 0..635 {
+                for _j in 0..159 {
                     self.set_level(duration);
                 }
             }
