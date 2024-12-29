@@ -1,7 +1,6 @@
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio::Level;
 use embassy_rp::pio::{Common, Direction, Instance, PioPin, StateMachine};
-use embassy_time::Timer;
 use pio::InstructionOperands;
 
 pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
@@ -21,8 +20,9 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         let prg = pio_proc::pio_asm!(
             // From the PIO PWN embassy example, for now
              ".side_set 1 opt"
-                // Get a new state or (noblock) reuse the last state
-                "pull noblock    side 0"
+                // TSX FIFO -> OSR.  Block if the FIFO is empty
+                // Set the output to 0
+                "pull side 0"
                 "mov x, osr"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
@@ -34,7 +34,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
                 "jmp x!=y noset"
                 "jmp skip        side 1"
             "noset:"
-                // For the consistent delays :)
+                // For a consistent 3 cycle delay
                 "nop"
             "skip:"
                 "jmp y-- countloop"
@@ -101,14 +101,19 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     }
 
     pub fn set_level(&mut self, level: u32) {
-        self.state_machine.tx().push(level);
+        while !self.state_machine.tx().try_push(level) {}
     }
 
     pub async fn strobe_led_3x(&mut self) {
         for _i in 0..3 {
             for duration in 0..256 {
-                self.set_level(duration);
-                Timer::after_millis(5).await;
+                // Target 2 seconds for each strobe.
+                // clock speed is 125000000 , top is 512, 256 updates
+                // 2 seconds * 125000000 / 512 / 256 / 3 = 635
+                // Confirmed this is close by manually timing
+                for _j in 0..635 {
+                    self.set_level(duration);
+                }
             }
         }
     }
