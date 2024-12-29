@@ -6,7 +6,8 @@ use embassy_rp::pio::{Common, Direction, Instance, PioPin, StateMachine};
 use embassy_time::Timer;
 use pio::InstructionOperands;
 
-const REFRESH_INTERVAL: u64 = 20000;
+// Time (in microseconds) for a PWM.  Effectively top on the PWM hardware.
+const REFRESH_INTERVAL: u64 = 1000;
 
 pub fn to_pio_cycles(duration: Duration) -> u32 {
     (clocks::clk_sys_freq() / 1_000_000) / 3 * duration.as_micros() as u32 // parentheses are required to prevent overflow
@@ -31,13 +32,20 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         let prg = pio_proc::pio_asm!(
             // From the PIO PWN embassy example, for now
              ".side_set 1 opt"
+                // Get a new state or (noblock) reuse the last state?
                 "pull noblock    side 0"
                 "mov x, osr"
+                // y is the pwm hardware's equivalent of top
+                // loaded using set_period
                 "mov y, isr"
+
+            // Loop y times, which is effectively top
             "countloop:"
+                // Switch state to 1 when y matches the pwm value
                 "jmp x!=y noset"
                 "jmp skip        side 1"
             "noset:"
+                // For the consistent delays :)
                 "nop"
             "skip:"
                 "jmp y-- countloop"
@@ -109,7 +117,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         for _i in 0..3 {
             for duration in 0..1000 {
                 self.write(Duration::from_micros(duration));
-                Timer::after_millis(1).await;
+                Timer::after_millis(5).await;
             }
         }
     }
