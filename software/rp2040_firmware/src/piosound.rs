@@ -1,6 +1,8 @@
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio::Level;
-use embassy_rp::pio::{Common, Direction, Instance, PioPin, StateMachine};
+use embassy_rp::pio::{
+    Common, Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
+};
 use pio::InstructionOperands;
 
 pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
@@ -22,8 +24,9 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
              ".side_set 1 opt"
                 // TSX FIFO -> OSR.  Block if the FIFO is empty
                 // Set the output to 0
-                "pull side 0"
-                "mov x, osr"
+                //"pull side 0"
+                //"mov x, osr"
+                "out x,32  side 0"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
                 "mov y, isr"
@@ -47,6 +50,12 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
         let mut pio_cfg = embassy_rp::pio::Config::default();
         pio_cfg.use_program(&prg, &[&sound_a_pin]);
+
+        pio_cfg.shift_out = ShiftConfig {
+            auto_fill: true,
+            threshold: 32,
+            direction: ShiftDirection::Left,
+        };
 
         sm.set_config(&pio_cfg);
 
