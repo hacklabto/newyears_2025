@@ -64,7 +64,7 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
     }
 }
 
-type SoundDmaType = SoundDma<3, 16384>;
+type SoundDmaType = SoundDma<10, 2400>;
 static mut SOUND_DMA: SoundDmaType = SoundDma::new();
 
 const CONFIG_TOP: u16 = 512;
