@@ -27,6 +27,9 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
             next_available_slot: 2,
         }
     }
+    pub const fn num_dma_buffers() -> usize {
+        return BUFFERS;
+    }
     pub fn next_writable(&mut self) -> Option<&mut [u8]> {
         let buffers_u16 = BUFFERS as u16;
         let buffer_being_dmaed: u16 = self.being_dmaed.load(Ordering::Relaxed);
@@ -61,7 +64,8 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
     }
 }
 
-static mut SOUND_DMA: SoundDma<3, 16384> = SoundDma::new();
+type SoundDmaType = SoundDma<3, 16384>;
+static mut SOUND_DMA: SoundDmaType = SoundDma::new();
 
 const CONFIG_TOP: u16 = 512;
 //static mut SOUND_PIPE: Option<Pipe<u8, 48000>> = None;
@@ -73,12 +77,8 @@ static mut PWM_CONFIG: Option<Config> = None;
 // = 10.6666666
 //
 const FRACTION_BITS_IN_CLOCK_DIVIDER: u16 = 16;
-const RPI_FREQUENCY: u128 = 133000000;
-//const TARGET_FREQUENCY : u128 = 48000;  bad squee sound
-//const TARGET_FREQUENCY : u128 = 51853;  bad squee sound
-//const TARGET_FREQUENCY : u128 = 43294;  bad squee sound
-//const TARGET_FREQUENCY : u128 = 47500;  //bad squee sound
-const TARGET_FREQUENCY: u128 = 48800; // cound sound, but why?
+const RPI_FREQUENCY: u128 = 125000000;
+const TARGET_FREQUENCY: u128 = 24000;
 const CLOCK_DIVIDER: u128 = (FRACTION_BITS_IN_CLOCK_DIVIDER as u128) * RPI_FREQUENCY
     / (CONFIG_TOP as u128)
     / TARGET_FREQUENCY;
@@ -122,38 +122,54 @@ impl<PwmSlice: Slice> Sound<PwmSlice> {
         }
     }
 
-    pub async fn play_sound(&self, devices: &Devices<'_>) {
-        let mut iter = AUDIO.iter();
+    fn populate_dma_buffer(audio_iter: &mut dyn Iterator<Item = &u8>, buffer: &mut [u8]) -> bool {
+        let mut done: bool = false;
+        for entry in buffer.iter_mut() {
+            let value_maybe = audio_iter.next();
+            *entry = if value_maybe.is_some() {
+                *value_maybe.unwrap()
+            } else {
+                done = true;
+                0x80
+            }
+        }
+        done
+    }
 
+    fn clear_dma_buffer(buffer: &mut [u8]) {
+        for entry in buffer.iter_mut() {
+            *entry = 0x80
+        }
+    }
+
+    pub async fn get_dma_buffer() -> &'static mut [u8] {
         loop {
             unsafe {
                 let writable_maybe = SOUND_DMA.next_writable();
-                let mut done = false;
-
                 if writable_maybe.is_some() {
-                    let writable = writable_maybe.unwrap();
-                    for entry in writable.iter_mut() {
-                        let next_audio = iter.next();
-                        if next_audio.is_some() {
-                            *entry = *next_audio.unwrap();
-                        } else {
-                            *entry = 0x80;
-                            done = true;
-                        }
-                    }
-                } else {
-                    let mut ticker =
-                        embassy_time::Ticker::every(embassy_time::Duration::from_millis(50));
-                    ticker.next().await;
-                }
-
-                if devices.buttons.is_pressed(Button::B0) {
-                    done = true; // escape
-                }
-                if done {
-                    break;
+                    return writable_maybe.unwrap();
                 }
             }
+            let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(50));
+            ticker.next().await;
+        }
+    }
+
+    pub async fn play_sound(&self, devices: &Devices<'_>) {
+        let mut iter = AUDIO.iter();
+
+        // Fill DMA buffers until we either end the audio or abort.
+        loop {
+            let dma_buffer = Self::get_dma_buffer().await;
+            let done_audio_ended = Self::populate_dma_buffer(&mut iter, dma_buffer);
+            let done_aborted = devices.buttons.is_pressed(Button::B0);
+            if done_audio_ended || done_aborted {
+                break;
+            }
+        }
+        for _ in 0..SoundDmaType::num_dma_buffers() {
+            let dma_buffer = Self::get_dma_buffer().await;
+            Self::clear_dma_buffer(dma_buffer);
         }
     }
 }
