@@ -22,25 +22,39 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         let prg = pio_proc::pio_asm!(
             // From the PIO PWN embassy example, for now
              ".side_set 1 opt"
-                // TSX FIFO -> OSR.  Block if the FIFO is empty
+                // TSX FIFO -> OSR.  Do not block if the FIFO is empty.
+                // If we run out of data, just hold the last PWM state.
                 // Set the output to 0
-                //"pull side 0"
-                //"mov x, osr"
-                "out x,8 side 0"
+                "pull noblock side 0"
+                "mov x, osr"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
                 "mov y, isr"
 
             // Loop y times, which is effectively top
-            "countloop:"
+            "countloop1:"
                 // Switch state to 1 when y matches the pwm value
-                "jmp x!=y noset"
-                "jmp skip        side 1"
-            "noset:"
+                "jmp x!=y noset1"
+                "jmp skip1        side 1"
+            "noset1:"
                 // For a consistent 3 cycle delay
                 "nop"
-            "skip:"
-                "jmp y-- countloop"
+            "skip1:"
+                "jmp y-- countloop2"
+
+                // Do the loop a 2nd time using loop unrolling
+                "mov y, isr"
+
+            // Loop y times, which is effectively top
+            "countloop2:"
+                // Switch state to 1 when y matches the pwm value
+                "jmp x!=y noset2"
+                "jmp skip2        side 1"
+            "noset2:"
+                // For a consistent 3 cycle delay
+                "nop"
+            "skip2:"
+                "jmp y-- countloop2"
         );
         let prg = common.load_program(&prg.program);
 
@@ -52,7 +66,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         pio_cfg.use_program(&prg, &[&sound_a_pin]);
 
         pio_cfg.shift_out = ShiftConfig {
-            auto_fill: true,
+            auto_fill: false,
             threshold: 32,
             direction: ShiftDirection::Left,
         };
@@ -111,8 +125,8 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
     pub fn set_level(&mut self, level: u8 ) {
         let level_u32 = level as u32;
-        let value_to_send = level_u32 | (level_u32 << 8) | (level_u32 << 16) | (level_u32 << 24);
-        while !self.state_machine.tx().try_push(value_to_send) {}
+        //let value_to_send = level_u32 | (level_u32 << 8) | (level_u32 << 16) | (level_u32 << 24);
+        while !self.state_machine.tx().try_push(level_u32) {}
     }
 
     pub async fn strobe_led_3x(&mut self) {
@@ -121,12 +135,13 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
                 // Target 2 seconds for each strobe.
                 // clock speed is 125000000 , top is 512, 256 updates
                 // Send 4 samples at once. 
-                // 2 seconds * 125000000 / 512 / 256 / 3 / 4 = 159
+                // 2 seconds * 125000000 / 512 / 256 / 3 / 2 = 318
                 // Confirmed this is close by manually timing
-                for _j in 0..159 {
+                for _j in 0..318{
                     self.set_level(duration);
                 }
             }
         }
+        self.set_level(0x20);
     }
 }
