@@ -138,15 +138,29 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     }
 
     pub async fn strobe_led_3x(&mut self) {
-        for _i in 0..30 {
-            for duration in 0..=240 {
-                // Target 1 seconds for each strobe.
-                // 240 * 100 = 24000, our target playback speed
-                for _j in 0..100 {
-                    self.set_level(duration);
-                }
+        // Make a test 1 second DMA packet that strobes the
+        // from 0 to 240 over that 1 second
+        let mut test_dma = [0x0; 24000];
+        let mut idx = 0;
+
+        for duration in 0..240 {
+            // Target 1 seconds for each strobe.
+            // 240 * 100 = 24000, our target playback speed
+            for _j in 0..100 {
+                test_dma[idx] = duration;
+                idx += 1;
             }
         }
+
+        // Simulated playback of the DMA packet 30 times.
+        for _i in 0..30 {
+            for value in test_dma {
+                while !self.state_machine.tx().try_push(value) {}
+            }
+        }
+
+        // Reset to lower intensity to show the PIO will continue
+        // to run a default PWM program if it doesn't have data.
         self.set_level(0x20);
     }
 }
