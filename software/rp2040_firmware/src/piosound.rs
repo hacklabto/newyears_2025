@@ -3,7 +3,13 @@ use embassy_rp::gpio::Level;
 use embassy_rp::pio::{
     Common, Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
 };
+use fixed::traits::ToFixed;
+use fixed_macro::types::U56F8;
 use pio::InstructionOperands;
+
+const TARGET_PLAYBACK: u64 = 24_000;
+const PWM_TOP: u64 = 512;
+const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
 
 pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
     pub state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
@@ -40,10 +46,10 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
                 // For a consistent 3 cycle delay
                 "nop"
             "skip1:"
-                "jmp y-- countloop2"
+                "jmp y-- countloop1"
 
                 // Do the loop a 2nd time using loop unrolling
-                "mov y, isr"
+                "mov y, isr  side 0"
 
             // Loop y times, which is effectively top
             "countloop2:"
@@ -70,6 +76,8 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             threshold: 32,
             direction: ShiftDirection::Left,
         };
+        pio_cfg.clock_divider =
+            (U56F8!(125_000_000) / (TARGET_PLAYBACK * PWM_CYCLES_PER_READ)).to_fixed();
 
         sm.set_config(&pio_cfg);
 
@@ -79,7 +87,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             dma_channel: dma_channel,
         };
         // for the LED test, we'll PWM values from 0-255 with a top of 512.
-        return_value.set_top(512);
+        return_value.set_top(PWM_TOP as u32);
         return_value.start();
         return_value
     }
@@ -123,21 +131,18 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         self.state_machine.set_enable(false);
     }
 
-    pub fn set_level(&mut self, level: u8 ) {
+    pub fn set_level(&mut self, level: u8) {
         let level_u32 = level as u32;
         //let value_to_send = level_u32 | (level_u32 << 8) | (level_u32 << 16) | (level_u32 << 24);
         while !self.state_machine.tx().try_push(level_u32) {}
     }
 
     pub async fn strobe_led_3x(&mut self) {
-        for _i in 0..3 {
-            for duration in 0..=255 {
-                // Target 2 seconds for each strobe.
-                // clock speed is 125000000 , top is 512, 256 updates
-                // Send 4 samples at once. 
-                // 2 seconds * 125000000 / 512 / 256 / 3 / 2 = 318
-                // Confirmed this is close by manually timing
-                for _j in 0..318{
+        for _i in 0..30 {
+            for duration in 0..=240 {
+                // Target 1 seconds for each strobe.
+                // 240 * 100 = 24000, our target playback speed
+                for _j in 0..100 {
                     self.set_level(duration);
                 }
             }
