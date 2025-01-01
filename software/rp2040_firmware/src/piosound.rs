@@ -1,10 +1,9 @@
 use core::sync::atomic::AtomicU16;
 use core::sync::atomic::Ordering;
-use embassy_futures::join::join;
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio::Level;
 use embassy_rp::pio::{
-    Common, Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
+    Common, Direction, FifoJoin, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
 };
 use embassy_rp::PeripheralRef;
 use fixed::traits::ToFixed;
@@ -14,7 +13,7 @@ use pio::InstructionOperands;
 const AUDIO: &[u8] = include_bytes!("../assets/ode.bin");
 
 const TARGET_PLAYBACK: u64 = 24_000;
-const PWM_TOP: u64 = 256;
+const PWM_TOP: u64 = 512;
 const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
 
 pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
@@ -48,17 +47,20 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
         Some(&mut self.buffer[next_available_slot as usize])
     }
 
-    pub async fn get_dma_buffer() -> &'static mut [u32] {
-        loop {
-            unsafe {
-                let writable_maybe = SOUND_DMA.next_writable();
-                if writable_maybe.is_some() {
-                    return writable_maybe.unwrap();
+    pub fn get_writable_dma_buffer() -> &'static mut [u32] {
+        unsafe { SOUND_DMA.next_writable().unwrap() }
+        /*
+                loop {
+                    unsafe {
+                        let writable_maybe = SOUND_DMA.next_writable();
+                        if writable_maybe.is_some() {
+                            return writable_maybe.unwrap();
+                        }
+                    }
+                    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(25));
+                    ticker.next().await;
                 }
-            }
-            let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(25));
-            ticker.next().await;
-        }
+        */
     }
 
     pub fn next_to_dma(&mut self) -> &mut [u32] {
@@ -69,7 +71,9 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
     }
 }
 
-type SoundDmaType = SoundDma<3, 12000>;
+// Higher values seem to cause a warbling sound.  :(
+//
+type SoundDmaType = SoundDma<3, 512>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
 
 pub struct AudioPlayback<'d> {
@@ -103,8 +107,8 @@ impl<'d> AudioPlayback<'d> {
         return self.clear_count == 1;
     }
 
-    pub async fn populate_dma_buffer(&mut self) {
-        let dma_write_buffer = SoundDmaType::get_dma_buffer().await;
+    pub fn populate_dma_buffer(&mut self) {
+        let dma_write_buffer = SoundDmaType::get_writable_dma_buffer();
         self.populate_dma_buffer_with_audio(dma_write_buffer);
     }
 }
@@ -171,10 +175,12 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         pio_cfg.use_program(&prg, &[&sound_a_pin]);
 
         pio_cfg.shift_out = ShiftConfig {
-            auto_fill: false,
             threshold: 32,
             direction: ShiftDirection::Left,
+            auto_fill: false,
         };
+        pio_cfg.fifo_join = FifoJoin::TxOnly;
+
         pio_cfg.clock_divider =
             (U56F8!(125_000_000) / (TARGET_PLAYBACK * PWM_CYCLES_PER_READ)).to_fixed();
 
@@ -253,21 +259,13 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         let mut playback_state: AudioPlayback = AudioPlayback::new(&mut iter);
 
         while !playback_state.is_done() {
-            join(
-                playback_state.populate_dma_buffer(),
-                self.drain_dma_buffer(),
-            )
-            .await;
+            // Start DMA transfer
+            let dma_future = self.drain_dma_buffer();
+            // While the DMA transfer executes, populate the next DMA buffer
+            playback_state.populate_dma_buffer();
+            // Wait for the DMA transfer to finish?
+            dma_future.await;
         }
-        self.set_level(0x20);
-
-        /*
-                // Send the DMA packet 3 times.
-                for _i in 0..3 {
-                }
-
-                // Reset to lower intensity to show the PIO will continue
-                // to run a default PWM program if it doesn't have data.
-        */
+        self.set_level(0x80);
     }
 }

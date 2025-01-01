@@ -28,7 +28,6 @@ async fn main(_spawner: embassy_executor::Spawner) {
             Eyes,
             Abstract,
             Music,
-            PioSoundTest,
         }
 
         let (result, return_pos) = hackernewyears::menu::run_menu::<MainMenuResult>(
@@ -37,7 +36,6 @@ async fn main(_spawner: embassy_executor::Spawner) {
                 MenuBinding::new("Eyes Animated Gif", Some(MainMenuResult::Eyes)),
                 MenuBinding::new("Abstract", Some(MainMenuResult::Abstract)),
                 MenuBinding::new("Music", Some(MainMenuResult::Music)),
-                MenuBinding::new("Pio Sound Test", Some(MainMenuResult::PioSoundTest)),
             ],
             MainMenuResult::UpMenu,
             current_pos,
@@ -59,7 +57,6 @@ async fn main(_spawner: embassy_executor::Spawner) {
                     .await
             }
             MainMenuResult::Music => devices.piosound.play_sound().await,
-            MainMenuResult::PioSoundTest => devices.piosound.play_sound().await,
         }
     }
 }
