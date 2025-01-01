@@ -3,6 +3,7 @@ use embassy_rp::gpio::Level;
 use embassy_rp::pio::{
     Common, Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
 };
+use embassy_rp::PeripheralRef;
 use fixed::traits::ToFixed;
 use fixed_macro::types::U56F8;
 use pio::InstructionOperands;
@@ -13,7 +14,8 @@ const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
 
 pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
     pub state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
-    pub dma_channel: DMA,
+    //pub dma_channel: DMA,
+    pub dma_channel: PeripheralRef<'d, DMA>,
 }
 impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     PioSound<'d, PIO, STATE_MACHINE_IDX, DMA>
@@ -84,7 +86,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         // errr
         let mut return_value = Self {
             state_machine: sm,
-            dma_channel: dma_channel,
+            dma_channel: dma_channel.into_ref(),
         };
         // for the LED test, we'll PWM values from 0-255 with a top of 512.
         return_value.set_top(PWM_TOP as u32);
@@ -138,25 +140,26 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     }
 
     pub async fn strobe_led_3x(&mut self) {
-        // Make a test 1 second DMA packet that strobes the
-        // from 0 to 240 over that 1 second
-        let mut test_dma = [0x0; 24000];
+        // Make a test 1 second DMA packet
+        // increase LED intensity from 0 to 240 over that 1 second
+        let mut test_dma = [0x0u32; 24000];
         let mut idx = 0;
 
         for duration in 0..240 {
-            // Target 1 seconds for each strobe.
-            // 240 * 100 = 24000, our target playback speed
-            for _j in 0..100 {
+            // Target playback is 24000 hz.  Target 1 seconds for each strobe.
+            // 240 * 100 = 24000
+            for _ in 0..100 {
                 test_dma[idx] = duration;
                 idx += 1;
             }
         }
 
-        // Simulated playback of the DMA packet 30 times.
-        for _i in 0..30 {
-            for value in test_dma {
-                while !self.state_machine.tx().try_push(value) {}
-            }
+        // Send the DMA packet 3 times.
+        for _i in 0..3 {
+            self.state_machine
+                .tx()
+                .dma_push(self.dma_channel.reborrow(), &test_dma)
+                .await;
         }
 
         // Reset to lower intensity to show the PIO will continue
