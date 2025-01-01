@@ -9,7 +9,6 @@ use crate::display::{create_ssd_display, DisplaySSD};
 use crate::piosound;
 use crate::piosound::PioSound;
 use crate::Buttons;
-use crate::Sound;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals;
 use embassy_rp::pio::InterruptHandler;
@@ -27,7 +26,6 @@ bind_interrupts!(struct PioIrqs {
 pub struct Devices<'a> {
     pub display: DisplaySSD<'a, peripherals::I2C0>,
     pub buttons: Buttons<'a>,
-    pub sound: Sound<peripherals::PWM_SLICE0>,
 
     pub backlight: backlight::PioBacklight<
         'a,
@@ -51,11 +49,6 @@ impl Devices<'_> {
         let pio_sm1 = pio.sm1;
 
         Self {
-            sound: Sound::new(
-                p.PIN_0,      // sound_a
-                p.PIN_1,      // sound_b
-                p.PWM_SLICE0, // sound_pwm
-            ),
             buttons: Buttons::new(p.PIN_2, p.PIN_3, p.PIN_4, p.PIN_5),
 
             backlight: PioBacklight::new(
@@ -76,8 +69,8 @@ impl Devices<'_> {
             piosound: PioSound::new(
                 &mut pio_common,
                 pio_sm1,
-                p.PIN_25, // Sound A.  Also the Pi LED
-                p.PIN_11, // Sound B
+                p.PIN_0,  // Sound A
+                p.PIN_25, // Sound B.  Also the Pi LED
                 p.DMA_CH1,
             ),
             display: create_ssd_display(

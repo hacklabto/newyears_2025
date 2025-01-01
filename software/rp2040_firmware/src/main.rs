@@ -58,8 +58,8 @@ async fn main(_spawner: embassy_executor::Spawner) {
                     .animate(AnimatingGif::Abstract, &mut devices)
                     .await
             }
-            MainMenuResult::Music => devices.sound.play_sound(&devices).await,
-            MainMenuResult::PioSoundTest => devices.piosound.strobe_led_3x().await,
+            MainMenuResult::Music => devices.piosound.play_sound().await,
+            MainMenuResult::PioSoundTest => devices.piosound.play_sound().await,
         }
     }
 }

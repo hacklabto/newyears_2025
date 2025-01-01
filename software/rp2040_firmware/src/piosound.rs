@@ -1,3 +1,6 @@
+use core::sync::atomic::AtomicU16;
+use core::sync::atomic::Ordering;
+use embassy_futures::join::join;
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio::Level;
 use embassy_rp::pio::{
@@ -8,15 +11,109 @@ use fixed::traits::ToFixed;
 use fixed_macro::types::U56F8;
 use pio::InstructionOperands;
 
+const AUDIO: &[u8] = include_bytes!("../assets/ode.bin");
+
 const TARGET_PLAYBACK: u64 = 24_000;
-const PWM_TOP: u64 = 512;
+const PWM_TOP: u64 = 256;
 const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
 
-pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
-    pub state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
-    //pub dma_channel: DMA,
-    pub dma_channel: PeripheralRef<'d, DMA>,
+pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
+    buffer: [[u32; BUFSIZE]; BUFFERS],
+    being_dmaed: AtomicU16,
+    next_available_slot: u16,
 }
+
+impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
+    pub const fn new() -> Self {
+        Self {
+            buffer: [[0x80; BUFSIZE]; BUFFERS],
+            being_dmaed: AtomicU16::new(0),
+            next_available_slot: 2,
+        }
+    }
+    pub const fn num_dma_buffers() -> usize {
+        return BUFFERS;
+    }
+
+    pub fn next_writable(&mut self) -> Option<&mut [u32]> {
+        let buffers_u16 = BUFFERS as u16;
+        let buffer_being_dmaed: u16 = self.being_dmaed.load(Ordering::Relaxed);
+        let next_available_slot = self.next_available_slot;
+
+        if next_available_slot == buffer_being_dmaed {
+            return None;
+        }
+
+        self.next_available_slot = (self.next_available_slot + 1) % buffers_u16;
+        Some(&mut self.buffer[next_available_slot as usize])
+    }
+
+    pub async fn get_dma_buffer() -> &'static mut [u32] {
+        loop {
+            unsafe {
+                let writable_maybe = SOUND_DMA.next_writable();
+                if writable_maybe.is_some() {
+                    return writable_maybe.unwrap();
+                }
+            }
+            let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(25));
+            ticker.next().await;
+        }
+    }
+
+    pub fn next_to_dma(&mut self) -> &mut [u32] {
+        let mut being_dmaed: u16 = self.being_dmaed.load(Ordering::Relaxed);
+        being_dmaed = (being_dmaed + 1) % (BUFFERS as u16);
+        self.being_dmaed.store(being_dmaed, Ordering::Relaxed);
+        &mut self.buffer[being_dmaed as usize]
+    }
+}
+
+type SoundDmaType = SoundDma<3, 12000>;
+static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
+
+pub struct AudioPlayback<'d> {
+    audio_iter: &'d mut dyn Iterator<Item = &'d u8>,
+    clear_count: u32,
+}
+
+impl<'d> AudioPlayback<'d> {
+    pub fn new(audio_iter: &'d mut dyn Iterator<Item = &'d u8>) -> Self {
+        let clear_count: u32 = 0;
+        Self {
+            audio_iter,
+            clear_count,
+        }
+    }
+
+    fn populate_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
+        for entry in buffer.iter_mut() {
+            let value_maybe = self.audio_iter.next();
+            let value: u8 = if value_maybe.is_some() {
+                *value_maybe.unwrap()
+            } else {
+                self.clear_count = 1;
+                0x80
+            };
+            *entry = value as u32;
+        }
+    }
+
+    fn is_done(&self) -> bool {
+        return self.clear_count == 1;
+    }
+
+    pub async fn populate_dma_buffer(&mut self) {
+        let dma_write_buffer = SoundDmaType::get_dma_buffer().await;
+        self.populate_dma_buffer_with_audio(dma_write_buffer);
+    }
+}
+
+pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
+    state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
+    dma_channel: PeripheralRef<'d, DMA>,
+}
+
 impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     PioSound<'d, PIO, STATE_MACHINE_IDX, DMA>
 {
@@ -139,31 +236,38 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         while !self.state_machine.tx().try_push(level_u32) {}
     }
 
-    pub async fn strobe_led_3x(&mut self) {
-        // Make a test 1 second DMA packet
-        // increase LED intensity from 0 to 240 over that 1 second
-        let mut test_dma = [0x0u32; 24000];
-        let mut idx = 0;
+    pub async fn fill_dma_buffer() {}
 
-        for duration in 0..240 {
-            // Target playback is 24000 hz.  Target 1 seconds for each strobe.
-            // 240 * 100 = 24000
-            for _ in 0..100 {
-                test_dma[idx] = duration;
-                idx += 1;
-            }
-        }
-
-        // Send the DMA packet 3 times.
-        for _i in 0..3 {
+    pub async fn drain_dma_buffer(&mut self) {
+        unsafe {
+            let dma_buffer = SOUND_DMA.next_to_dma();
             self.state_machine
                 .tx()
-                .dma_push(self.dma_channel.reborrow(), &test_dma)
+                .dma_push(self.dma_channel.reborrow(), dma_buffer)
                 .await;
         }
+    }
 
-        // Reset to lower intensity to show the PIO will continue
-        // to run a default PWM program if it doesn't have data.
+    pub async fn play_sound(&mut self) {
+        let mut iter = AUDIO.iter();
+        let mut playback_state: AudioPlayback = AudioPlayback::new(&mut iter);
+
+        while !playback_state.is_done() {
+            join(
+                playback_state.populate_dma_buffer(),
+                self.drain_dma_buffer(),
+            )
+            .await;
+        }
         self.set_level(0x20);
+
+        /*
+                // Send the DMA packet 3 times.
+                for _i in 0..3 {
+                }
+
+                // Reset to lower intensity to show the PIO will continue
+                // to run a default PWM program if it doesn't have data.
+        */
     }
 }
