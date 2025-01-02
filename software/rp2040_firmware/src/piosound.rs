@@ -90,7 +90,7 @@ impl<'d> AudioPlayback<'d> {
         }
     }
 
-    fn populate_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
+    fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
         for entry in buffer.iter_mut() {
             let value_maybe = self.audio_iter.next();
             let value: u8 = if value_maybe.is_some() {
@@ -107,9 +107,9 @@ impl<'d> AudioPlayback<'d> {
         return self.clear_count == 1;
     }
 
-    pub fn populate_dma_buffer(&mut self) {
+    pub fn populate_next_dma_buffer(&mut self) {
         let dma_write_buffer = SoundDmaType::get_writable_dma_buffer();
-        self.populate_dma_buffer_with_audio(dma_write_buffer);
+        self.populate_next_dma_buffer_with_audio(dma_write_buffer);
     }
 }
 
@@ -128,13 +128,17 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         _sound_b_pin: impl PioPin, // abandonned for now
         dma_channel: DMA,
     ) -> Self {
+        #[rustfmt::skip]
         let prg = pio_proc::pio_asm!(
             // From the PIO PWN embassy example, for now
-             ".side_set 1 opt"
+            ".side_set 1 opt"
+            "set x, 0"
+
+            "begin:"
                 // TSX FIFO -> OSR.  Do not block if the FIFO is empty.
                 // If we run out of data, just hold the last PWM state.
                 // Set the output to 0
-                "pull noblock side 0"
+                "pull noblock                   side 0"
                 "mov x, osr"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
@@ -144,26 +148,29 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             "countloop1:"
                 // Switch state to 1 when y matches the pwm value
                 "jmp x!=y noset1"
-                "jmp skip1        side 1"
+                "jmp skip1                      side 1"
             "noset1:"
                 // For a consistent 3 cycle delay
                 "nop"
             "skip1:"
                 "jmp y-- countloop1"
 
-                // Do the loop a 2nd time using loop unrolling
-                "mov y, isr  side 0"
+            // Do the loop a 2nd time using loop unrolling
+            "mov y, isr                         side 0"
 
             // Loop y times, which is effectively top
             "countloop2:"
                 // Switch state to 1 when y matches the pwm value
                 "jmp x!=y noset2"
-                "jmp skip2        side 1"
+                "jmp skip2                      side 1"
             "noset2:"
                 // For a consistent 3 cycle delay
                 "nop"
             "skip2:"
                 "jmp y-- countloop2"
+
+            // Go back for more data.
+            "jmp begin"
         );
         let prg = common.load_program(&prg.program);
 
@@ -244,7 +251,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
     pub async fn fill_dma_buffer() {}
 
-    pub async fn drain_dma_buffer(&mut self) {
+    pub async fn send_dma_buffer_to_pio(&mut self) {
         unsafe {
             let dma_buffer = SOUND_DMA.next_to_dma();
             self.state_machine
@@ -260,11 +267,11 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
         while !playback_state.is_done() {
             // Start DMA transfer
-            let dma_future = self.drain_dma_buffer();
-            // While the DMA transfer executes, populate the next DMA buffer
-            playback_state.populate_dma_buffer();
-            // Wait for the DMA transfer to finish?
-            dma_future.await;
+            let dma_buffer_in_flight = self.send_dma_buffer_to_pio();
+            // While the DMA transfer runs, populate the next DMA buffer
+            playback_state.populate_next_dma_buffer();
+            // Wakes up when "DMA finished transfering" interrupt occurs.
+            dma_buffer_in_flight.await;
         }
         self.set_level(0x80);
     }
