@@ -125,20 +125,20 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         common: &mut Common<'d, PIO>,
         mut sm: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
         sound_a_pin: impl PioPin,
-        _sound_b_pin: impl PioPin, // abandonned for now
+        sound_b_pin: impl PioPin,
         dma_channel: DMA,
     ) -> Self {
         #[rustfmt::skip]
         let prg = pio_proc::pio_asm!(
             // From the PIO PWN embassy example, for now
-            ".side_set 1 opt"
+            ".side_set 2 opt"
             "set x, 0"
 
             "begin:"
                 // TSX FIFO -> OSR.  Do not block if the FIFO is empty.
                 // If we run out of data, just hold the last PWM state.
                 // Set the output to 0
-                "pull noblock                   side 0"
+                "pull noblock                   side 0b01"
                 "mov x, osr"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
@@ -148,7 +148,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             "countloop1:"
                 // Switch state to 1 when y matches the pwm value
                 "jmp x!=y noset1"
-                "jmp skip1                      side 1"
+                "jmp skip1                      side 0b10"
             "noset1:"
                 // For a consistent 3 cycle delay
                 "nop"
@@ -156,13 +156,13 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
                 "jmp y-- countloop1"
 
             // Do the loop a 2nd time using loop unrolling
-            "mov y, isr                         side 0"
+            "mov y, isr                         side 0b01"
 
             // Loop y times, which is effectively top
             "countloop2:"
                 // Switch state to 1 when y matches the pwm value
                 "jmp x!=y noset2"
-                "jmp skip2                      side 1"
+                "jmp skip2                      side 0b10"
             "noset2:"
                 // For a consistent 3 cycle delay
                 "nop"
@@ -175,11 +175,12 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         let prg = common.load_program(&prg.program);
 
         let sound_a_pin = common.make_pio_pin(sound_a_pin);
-        sm.set_pins(Level::High, &[&sound_a_pin]);
-        sm.set_pin_dirs(Direction::Out, &[&sound_a_pin]);
+        let sound_b_pin = common.make_pio_pin(sound_b_pin);
+        sm.set_pin_dirs(Direction::Out, &[&sound_a_pin, &sound_b_pin]);
+        sm.set_pins(Level::Low, &[&sound_a_pin, &sound_b_pin]);
 
         let mut pio_cfg = embassy_rp::pio::Config::default();
-        pio_cfg.use_program(&prg, &[&sound_a_pin]);
+        pio_cfg.use_program(&prg, &[&sound_a_pin, &sound_b_pin]);
 
         pio_cfg.shift_out = ShiftConfig {
             threshold: 32,

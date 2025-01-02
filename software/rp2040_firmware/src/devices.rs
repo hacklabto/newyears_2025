@@ -69,8 +69,8 @@ impl Devices<'_> {
             piosound: PioSound::new(
                 &mut pio_common,
                 pio_sm1,
-                p.PIN_0,  // Sound A
-                p.PIN_25, // Sound B.  Also the Pi LED
+                p.PIN_0, // Sound A
+                p.PIN_1, // Sound B.  Must be consequtive
                 p.DMA_CH1,
             ),
             display: create_ssd_display(
