@@ -14,7 +14,7 @@ use pio::InstructionOperands;
 
 const AUDIO: &[u8] = include_bytes!("../assets/ode.bin");
 
-const TARGET_PLAYBACK: u64 = 24_000;
+const TARGET_PLAYBACK: u64 = 72_000;
 const PWM_TOP: u64 = 256;
 const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
 
@@ -73,7 +73,7 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
     }
 }
 
-// Higher values seem to cause a warbling sound.  :(
+// Buffer size should be a multiple of 3 right now.
 //
 type SoundDmaType = SoundDma<3, 9600>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
@@ -93,15 +93,29 @@ impl<'d> AudioPlayback<'d> {
     }
 
     fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
+        let mut value: u8 = 0;
+        let mut read_on_zero: u8 = 0;
+
+        // For now, copy every audio signal at our 24khz playback speed into
+        // the buffer 3x.  That gives an effective PWM frequency of 144k
+        // (24k * 6), which is as fast as I can get it with with 256 intensity
+        // levels.
+
         for entry in buffer.iter_mut() {
-            let value_maybe = self.audio_iter.next();
-            let value: u8 = if value_maybe.is_some() {
-                *value_maybe.unwrap()
-            } else {
-                self.clear_count = 1;
-                0x80
+            if read_on_zero == 0 {
+                let value_maybe = self.audio_iter.next();
+                value = if value_maybe.is_some() {
+                    *value_maybe.unwrap()
+                } else {
+                    self.clear_count = 1;
+                    0x80
+                }
             };
             *entry = value as u32;
+            read_on_zero = read_on_zero + 1;
+            if read_on_zero == 3 {
+                read_on_zero = 0;
+            }
         }
     }
 
