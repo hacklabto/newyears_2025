@@ -1,19 +1,21 @@
 use core::sync::atomic::AtomicU16;
 use core::sync::atomic::Ordering;
 use embassy_rp::dma::Channel;
-use embassy_rp::gpio::Level;
+use embassy_rp::dma::Transfer;
+use embassy_rp::gpio;
 use embassy_rp::pio::{
     Common, Direction, FifoJoin, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
 };
 use embassy_rp::PeripheralRef;
 use fixed::traits::ToFixed;
 use fixed_macro::types::U56F8;
+use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
 
 const AUDIO: &[u8] = include_bytes!("../assets/ode.bin");
 
 const TARGET_PLAYBACK: u64 = 24_000;
-const PWM_TOP: u64 = 512;
+const PWM_TOP: u64 = 256;
 const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
 
 pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
@@ -73,7 +75,7 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
 
 // Higher values seem to cause a warbling sound.  :(
 //
-type SoundDmaType = SoundDma<3, 512>;
+type SoundDmaType = SoundDma<3, 9600>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
 
 pub struct AudioPlayback<'d> {
@@ -116,6 +118,7 @@ impl<'d> AudioPlayback<'d> {
 pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
     state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
     dma_channel: PeripheralRef<'d, DMA>,
+    _debug_pin: Output<'d>,
 }
 
 impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
@@ -126,6 +129,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         mut sm: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
         sound_a_pin: impl PioPin,
         sound_b_pin: impl PioPin,
+        debug: impl Pin,
         dma_channel: DMA,
     ) -> Self {
         #[rustfmt::skip]
@@ -194,10 +198,13 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
         sm.set_config(&pio_cfg);
 
+        let _debug_pin = Output::new(debug, Level::Low);
+
         // errr
         let mut return_value = Self {
             state_machine: sm,
             dma_channel: dma_channel.into_ref(),
+            _debug_pin,
         };
         // for the LED test, we'll PWM values from 0-255 with a top of 512.
         return_value.set_top(PWM_TOP as u32);
@@ -252,13 +259,12 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
     pub async fn fill_dma_buffer() {}
 
-    pub async fn send_dma_buffer_to_pio(&mut self) {
+    pub fn send_dma_buffer_to_pio(&mut self) -> Transfer<'_, DMA> {
         unsafe {
             let dma_buffer = SOUND_DMA.next_to_dma();
             self.state_machine
                 .tx()
                 .dma_push(self.dma_channel.reborrow(), dma_buffer)
-                .await;
         }
     }
 
