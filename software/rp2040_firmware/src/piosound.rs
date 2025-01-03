@@ -1,19 +1,21 @@
 use core::sync::atomic::AtomicU16;
 use core::sync::atomic::Ordering;
 use embassy_rp::dma::Channel;
-use embassy_rp::gpio::Level;
+use embassy_rp::dma::Transfer;
+use embassy_rp::gpio;
 use embassy_rp::pio::{
     Common, Direction, FifoJoin, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
 };
 use embassy_rp::PeripheralRef;
 use fixed::traits::ToFixed;
 use fixed_macro::types::U56F8;
+use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
 
 const AUDIO: &[u8] = include_bytes!("../assets/ode.bin");
 
 const TARGET_PLAYBACK: u64 = 24_000;
-const PWM_TOP: u64 = 512;
+const PWM_TOP: u64 = 256;
 const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
 
 pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
@@ -73,7 +75,7 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
 
 // Higher values seem to cause a warbling sound.  :(
 //
-type SoundDmaType = SoundDma<3, 512>;
+type SoundDmaType = SoundDma<3, 9600>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
 
 pub struct AudioPlayback<'d> {
@@ -90,7 +92,7 @@ impl<'d> AudioPlayback<'d> {
         }
     }
 
-    fn populate_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
+    fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
         for entry in buffer.iter_mut() {
             let value_maybe = self.audio_iter.next();
             let value: u8 = if value_maybe.is_some() {
@@ -107,15 +109,16 @@ impl<'d> AudioPlayback<'d> {
         return self.clear_count == 1;
     }
 
-    pub fn populate_dma_buffer(&mut self) {
+    pub fn populate_next_dma_buffer(&mut self) {
         let dma_write_buffer = SoundDmaType::get_writable_dma_buffer();
-        self.populate_dma_buffer_with_audio(dma_write_buffer);
+        self.populate_next_dma_buffer_with_audio(dma_write_buffer);
     }
 }
 
 pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
     state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
     dma_channel: PeripheralRef<'d, DMA>,
+    _debug_pin: Output<'d>,
 }
 
 impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
@@ -125,16 +128,21 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         common: &mut Common<'d, PIO>,
         mut sm: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
         sound_a_pin: impl PioPin,
-        _sound_b_pin: impl PioPin, // abandonned for now
+        sound_b_pin: impl PioPin,
+        debug: impl Pin,
         dma_channel: DMA,
     ) -> Self {
+        #[rustfmt::skip]
         let prg = pio_proc::pio_asm!(
             // From the PIO PWN embassy example, for now
-             ".side_set 1 opt"
+            ".side_set 2 opt"
+            "set x, 0"
+
+            "begin:"
                 // TSX FIFO -> OSR.  Do not block if the FIFO is empty.
                 // If we run out of data, just hold the last PWM state.
                 // Set the output to 0
-                "pull noblock side 0"
+                "pull noblock                   side 0b01"
                 "mov x, osr"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
@@ -144,35 +152,39 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             "countloop1:"
                 // Switch state to 1 when y matches the pwm value
                 "jmp x!=y noset1"
-                "jmp skip1        side 1"
+                "jmp skip1                      side 0b10"
             "noset1:"
                 // For a consistent 3 cycle delay
                 "nop"
             "skip1:"
                 "jmp y-- countloop1"
 
-                // Do the loop a 2nd time using loop unrolling
-                "mov y, isr  side 0"
+            // Do the loop a 2nd time using loop unrolling
+            "mov y, isr                         side 0b01"
 
             // Loop y times, which is effectively top
             "countloop2:"
                 // Switch state to 1 when y matches the pwm value
                 "jmp x!=y noset2"
-                "jmp skip2        side 1"
+                "jmp skip2                      side 0b10"
             "noset2:"
                 // For a consistent 3 cycle delay
                 "nop"
             "skip2:"
                 "jmp y-- countloop2"
+
+            // Go back for more data.
+            "jmp begin"
         );
         let prg = common.load_program(&prg.program);
 
         let sound_a_pin = common.make_pio_pin(sound_a_pin);
-        sm.set_pins(Level::High, &[&sound_a_pin]);
-        sm.set_pin_dirs(Direction::Out, &[&sound_a_pin]);
+        let sound_b_pin = common.make_pio_pin(sound_b_pin);
+        sm.set_pin_dirs(Direction::Out, &[&sound_a_pin, &sound_b_pin]);
+        sm.set_pins(Level::Low, &[&sound_a_pin, &sound_b_pin]);
 
         let mut pio_cfg = embassy_rp::pio::Config::default();
-        pio_cfg.use_program(&prg, &[&sound_a_pin]);
+        pio_cfg.use_program(&prg, &[&sound_a_pin, &sound_b_pin]);
 
         pio_cfg.shift_out = ShiftConfig {
             threshold: 32,
@@ -186,10 +198,13 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
         sm.set_config(&pio_cfg);
 
+        let _debug_pin = Output::new(debug, Level::Low);
+
         // errr
         let mut return_value = Self {
             state_machine: sm,
             dma_channel: dma_channel.into_ref(),
+            _debug_pin,
         };
         // for the LED test, we'll PWM values from 0-255 with a top of 512.
         return_value.set_top(PWM_TOP as u32);
@@ -244,13 +259,12 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
     pub async fn fill_dma_buffer() {}
 
-    pub async fn drain_dma_buffer(&mut self) {
+    pub fn send_dma_buffer_to_pio(&mut self) -> Transfer<'_, DMA> {
         unsafe {
             let dma_buffer = SOUND_DMA.next_to_dma();
             self.state_machine
                 .tx()
                 .dma_push(self.dma_channel.reborrow(), dma_buffer)
-                .await;
         }
     }
 
@@ -260,11 +274,11 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
         while !playback_state.is_done() {
             // Start DMA transfer
-            let dma_future = self.drain_dma_buffer();
-            // While the DMA transfer executes, populate the next DMA buffer
-            playback_state.populate_dma_buffer();
-            // Wait for the DMA transfer to finish?
-            dma_future.await;
+            let dma_buffer_in_flight = self.send_dma_buffer_to_pio();
+            // While the DMA transfer runs, populate the next DMA buffer
+            playback_state.populate_next_dma_buffer();
+            // Wakes up when "DMA finished transfering" interrupt occurs.
+            dma_buffer_in_flight.await;
         }
         self.set_level(0x80);
     }
