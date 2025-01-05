@@ -1,0 +1,10 @@
+[package]
+name = "midi-nostd"
+version = "0.0.1"
+authors = ["Andrew Brownbill <andrew.brownbill@gmail.com>"]
+edition = "2021"
+rust-version = "1.79"
+
+[dependencies]
+midly = { version = "0.5.3" }
+
