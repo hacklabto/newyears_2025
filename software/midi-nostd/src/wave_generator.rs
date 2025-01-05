@@ -16,8 +16,9 @@ struct GenWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
 }
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenWaveSource<T, PLAY_FREQUENCY> {
-    pub fn new(wave_type: WaveType, sound_frequency: u32) -> Self {
+    pub fn new(wave_type: WaveType, arg_sound_frequency: u32) -> Self {
         let count: u32 = 0;
+        let sound_frequency = arg_sound_frequency * 1000;
         Self {
             wave_type,
             sound_frequency,
@@ -28,10 +29,10 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenWaveSource<T, PLAY_FREQUENCY>
 
     fn get_next_square(&mut self) -> T {
         self.count += self.sound_frequency;
-        if self.count > PLAY_FREQUENCY {
-            self.count -= PLAY_FREQUENCY;
+        if self.count > PLAY_FREQUENCY * 1000 {
+            self.count -= PLAY_FREQUENCY * 1000;
         }
-        if self.count < PLAY_FREQUENCY / 2 {
+        if self.count < PLAY_FREQUENCY * 500 {
             T::min()
         } else {
             T::max()
