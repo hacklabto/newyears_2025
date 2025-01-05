@@ -2,3 +2,4 @@
 
 mod sound_sample;
 mod sound_source;
+mod wave_generator;

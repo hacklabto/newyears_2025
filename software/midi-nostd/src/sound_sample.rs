@@ -1,10 +1,9 @@
 use core::cmp::Ordering;
 
-pub trait SoundSample<T>: Clone + Eq + PartialOrd {
+pub trait SoundSample: Clone + Eq + PartialOrd {
     fn max() -> Self;
     fn min() -> Self;
     fn to_u16(&self) -> u16;
-    fn get(&self) -> T;
     fn clip(&self) -> Self {
         if *self > Self::max() {
             Self::max()
@@ -27,7 +26,7 @@ impl SoundSampleI32 {
     }
 }
 
-impl SoundSample<i32> for SoundSampleI32 {
+impl SoundSample for SoundSampleI32 {
     fn max() -> Self {
         Self::new(0x7fff)
     }
@@ -37,9 +36,6 @@ impl SoundSample<i32> for SoundSampleI32 {
 
     fn to_u16(&self) -> u16 {
         (self.val + 0x8000) as u16
-    }
-    fn get(&self) -> i32 {
-        self.val
     }
 }
 
