@@ -46,11 +46,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     }
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T>
+impl<'s, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'s, T>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
     fn get_next(&mut self) -> T {
         self.get_next_square()
+    }
+    fn downstream_sources(self: &mut Self) -> Option<&'s [Option<&Self>]> {
+        None
     }
 }
 

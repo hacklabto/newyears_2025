@@ -12,8 +12,13 @@ use crate::sound_sample::SoundSample;
 /// a note might be created by  taking a waveform at the note's frequency and modifying
 /// it using an ADSR amplitude envelope.
 ///
-pub trait SoundSource<SAMPLE: SoundSample> {
+pub trait SoundSource<'s, SAMPLE: SoundSample> {
     /// Draw a sample from a source
     ///
     fn get_next(self: &mut Self) -> SAMPLE;
+
+    /// What sound sources does this source depend on.
+    /// TODO - use for clean-up when a note finishes playing and we want
+    /// to recycle the resources it used.
+    fn downstream_sources(self: &mut Self) -> Option<&'s [Option<&Self>]>;
 }
