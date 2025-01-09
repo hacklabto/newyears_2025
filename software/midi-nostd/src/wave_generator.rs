@@ -1,6 +1,7 @@
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
+use crate::sound_source::SoundSourceId;
 use core::marker::PhantomData;
 
 /// Start with just square waves
@@ -52,7 +53,7 @@ impl<'s, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'s, T>
     fn get_next(&mut self) -> T {
         self.get_next_square()
     }
-    fn downstream_sources(self: &mut Self) -> Option<&'s [Option<&Self>]> {
+    fn downstream_sources(self: &mut Self) -> Option<&'s [Option<SoundSourceId>]> {
         None
     }
 }
