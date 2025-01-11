@@ -2,6 +2,7 @@ use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
 use crate::sound_source::SoundSourceId;
+use crate::sound_source::SoundSourceType;
 use core::marker::PhantomData;
 
 /// Start with just square waves
@@ -17,14 +18,30 @@ struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
     wave_type: WaveType,
     sound_frequency: u32,
     count: u32,
+    id: usize,
     _marker: PhantomData<T>,
 }
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {
-    pub fn new(wave_type: WaveType, arg_sound_frequency: u32) -> Self {
+    pub fn new(id: usize) -> Self {
+        let wave_type = WaveType::Square;
+        let count: u32 = 0;
+        let sound_frequency: u32 = 0;
+        Self {
+            id,
+            wave_type,
+            sound_frequency,
+            count,
+            _marker: PhantomData {},
+        }
+    }
+
+    pub fn init(self: &mut Self, wave_type: WaveType, arg_sound_frequency: u32) {
+        let id = self.id;
         let count: u32 = 0;
         let sound_frequency = arg_sound_frequency * 1000;
-        Self {
+        *self = Self {
+            id,
             wave_type,
             sound_frequency,
             count,
@@ -53,8 +70,11 @@ impl<'s, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'s, T>
     fn get_next(&mut self) -> T {
         self.get_next_square()
     }
-    fn downstream_sources(self: &mut Self) -> Option<&'s [Option<SoundSourceId>]> {
+    fn downstream_sources(self: &Self) -> Option<&'s [Option<SoundSourceId>]> {
         None
+    }
+    fn id(self: &Self) -> SoundSourceId {
+        SoundSourceId::new(SoundSourceType::WaveGenerator, self.id)
     }
 }
 
@@ -66,7 +86,8 @@ mod tests {
 
     #[test]
     fn test_square() {
-        let mut wave_source = WaveSource::new(WaveType::Square, 2600);
+        let mut wave_source = WaveSource::new(0);
+        wave_source.init(WaveType::Square, 2600);
         let mut last = wave_source.get_next();
         let mut transitions: u32 = 0;
         for _ in 0..24000 {

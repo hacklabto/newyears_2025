@@ -7,9 +7,17 @@ pub enum SoundSourceType {
 }
 
 pub struct SoundSourceId {
-    source_type: SoundSourceType,
-    id: usize,
+    pub source_type: SoundSourceType,
+    pub id: usize,
 }
+
+impl SoundSourceId {
+    pub fn new(source_type: SoundSourceType, id: usize) -> Self {
+        Self { source_type, id }
+    }
+}
+
+type Deleter = dyn Fn(&SoundSourceId);
 
 ///
 /// Interface (so far) for a sound source  
@@ -31,5 +39,21 @@ pub trait SoundSource<'s, SAMPLE: SoundSample> {
     /// What sound sources does this source depend on.
     /// TODO - use for clean-up when a note finishes playing and we want
     /// to recycle the resources it used.
-    fn downstream_sources(self: &mut Self) -> Option<&'s [Option<SoundSourceId>]>;
+    fn downstream_sources(self: &Self) -> Option<&'s [Option<SoundSourceId>]>;
+
+    fn id(self: &Self) -> SoundSourceId;
+
+    fn delete(self: &Self, delete_fn: &Deleter) {
+        let downstream_maybe = self.downstream_sources();
+        if downstream_maybe.is_some() {
+            let downstream = downstream_maybe.unwrap();
+            for id_maybe in downstream {
+                if id_maybe.is_some() {
+                    let id = id_maybe.as_ref().unwrap();
+                    delete_fn(id);
+                }
+            }
+        }
+        delete_fn(&(self.id()));
+    }
 }
