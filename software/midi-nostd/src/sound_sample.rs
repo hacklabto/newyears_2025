@@ -1,5 +1,6 @@
 use core::cmp::Ordering;
 use core::ops::Add;
+use core::ops::Sub;
 
 ///
 /// Interface for a sound sample
@@ -9,7 +10,7 @@ use core::ops::Add;
 /// easy choice to represent this information... except a lot of micro-controllers don't
 /// have hardware floating point support.
 ///
-pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy {
+pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub {
     /// Maximum playable sound sample
     ///
     fn max() -> Self;
@@ -81,6 +82,14 @@ impl Add for SoundSampleI32 {
     }
 }
 
+impl Sub for SoundSampleI32 {
+    type Output = SoundSampleI32;
+    fn sub(mut self, rhs: SoundSampleI32) -> SoundSampleI32 {
+        self.val -= rhs.val;
+        self
+    }
+}
+
 impl PartialEq for SoundSampleI32 {
     fn eq(&self, other: &Self) -> bool {
         self.val == other.val
@@ -138,5 +147,6 @@ mod tests {
         let v2 = SoundSampleI32::new(-5);
 
         assert!(v0 == v1 + v1);
+        assert!(v1 == v0 - v1);
     }
 }
