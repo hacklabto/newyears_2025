@@ -1,4 +1,5 @@
 use core::cmp::Ordering;
+use core::ops::Add;
 
 ///
 /// Interface for a sound sample
@@ -8,7 +9,7 @@ use core::cmp::Ordering;
 /// easy choice to represent this information... except a lot of micro-controllers don't
 /// have hardware floating point support.
 ///
-pub trait SoundSample: Clone + Eq + PartialOrd {
+pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy {
     /// Maximum playable sound sample
     ///
     fn max() -> Self;
@@ -44,7 +45,7 @@ pub trait SoundSample: Clone + Eq + PartialOrd {
 /// ~15 bits are used for the fractional component.  Playable sound is from
 /// -0x8000 (-1) to 0x7fff (1).  0 maps to zero.
 ///
-#[derive(Clone, Eq)]
+#[derive(Clone, Eq, Copy)]
 pub struct SoundSampleI32 {
     pub val: i32,
 }
@@ -68,6 +69,15 @@ impl SoundSample for SoundSampleI32 {
 
     fn to_u16(&self) -> u16 {
         (self.val + 0x8000) as u16
+    }
+}
+
+impl Add for SoundSampleI32 {
+    type Output = SoundSampleI32;
+
+    fn add(mut self, rhs: SoundSampleI32) -> SoundSampleI32 {
+        self.val += rhs.val;
+        self
     }
 }
 
@@ -120,5 +130,13 @@ mod tests {
         assert_eq!(v1.clip().to_u16(), 0);
         let v2 = SoundSampleI32::new(5);
         assert!(v2 == v2.clip());
+    }
+
+    fn samplei32_should_add_and_sub_properly() {
+        let v0 = SoundSampleI32::new(10);
+        let v1 = SoundSampleI32::new(5);
+        let v2 = SoundSampleI32::new(-5);
+
+        assert!(v0 == v1 + v1);
     }
 }
