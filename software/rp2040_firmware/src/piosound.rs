@@ -132,6 +132,7 @@ impl<'d> AudioPlayback<'d> {
 pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
     state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
     dma_channel: PeripheralRef<'d, DMA>,
+    _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
 
@@ -143,6 +144,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         mut sm: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
         sound_a_pin: impl PioPin,
         sound_b_pin: impl PioPin,
+        ena: impl Pin,
         debug: impl Pin,
         dma_channel: DMA,
     ) -> Self {
@@ -213,12 +215,14 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         sm.set_config(&pio_cfg);
 
         let _debug_pin = Output::new(debug, Level::Low);
+        let _ena_pin = Output::new(ena, Level::High);
 
         // errr
         let mut return_value = Self {
             state_machine: sm,
             dma_channel: dma_channel.into_ref(),
             _debug_pin,
+            _ena_pin,
         };
         // for the LED test, we'll PWM values from 0-255 with a top of 512.
         return_value.set_top(PWM_TOP as u32);

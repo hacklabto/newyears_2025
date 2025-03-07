@@ -49,7 +49,11 @@ impl Devices<'_> {
         let pio_sm1 = pio.sm1;
 
         Self {
-            buttons: Buttons::new(p.PIN_2, p.PIN_3, p.PIN_4, p.PIN_5),
+            buttons: Buttons::new(
+                p.PIN_12, 
+                p.PIN_14, 
+                p.PIN_13, 
+                p.PIN_15),
 
             backlight: PioBacklight::new(
                 backlight::Config {
@@ -69,14 +73,16 @@ impl Devices<'_> {
             piosound: PioSound::new(
                 &mut pio_common,
                 pio_sm1,
-                p.PIN_0,  // Sound A
-                p.PIN_1,  // Sound B.  Must be consequtive
-                p.PIN_15, // Debug
+                p.PIN_2,  // Sound A
+                p.PIN_3,  // Sound B.  Must be consequtive
+                p.PIN_4,  // ENA, always on
+                p.PIN_10, // Debug
                 p.DMA_CH1,
             ),
             display: create_ssd_display(
-                p.I2C0, p.PIN_17, // SCLR
-                p.PIN_16, // SDA
+                p.I2C0, 
+                p.PIN_1, // SCL
+                p.PIN_0, // SDA
             ),
         }
     }
