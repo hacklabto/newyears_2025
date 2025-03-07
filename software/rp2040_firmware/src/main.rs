@@ -15,12 +15,15 @@ async fn main(_spawner: embassy_executor::Spawner) {
     let animating_gifs = AnimatingGifs::new();
 
     for _ in 0..5 {
+        #[cfg(feature = "workingssd")]
         animating_gifs
             .animate(AnimatingGif::Logo, &mut devices)
             .await;
     }
+    devices.piosound.play_sound().await;
 
     let mut current_pos: Option<usize> = None;
+    #[cfg(feature = "workingssd")]
     loop {
         #[derive(Clone)]
         pub enum MainMenuResult {
@@ -42,6 +45,7 @@ async fn main(_spawner: embassy_executor::Spawner) {
             &mut devices,
         )
         .await;
+
         current_pos = Some(return_pos);
 
         match result {

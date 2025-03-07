@@ -26,8 +26,7 @@ impl AnimatingGifs<'_> {
         let eyes =
             tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/eyes.gif")).unwrap();
         let abstract_animation =
-            tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/abstract.gif"))
-                .unwrap();
+            tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/eyes.gif")).unwrap();
         let logo =
             tinygif::Gif::<BinaryColor>::from_slice(include_bytes!("../assets/logo.gif")).unwrap();
 
@@ -38,6 +37,7 @@ impl AnimatingGifs<'_> {
         }
     }
 
+    #[cfg(feature = "workingssd")]
     pub async fn animate(&self, animating_gif: AnimatingGif, devices: &mut Devices<'_>) {
         let start_time = Instant::now();
         let mut animation_time: i32 = 0;

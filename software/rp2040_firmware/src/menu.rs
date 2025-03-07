@@ -30,6 +30,7 @@ impl<'a, T: Clone> MenuBinding<'a, T> {
 /// percent_offset_from_target - How much should we offset the display from the target.  Used for transitions between menu items.  Value inputs are -100 to 100.
 /// devices - The device to display to.
 ///
+#[cfg(feature = "workingssd")]
 fn draw_menu<T: Clone>(
     menu_items: &[MenuBinding<T>],
     menu_item: usize,
@@ -74,6 +75,7 @@ fn draw_menu<T: Clone>(
     devices.display.flush().unwrap();
 }
 
+#[cfg(feature = "workingssd")]
 pub async fn transition_to_new_target_pos<T: Clone>(
     menu_items: &[MenuBinding<'_, T>],
     devices: &mut Devices<'_>,
@@ -93,6 +95,7 @@ pub async fn transition_to_new_target_pos<T: Clone>(
     }
 }
 
+#[cfg(feature = "workingssd")]
 pub async fn run_menu<T: Clone>(
     menu_items: &[MenuBinding<'_, T>],
     up_menu: T,

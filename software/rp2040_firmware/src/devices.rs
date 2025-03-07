@@ -24,6 +24,7 @@ bind_interrupts!(struct PioIrqs {
 });
 
 pub struct Devices<'a> {
+    #[cfg(feature = "workingssd")]
     pub display: DisplaySSD<'a, peripherals::I2C0>,
     pub buttons: Buttons<'a>,
 
@@ -49,7 +50,12 @@ impl Devices<'_> {
         let pio_sm1 = pio.sm1;
 
         Self {
-            buttons: Buttons::new(p.PIN_2, p.PIN_3, p.PIN_4, p.PIN_5),
+            buttons: Buttons::new(
+                p.PIN_12,       // TODO, left, down, up, etc. 
+                p.PIN_13, 
+                p.PIN_14, 
+                p.PIN_15
+            ),
 
             backlight: PioBacklight::new(
                 backlight::Config {
@@ -59,24 +65,28 @@ impl Devices<'_> {
                 },
                 &mut pio_common,
                 pio_sm0,
-                p.PIN_6, // LED_DATA
-                p.PIN_7, // LED_CLK
-                p.PIN_8, // LED_LATCH
-                p.PIN_9, // LED_CLEAR
+                p.PIN_23, // LED_DATA
+                p.PIN_22, // LED_CLK
+                p.PIN_24, // LED_LATCH
+                p.PIN_25, // LED_CLEAR
                 p.DMA_CH0,
             ),
 
             piosound: PioSound::new(
                 &mut pio_common,
                 pio_sm1,
-                p.PIN_0,  // Sound A
-                p.PIN_1,  // Sound B.  Must be consequtive
-                p.PIN_15, // Debug
+                p.PIN_2,  // Sound A
+                p.PIN_3,  // Sound B.  Must be consequtive
+                p.PIN_4,  // Ena
+                p.PIN_9, // Debug
                 p.DMA_CH1,
             ),
+            #[cfg(feature = "workingssd")]
             display: create_ssd_display(
-                p.I2C0, p.PIN_17, // SCLR
-                p.PIN_16, // SDA
+                p.I2C0, p.PIN_1, // SCL Serial Clock 
+                p.PIN_0, // SDA Serial Data
+                //p.I2C0, p.PIN_17, // SCL Serial Clock 
+                //p.PIN_16, // SDA Serial Data
             ),
         }
     }
