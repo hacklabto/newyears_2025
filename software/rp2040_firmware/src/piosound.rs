@@ -12,7 +12,7 @@ use fixed_macro::types::U56F8;
 use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
 
-const AUDIO: &[u8] = include_bytes!("../assets/ode.bin");
+const AUDIO: &[u8] = include_bytes!("../assets/shortode.bin");
 
 const TARGET_PLAYBACK: u64 = 72_000;
 const PWM_TOP: u64 = 256;
