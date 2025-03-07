@@ -20,6 +20,8 @@ async fn main(_spawner: embassy_executor::Spawner) {
             .await;
     }
 
+    devices.backlight.test_pattern();
+
     let mut current_pos: Option<usize> = None;
     loop {
         #[derive(Clone)]

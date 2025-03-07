@@ -1,5 +1,6 @@
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio;
+use embassy_time::Instant;
 use gpio::{Level, Output, Pin};
 use embassy_rp::pio::{
     Common, Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
@@ -199,6 +200,37 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             test_data_pin: Output::new(test_data, Level::Low),
             test_latch_pin: Output::new(test_latch, Level::Low),
             test_clear_pin: Output::new(test_clear, Level::Low),
+        }
+    }
+
+    pub fn delay() {
+        let start_time = Instant::now();
+        while start_time.elapsed().as_millis() < 2 {
+        }
+    }
+
+    pub fn test_pattern(&mut self) {
+        self.test_latch_pin.set_high();
+        self.test_clear_pin.set_low();
+        let mut count: u32=0;
+        while count < 1000 {
+            self.test_data_pin.set_high();
+            Self::delay();
+            self.test_clk_pin.set_high();
+            Self::delay();
+            self.test_clk_pin.set_low();
+            Self::delay();
+            self.test_data_pin.set_low();
+            Self::delay();
+            self.test_clk_pin.set_high();
+            Self::delay();
+            self.test_clk_pin.set_low();
+            Self::delay();
+            self.test_latch_pin.set_high();
+            Self::delay();
+            self.test_latch_pin.set_low();
+            Self::delay();
+            count = count + 1;
         }
     }
 
