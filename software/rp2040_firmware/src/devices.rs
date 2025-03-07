@@ -51,8 +51,8 @@ impl Devices<'_> {
         Self {
             buttons: Buttons::new(
                 p.PIN_12, 
-                p.PIN_13, 
                 p.PIN_14, 
+                p.PIN_13, 
                 p.PIN_15),
 
             backlight: PioBacklight::new(
@@ -75,6 +75,7 @@ impl Devices<'_> {
                 pio_sm1,
                 p.PIN_2,  // Sound A
                 p.PIN_3,  // Sound B.  Must be consequtive
+                p.PIN_4,  // ENA, always on
                 p.PIN_10, // Debug
                 p.DMA_CH1,
             ),
