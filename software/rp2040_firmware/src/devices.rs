@@ -63,10 +63,14 @@ impl Devices<'_> {
                 },
                 &mut pio_common,
                 pio_sm0,
-                p.PIN_22, // LED_CLK
-                p.PIN_23, // LED_DATA
-                p.PIN_24, // LED_LATCH
-                p.PIN_25, // LED_CLEAR
+                p.PIN_6, // LED_CLK
+                p.PIN_7, // LED_DATA
+                p.PIN_8, // LED_LATCH
+                p.PIN_9, // LED_CLEAR
+                //p.PIN_22, // LED_CLK
+                //p.PIN_23, // LED_DATA
+                //p.PIN_24, // LED_LATCH
+                //p.PIN_25, // LED_CLEAR
                 p.DMA_CH0,
             ),
 
