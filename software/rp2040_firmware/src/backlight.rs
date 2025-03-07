@@ -1,5 +1,6 @@
 use embassy_rp::dma::Channel;
-use embassy_rp::gpio::Level;
+use embassy_rp::gpio;
+use gpio::{Level, Output, Pin};
 use embassy_rp::pio::{
     Common, Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
 };
@@ -22,6 +23,10 @@ pub struct PioBacklight<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: 
 
     // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
     pub dma_channel: DMA,
+    test_clk_pin: Output<'d>,
+    test_data_pin: Output<'d>,
+    test_latch_pin: Output<'d>,
+    test_clear_pin: Output<'d>,
 }
 impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     PioBacklight<'d, PIO, STATE_MACHINE_IDX, DMA>
@@ -34,6 +39,10 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         led_clk_pin: impl PioPin,
         led_latch_pin: impl PioPin,
         led_clear_pin: impl PioPin,
+        test_clk: impl Pin,
+        test_data: impl Pin,
+        test_latch: impl Pin,
+        test_clear: impl Pin,
         dma_channel: DMA,
     ) -> Self {
         /*
@@ -186,6 +195,10 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             config: config,
             state_machine: sm,
             dma_channel: dma_channel,
+            test_clk_pin: Output::new(test_clk, Level::Low),
+            test_data_pin: Output::new(test_data, Level::Low),
+            test_latch_pin: Output::new(test_latch, Level::Low),
+            test_clear_pin: Output::new(test_clear, Level::Low),
         }
     }
 
