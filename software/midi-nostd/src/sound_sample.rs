@@ -144,7 +144,6 @@ mod tests {
     fn samplei32_should_add_and_sub_properly() {
         let v0 = SoundSampleI32::new(10);
         let v1 = SoundSampleI32::new(5);
-        let v2 = SoundSampleI32::new(-5);
 
         assert!(v0 == v1 + v1);
         assert!(v1 == v0 - v1);

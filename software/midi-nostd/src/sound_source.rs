@@ -32,6 +32,8 @@ type Deleter = dyn Fn(&SoundSourceId);
 /// it using an ADSR amplitude envelope.
 ///
 pub trait SoundSource<'s, SAMPLE: SoundSample> {
+    fn has_next(self: &Self) -> bool;
+
     /// Draw a sample from a source
     ///
     fn get_next(self: &mut Self) -> SAMPLE;

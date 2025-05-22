@@ -21,6 +21,10 @@ struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
     id: usize,
     _marker: PhantomData<T>,
 }
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> Drop for GenericWaveSource<T, PLAY_FREQUENCY> {
+    fn drop(&mut self) {
+    }
+}
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {
     pub fn new(id: usize) -> Self {
@@ -70,6 +74,11 @@ impl<'s, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'s, T>
     fn get_next(&mut self) -> T {
         self.get_next_square()
     }
+
+    fn has_next(&self) -> bool {
+        true
+    }
+
     fn downstream_sources(self: &Self) -> Option<&'s [Option<SoundSourceId>]> {
         None
     }
