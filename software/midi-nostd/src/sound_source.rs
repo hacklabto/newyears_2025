@@ -31,7 +31,7 @@ type Deleter = dyn Fn(&SoundSourceId);
 /// a note might be created by  taking a waveform at the note's frequency and modifying
 /// it using an ADSR amplitude envelope.
 ///
-pub trait SoundSource<'s, SAMPLE: SoundSample> {
+pub trait SoundSource<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     fn has_next(self: &Self) -> bool;
 
     /// Draw a sample from a source
@@ -59,3 +59,4 @@ pub trait SoundSource<'s, SAMPLE: SoundSample> {
         delete_fn(&(self.id()));
     }
 }
+
