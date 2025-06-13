@@ -1,9 +1,25 @@
 use crate::sound_sample::SoundSample;
 
-/// Different tyoes source sources
+/// Different types source sources
 ///
+#[derive(Clone,Copy)]
+#[repr(i32)]
 pub enum SoundSourceType {
-    WaveGenerator,
+    WaveGenerator = 0
+}
+
+impl SoundSourceType {
+    pub fn from_i32(i32_value: i32 ) -> Self
+    {
+        let optional_enum_value: Option<Self> = match i32_value {
+            0  => Some(SoundSourceType::WaveGenerator),
+            _  => None
+        };
+        let enum_value = optional_enum_value.expect("bad i32 to SoundSourceType");
+        let i32_value_for_rechecking = enum_value as i32;
+        assert_eq!( i32_value, i32_value_for_rechecking );
+        enum_value
+    }
 }
 
 pub struct SoundSourceId {
@@ -62,5 +78,12 @@ pub trait SoundSource<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
 
 pub trait SoundSourcePool<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const TYPE: i32, const POOL_SIZE: usize >
 {
+    fn pool_alloc(self: &mut Self) -> usize;
+
+    fn alloc(self: &mut Self) -> SoundSourceId {
+        let pool_id = self.pool_alloc();
+        SoundSourceId::new(SoundSourceType::from_i32(TYPE), pool_id )
+    }
+
 }
 
