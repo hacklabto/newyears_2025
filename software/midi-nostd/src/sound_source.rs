@@ -15,10 +15,7 @@ impl SoundSourceType {
             0  => Some(SoundSourceType::WaveGenerator),
             _  => None
         };
-        let enum_value = optional_enum_value.expect("bad i32 to SoundSourceType");
-        let i32_value_for_rechecking = enum_value as i32;
-        assert_eq!( i32_value, i32_value_for_rechecking );
-        enum_value
+        optional_enum_value.expect("bad i32 to SoundSourceType")
     }
     pub fn all_variants() -> &'static [SoundSourceType] {
         &[
