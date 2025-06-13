@@ -2,7 +2,7 @@ use crate::sound_sample::SoundSample;
 
 /// Different types source sources
 ///
-#[derive(Clone,Copy)]
+#[derive(Clone,Copy,PartialEq,Eq,Debug)]
 #[repr(i32)]
 pub enum SoundSourceType {
     WaveGenerator = 0
@@ -19,6 +19,25 @@ impl SoundSourceType {
         let i32_value_for_rechecking = enum_value as i32;
         assert_eq!( i32_value, i32_value_for_rechecking );
         enum_value
+    }
+    pub fn all_variants() -> &'static [SoundSourceType] {
+        &[
+                SoundSourceType::WaveGenerator
+        ]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::sound_source::*;
+
+    #[test]
+    fn sound_source_enum_and_i32_bindings_are_consistent() {
+        for enum_value in SoundSourceType::all_variants().iter().copied() {
+            let i32_value = enum_value as i32;
+            let enum_value_for_check = SoundSourceType::from_i32(i32_value);
+            assert_eq!( enum_value, enum_value_for_check );
+        }
     }
 }
 
@@ -84,6 +103,5 @@ pub trait SoundSourcePool<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, co
         let pool_id = self.pool_alloc();
         SoundSourceId::new(SoundSourceType::from_i32(TYPE), pool_id )
     }
-
 }
 
