@@ -95,10 +95,22 @@ pub trait SoundSource<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
 pub trait SoundSourcePool<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const TYPE: i32, const POOL_SIZE: usize >
 {
     fn pool_alloc(self: &mut Self) -> usize;
+    fn pool_has_next(self: &Self, element: usize) -> bool;
+    fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE;
 
     fn alloc(self: &mut Self) -> SoundSourceId {
         let pool_id = self.pool_alloc();
         SoundSourceId::new(SoundSourceType::from_i32(TYPE), pool_id )
+    }
+
+    fn has_next(self: &mut Self, id: &SoundSourceId ) -> bool {
+        assert_eq!( TYPE, id.source_type as i32);
+        self.pool_has_next( id.id )
+    }
+
+    fn get_next(self: &mut Self, id: &SoundSourceId ) -> SAMPLE {
+        assert_eq!( TYPE, id.source_type as i32);
+        self.pool_get_next( id.id )
     }
 }
 
