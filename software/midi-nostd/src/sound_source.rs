@@ -5,7 +5,8 @@ use crate::sound_sample::SoundSample;
 #[derive(Clone,Copy,PartialEq,Eq,Debug)]
 #[repr(usize)]
 pub enum SoundSourceType {
-    WaveGenerator = 0
+    WaveGenerator = 0,
+    AdsrEnvelope = 1
 }
 
 impl SoundSourceType {
@@ -13,20 +14,33 @@ impl SoundSourceType {
     {
         let optional_enum_value: Option<Self> = match usize_value {
             0  => Some(SoundSourceType::WaveGenerator),
+            1  => Some(SoundSourceType::AdsrEnvelope),
             _  => None
         };
         optional_enum_value.expect("bad usize to SoundSourceType")
     }
     pub const fn all_variants() -> &'static [SoundSourceType] {
         &[
-                SoundSourceType::WaveGenerator
+                SoundSourceType::WaveGenerator,
+                SoundSourceType::AdsrEnvelope
         ]
     }
     pub const fn max_variant_id() -> usize {
         let mut max_variant_id: usize = 0;
+        let slice = SoundSourceType::all_variants();
+        let mut idx = 0;
+
+        while idx < slice.len() {
+            let enum_value = slice[ idx ];
+            let usize_value = enum_value as usize;
+            max_variant_id = if usize_value > max_variant_id { usize_value } else {max_variant_id };
+            idx = idx + 1;
+        }
         max_variant_id
     }
 }
+
+const test: usize = SoundSourceType::max_variant_id(); 
 
 #[cfg(test)]
 mod tests {
