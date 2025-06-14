@@ -26,17 +26,26 @@ impl SoundSourceType {
         ]
     }
     pub const fn max_variant_id() -> usize {
-        let mut max_variant_id: usize = 0;
+        let mut max_variant_id: Option<usize> = None;
         let slice = SoundSourceType::all_variants();
         let mut idx = 0;
 
         while idx < slice.len() {
             let enum_value = slice[ idx ];
             let usize_value = enum_value as usize;
-            max_variant_id = if usize_value > max_variant_id { usize_value } else {max_variant_id };
+            max_variant_id = if max_variant_id.is_none() { 
+                Some( usize_value )
+            } else {
+                if usize_value > max_variant_id.expect("") { 
+                    Some(usize_value) 
+                } 
+                else {
+                    max_variant_id 
+                }
+            };
             idx = idx + 1;
         }
-        max_variant_id
+        max_variant_id.expect("ENUM had non values!?!?")
     }
 }
 
