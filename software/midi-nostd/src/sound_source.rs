@@ -3,24 +3,28 @@ use crate::sound_sample::SoundSample;
 /// Different types source sources
 ///
 #[derive(Clone,Copy,PartialEq,Eq,Debug)]
-#[repr(i32)]
+#[repr(usize)]
 pub enum SoundSourceType {
     WaveGenerator = 0
 }
 
 impl SoundSourceType {
-    pub fn from_i32(i32_value: i32 ) -> Self
+    pub fn from_usize(usize_value: usize) -> Self
     {
-        let optional_enum_value: Option<Self> = match i32_value {
+        let optional_enum_value: Option<Self> = match usize_value {
             0  => Some(SoundSourceType::WaveGenerator),
             _  => None
         };
-        optional_enum_value.expect("bad i32 to SoundSourceType")
+        optional_enum_value.expect("bad usize to SoundSourceType")
     }
-    pub fn all_variants() -> &'static [SoundSourceType] {
+    pub const fn all_variants() -> &'static [SoundSourceType] {
         &[
                 SoundSourceType::WaveGenerator
         ]
+    }
+    pub const fn max_variant_id() -> usize {
+        let mut max_variant_id: usize = 0;
+        max_variant_id
     }
 }
 
@@ -28,11 +32,13 @@ impl SoundSourceType {
 mod tests {
     use crate::sound_source::*;
 
+    
+
     #[test]
-    fn sound_source_enum_and_i32_bindings_are_consistent() {
+    fn sound_source_enum_and_usize_bindings_are_consistent() {
         for enum_value in SoundSourceType::all_variants().iter().copied() {
-            let i32_value = enum_value as i32;
-            let enum_value_for_check = SoundSourceType::from_i32(i32_value);
+            let usize_value = enum_value as usize;
+            let enum_value_for_check = SoundSourceType::from_usize(usize_value);
             assert_eq!( enum_value, enum_value_for_check );
         }
     }
@@ -92,7 +98,7 @@ pub trait SoundSource<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     }
 }
 
-pub trait SoundSourcePool<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const TYPE: i32, const POOL_SIZE: usize >
+pub trait SoundSourcePool<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const TYPE: usize, const POOL_SIZE: usize >
 {
     fn pool_alloc(self: &mut Self) -> usize;
     fn pool_has_next(self: &Self, element: usize) -> bool;
@@ -100,17 +106,19 @@ pub trait SoundSourcePool<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, co
 
     fn alloc(self: &mut Self) -> SoundSourceId {
         let pool_id = self.pool_alloc();
-        SoundSourceId::new(SoundSourceType::from_i32(TYPE), pool_id )
+        SoundSourceId::new(SoundSourceType::from_usize(TYPE), pool_id )
     }
 
     fn has_next(self: &mut Self, id: &SoundSourceId ) -> bool {
-        assert_eq!( TYPE, id.source_type as i32);
+        assert_eq!( TYPE, id.source_type as usize);
         self.pool_has_next( id.id )
     }
 
     fn get_next(self: &mut Self, id: &SoundSourceId ) -> SAMPLE {
-        assert_eq!( TYPE, id.source_type as i32);
+        assert_eq!( TYPE, id.source_type as usize);
         self.pool_get_next( id.id )
     }
 }
+
+
 
