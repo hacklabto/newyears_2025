@@ -45,17 +45,13 @@ impl SoundSourceType {
             };
             idx = idx + 1;
         }
-        max_variant_id.expect("ENUM had non values!?!?")
+        max_variant_id.expect("ENUM had no values!?!?")
     }
 }
-
-const test: usize = SoundSourceType::max_variant_id(); 
 
 #[cfg(test)]
 mod tests {
     use crate::sound_source::*;
-
-    
 
     #[test]
     fn sound_source_enum_and_usize_bindings_are_consistent() {
@@ -63,6 +59,20 @@ mod tests {
             let usize_value = enum_value as usize;
             let enum_value_for_check = SoundSourceType::from_usize(usize_value);
             assert_eq!( enum_value, enum_value_for_check );
+        }
+    }
+
+    #[test]
+    // Each enum value should have a single usize map
+    fn sound_source_enum_and_usize_bindings_are_sensible() {
+        const MAX_ENUM_MAP:usize = SoundSourceType::max_variant_id()+1;
+        let mut times_seen: [u32; MAX_ENUM_MAP] = [0; MAX_ENUM_MAP];
+        for enum_value in SoundSourceType::all_variants().iter().copied() {
+            let usize_value = enum_value as usize;
+            times_seen[ usize_value ] = times_seen[ usize_value ] + 1;
+        }
+        for times_element_was_seen in times_seen {
+            assert_eq!( 1, times_element_was_seen );
         }
     }
 }
