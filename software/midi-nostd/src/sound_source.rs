@@ -88,8 +88,6 @@ impl SoundSourceId {
     }
 }
 
-type Deleter = dyn Fn(&SoundSourceId);
-
 ///
 /// Interface (so far) for a sound source  
 ///
@@ -115,23 +113,9 @@ pub trait SoundSource<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     fn downstream_sources(self: &Self) -> Option<&'s [Option<SoundSourceId>]>;
 
     fn id(self: &Self) -> SoundSourceId;
-
-    fn delete(self: &Self, delete_fn: &Deleter) {
-        let downstream_maybe = self.downstream_sources();
-        if downstream_maybe.is_some() {
-            let downstream = downstream_maybe.unwrap();
-            for id_maybe in downstream {
-                if id_maybe.is_some() {
-                    let id = id_maybe.as_ref().unwrap();
-                    delete_fn(id);
-                }
-            }
-        }
-        delete_fn(&(self.id()));
-    }
 }
 
-pub trait SoundSourcePool<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const TYPE: usize, const POOL_SIZE: usize >
+pub trait SoundSourcePool<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const TYPE: usize, const POOL_SIZE: usize >
 {
     fn pool_alloc(self: &mut Self) -> usize;
     fn pool_has_next(self: &Self, element: usize) -> bool;
@@ -152,6 +136,4 @@ pub trait SoundSourcePool<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, co
         self.pool_get_next( id.id )
     }
 }
-
-
 
