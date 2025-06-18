@@ -107,10 +107,8 @@ pub trait SoundSource<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     ///
     fn get_next(self: &mut Self) -> SAMPLE;
 
-    /// What sound sources does this source depend on.
-    /// TODO - use for clean-up when a note finishes playing and we want
-    /// to recycle the resources it used.
-    fn downstream_sources(self: &Self) -> Option<&'s [Option<SoundSourceId>]>;
+    fn peer_sound_source(self: &Self)  -> Option<SoundSourceId>;
+    fn child_sound_source(self: &Self) -> Option<SoundSourceId>;
 
     fn id(self: &Self) -> SoundSourceId;
 }

@@ -79,11 +79,16 @@ impl<'s, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'s, T, PLAY_FREQ
         true
     }
 
-    fn downstream_sources(self: &Self) -> Option<&'s [Option<SoundSourceId>]> {
-        None
-    }
     fn id(self: &Self) -> SoundSourceId {
         SoundSourceId::new(SoundSourceType::WaveGenerator, self.id)
+    }
+
+    fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {
+        None
+    }
+
+    fn child_sound_source(self: &Self) -> Option<SoundSourceId> {
+        None
     }
 }
 

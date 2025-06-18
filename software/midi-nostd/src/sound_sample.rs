@@ -141,6 +141,7 @@ mod tests {
         assert!(v2 == v2.clip());
     }
 
+    #[test]
     fn samplei32_should_add_and_sub_properly() {
         let v0 = SoundSampleI32::new(10);
         let v1 = SoundSampleI32::new(5);
