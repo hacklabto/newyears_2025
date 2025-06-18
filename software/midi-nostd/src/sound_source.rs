@@ -136,10 +136,20 @@ pub trait SoundSourcePool<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>
     }
 }
 
+const MAX_ENUM_MAP:usize = SoundSourceType::max_variant_id()+1;
 
 pub struct SoundSources<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>
 {   
-    test: &'a mut dyn SoundSourcePool<SAMPLE, PLAY_FREQUENCY>
+    pools: [&'a mut dyn SoundSourcePool<SAMPLE, PLAY_FREQUENCY>; MAX_ENUM_MAP ]
 }
 
+impl <'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE, PLAY_FREQUENCY> 
+{
+    fn has_next(self: &mut Self, id: &SoundSourceId ) -> bool {
+        return self.pools[id.source_type as usize].has_next(id);
+    }
+    fn get_next(self: &mut Self, id: &SoundSourceId ) -> SAMPLE {
+        return self.pools[id.source_type as usize].get_next(id);
+    }
+}
 
