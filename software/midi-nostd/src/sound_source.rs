@@ -100,7 +100,7 @@ impl SoundSourceId {
 /// a note might be created by  taking a waveform at the note's frequency and modifying
 /// it using an ADSR amplitude envelope.
 ///
-pub trait SoundSource<'s, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
+pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     fn has_next(self: &Self) -> bool;
 
     /// Draw a sample from a source
