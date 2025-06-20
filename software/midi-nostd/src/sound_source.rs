@@ -113,6 +113,57 @@ pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     fn id(self: &Self) -> SoundSourceId;
 }
 
+pub struct SoundSourceFreeList<'a> {
+    free_list: &'a mut[ Option<usize > ],
+    free_list_head: Option<usize>
+}
+
+impl<'a> SoundSourceFreeList<'a> {
+    pub fn alloc(self: &mut Self) -> usize {
+        let allocatedItem = self.free_list_head.expect("Unhandled out of sound pool error");
+        self.free_list_head = self.free_list[ allocatedItem ];
+        self.free_list[ allocatedItem ] = None;
+        allocatedItem
+    }
+    pub fn free(self: &mut Self, itemToFree: usize ) {
+        assert!( self.free_list[ itemToFree ].is_none() );
+        self.free_list[ itemToFree ] = self.free_list_head;
+        self.free_list_head = Some( itemToFree );
+    }
+    pub fn new(free_list: &'a mut[ Option<usize>] ) -> SoundSourceFreeList<'a> {
+        let free_list_head: Option<usize> = Some(0);
+
+        for idx in 0..free_list.len()-1 {
+            free_list[ idx ] = Some(idx+1);
+        }
+        free_list[ free_list.len()-1 ] = None;
+
+        Self {
+            free_list,
+            free_list_head
+        }
+    }
+}
+
+#[cfg(test)]
+mod free_list_tests {
+    use crate::sound_source::*;
+    #[test]
+    fn free_list_should_alloc_and_free() {
+        let mut storage : [Option<usize>; 3] = [None; 3];
+        let mut free_list: SoundSourceFreeList = SoundSourceFreeList::new( &mut storage );
+        assert_eq!( 0, free_list.alloc() );
+        assert_eq!( 1, free_list.alloc() );
+        assert_eq!( 2, free_list.alloc() );
+        free_list.free(1);
+        free_list.free(0);
+        free_list.free(2);
+        assert_eq!( 2, free_list.alloc() );
+        assert_eq!( 0, free_list.alloc() );
+        assert_eq!( 1, free_list.alloc() );
+    }
+}
+
 pub trait SoundSourcePool<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>
 {
     fn pool_alloc(self: &mut Self) -> usize;

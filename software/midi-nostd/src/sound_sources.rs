@@ -10,9 +10,6 @@ pub struct SoundSources
     wave_sourcees: [ WaveSource; WAVE_BUFFER_SIZE ]
 }
 
-impl SoundSources {
-    SoundSourceId alloc_wave(self &Self) -> SoundSourceId {
-
-    }
+impl SoundSourcePool< {
 }
 
