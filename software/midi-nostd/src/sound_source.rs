@@ -1,4 +1,5 @@
 use crate::sound_sample::SoundSample;
+//use core::marker::PhantomData;
 
 /// Different types source sources
 ///
@@ -164,24 +165,24 @@ mod free_list_tests {
     }
 }
 
-pub trait SoundSourcePool<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>
+pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>
 {
     // Functions that need to be filled in by implementor
     // 
-    fn get_freelist<'a>(self: &mut Self) -> SoundSourceFreeList<'a>;
+    fn get_freelist(self: &mut Self) -> &mut SoundSourceFreeList<'a>;
     fn pool_has_next(self: &Self, element: usize) -> bool;
     fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE;
     fn get_type_id(self: &Self) -> usize;
 
     fn alloc(self: &mut Self) -> SoundSourceId {
-        let mut free_list = self.get_freelist();
+        let free_list = self.get_freelist();
         let pool_id = free_list.alloc();
         SoundSourceId::new(SoundSourceType::from_usize(self.get_type_id()), pool_id )
     }
 
     fn free(self: &mut Self, id: &SoundSourceId) {
         assert_eq!( self.get_type_id(), id.source_type as usize);
-        let mut free_list = self.get_freelist();
+        let free_list = self.get_freelist();
         free_list.free( id.id );
     }
 
@@ -200,7 +201,7 @@ const MAX_ENUM_MAP:usize = SoundSourceType::max_variant_id()+1;
 
 pub struct SoundSources<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>
 {   
-    pools: [&'a mut dyn SoundSourcePool<SAMPLE, PLAY_FREQUENCY>; MAX_ENUM_MAP ]
+    pools: [&'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>; MAX_ENUM_MAP ]
 }
 
 impl <'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE, PLAY_FREQUENCY> 
@@ -212,4 +213,42 @@ impl <'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPL
         return self.pools[id.source_type as usize].get_next(id);
     }
 }
+
+    //_SAMPLE: PhantomData<SoundSample>,
+pub struct GenericSoundPool<'a, 
+    SAMPLE: SoundSample,
+    const PLAY_FREQUENCY: u32,
+    MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY>,
+    const N: usize >
+{
+    sound_source: [MySoundSource; N],
+    free_list_storage: [Option<usize>; N],
+    free_list: SoundSourceFreeList<'a>,
+    fake: SAMPLE,   // TODO, spiral on phantom data
+}
+
+impl <'a, 
+    SAMPLE: SoundSample,
+    const PLAY_FREQUENCY: u32,
+    MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY>,
+    const N: usize > SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> for
+    GenericSoundPool<'a, SAMPLE, PLAY_FREQUENCY, MySoundSource, N>
+{
+    fn get_freelist<'b>(self: &mut Self) -> &mut SoundSourceFreeList<'a> {
+        &mut self.free_list
+    }
+    fn pool_has_next(self: &Self, element: usize) -> bool {
+        self.sound_source[element].has_next()
+    }
+    fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE {
+        self.sound_source[element].get_next()
+    }
+    fn get_type_id(self: &Self) -> usize {
+        0
+    }
+}
+
+
+
+
 
