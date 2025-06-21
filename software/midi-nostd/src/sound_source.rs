@@ -166,14 +166,23 @@ mod free_list_tests {
 
 pub trait SoundSourcePool<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>
 {
-    fn pool_alloc(self: &mut Self) -> usize;
+    // Functions that need to be filled in by implementor
+    // 
+    fn get_freelist<'a>(self: &mut Self) -> SoundSourceFreeList<'a>;
     fn pool_has_next(self: &Self, element: usize) -> bool;
     fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE;
     fn get_type_id(self: &Self) -> usize;
 
     fn alloc(self: &mut Self) -> SoundSourceId {
-        let pool_id = self.pool_alloc();
+        let mut free_list = self.get_freelist();
+        let pool_id = free_list.alloc();
         SoundSourceId::new(SoundSourceType::from_usize(self.get_type_id()), pool_id )
+    }
+
+    fn free(self: &mut Self, id: &SoundSourceId) {
+        assert_eq!( self.get_type_id(), id.source_type as usize);
+        let mut free_list = self.get_freelist();
+        free_list.free( id.id );
     }
 
     fn has_next(self: &mut Self, id: &SoundSourceId ) -> bool {
