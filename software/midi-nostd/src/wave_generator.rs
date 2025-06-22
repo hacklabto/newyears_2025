@@ -22,8 +22,7 @@ struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
     _marker: PhantomData<T>,
 }
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Drop for GenericWaveSource<T, PLAY_FREQUENCY> {
-    fn drop(&mut self) {
-    }
+    fn drop(&mut self) {}
 }
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {
