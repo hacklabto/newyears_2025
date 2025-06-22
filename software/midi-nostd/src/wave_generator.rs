@@ -93,8 +93,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
 }
 
 type WaveSource = GenericWaveSource<SoundSampleI32, 24000>;
-type WavePool<'a> = GenericSoundPool<
-    'a,
+type WavePool = GenericSoundPool<
     SoundSampleI32,
     2400,
     WaveSource,
