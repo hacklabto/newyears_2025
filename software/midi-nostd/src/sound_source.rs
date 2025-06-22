@@ -219,7 +219,8 @@ pub struct GenericSoundPool<'a,
     SAMPLE: SoundSample,
     const PLAY_FREQUENCY: u32,
     MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY>,
-    const N: usize >
+    const N: usize,
+    const TYPE_ID: usize>
 {
     sound_source: [MySoundSource; N],
     free_list_storage: [Option<usize>; N],
@@ -231,8 +232,8 @@ impl <'a,
     SAMPLE: SoundSample,
     const PLAY_FREQUENCY: u32,
     MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY>,
-    const N: usize > SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> for
-    GenericSoundPool<'a, SAMPLE, PLAY_FREQUENCY, MySoundSource, N>
+    const N: usize, const TYPE_ID: usize > SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> for
+    GenericSoundPool<'a, SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
 {
     fn get_freelist<'b>(self: &mut Self) -> &mut SoundSourceFreeList<'a> {
         &mut self.free_list
@@ -244,7 +245,7 @@ impl <'a,
         self.sound_source[element].get_next()
     }
     fn get_type_id(self: &Self) -> usize {
-        0
+        TYPE_ID
     }
 }
 
