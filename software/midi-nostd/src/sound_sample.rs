@@ -10,7 +10,7 @@ use core::ops::Sub;
 /// easy choice to represent this information... except a lot of micro-controllers don't
 /// have hardware floating point support.
 ///
-pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub {
+pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub + Default {
     /// Maximum playable sound sample
     ///
     fn max() -> Self;
@@ -46,7 +46,7 @@ pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub {
 /// ~15 bits are used for the fractional component.  Playable sound is from
 /// -0x8000 (-1) to 0x7fff (1).  0 maps to zero.
 ///
-#[derive(Clone, Eq, Copy)]
+#[derive(Clone, Eq, Copy, Default)]
 pub struct SoundSampleI32 {
     pub val: i32,
 }

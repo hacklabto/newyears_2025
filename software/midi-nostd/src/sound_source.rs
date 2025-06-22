@@ -216,7 +216,7 @@ pub struct GenericSoundPool<
     'a,
     SAMPLE: SoundSample,
     const PLAY_FREQUENCY: u32,
-    MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY>,
+    MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
     const N: usize,
     const TYPE_ID: usize,
 > {
@@ -230,7 +230,27 @@ impl<
         'a,
         SAMPLE: SoundSample,
         const PLAY_FREQUENCY: u32,
-        MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY>,
+        MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
+        const N: usize,
+        const TYPE_ID: usize,
+    > GenericSoundPool<'a, SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
+{
+    /*
+    fn new() -> Self {
+        let sound_source:[MySoundSource;N] = core::array::from_fn(|_i| MySoundSource::default());
+        let mut free_list_storage:[Option<usize>; N ] = [None; N ];
+        let free_list = SoundSourceFreeList::new( &mut free_list_storage );
+        let fake = SAMPLE::default();
+        Self{ sound_source, free_list_storage, free_list, fake }
+    }
+    */
+}
+
+impl<
+        'a,
+        SAMPLE: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
         const N: usize,
         const TYPE_ID: usize,
     > SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>

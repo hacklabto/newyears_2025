@@ -1,5 +1,6 @@
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
+use crate::sound_source::GenericSoundPool;
 use crate::sound_source::SoundSource;
 use crate::sound_source::SoundSourceId;
 use crate::sound_source::SoundSourceType;
@@ -92,6 +93,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
 }
 
 type WaveSource = GenericWaveSource<SoundSampleI32, 24000>;
+type WavePool<'a> = GenericSoundPool<
+    'a,
+    SoundSampleI32,
+    2400,
+    WaveSource,
+    3,
+    { SoundSourceType::WaveGenerator as usize },
+>;
 
 #[cfg(test)]
 mod tests {
@@ -99,6 +108,8 @@ mod tests {
 
     #[test]
     fn test_square() {
+        //let pool:WavePool = WavePool::new();
+
         let mut wave_source = WaveSource::new(0);
         wave_source.init(WaveType::Square, 2600);
         let mut last = wave_source.get_next();
