@@ -108,8 +108,10 @@ pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId>;
     fn child_sound_source(self: &Self) -> Option<SoundSourceId>;
+}
 
-    fn id(self: &Self) -> SoundSourceId;
+pub trait ArrayInit {
+
 }
 
 pub trait SoundSourceFreeList {
@@ -233,15 +235,12 @@ impl<
         const TYPE_ID: usize,
     > GenericSoundPool<SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
 {
-    /*
     fn new() -> Self {
         let sound_source:[MySoundSource;N] = core::array::from_fn(|_i| MySoundSource::default());
-        let mut free_list_storage:[Option<usize>; N ] = [None; N ];
-        let free_list = SoundSourceFreeList::new( &mut free_list_storage );
+        let free_list: SoundSourceFreeListImpl<N> = SoundSourceFreeListImpl::new();
         let fake = SAMPLE::default();
-        Self{ sound_source, free_list_storage, free_list, fake }
+        Self{ sound_source, free_list, fake }
     }
-    */
 }
 
 impl<

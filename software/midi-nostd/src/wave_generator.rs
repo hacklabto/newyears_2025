@@ -19,33 +19,31 @@ struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
     wave_type: WaveType,
     sound_frequency: u32,
     count: u32,
-    id: usize,
     _marker: PhantomData<T>,
 }
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Drop for GenericWaveSource<T, PLAY_FREQUENCY> {
     fn drop(&mut self) {}
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {
-    pub fn new(id: usize) -> Self {
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T, PLAY_FREQUENCY> {
+    fn default() -> Self {
         let wave_type = WaveType::Square;
         let count: u32 = 0;
         let sound_frequency: u32 = 0;
         Self {
-            id,
             wave_type,
             sound_frequency,
             count,
             _marker: PhantomData {},
         }
     }
+}
 
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {
     pub fn init(self: &mut Self, wave_type: WaveType, arg_sound_frequency: u32) {
-        let id = self.id;
         let count: u32 = 0;
         let sound_frequency = arg_sound_frequency * 1000;
         *self = Self {
-            id,
             wave_type,
             sound_frequency,
             count,
@@ -79,10 +77,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         true
     }
 
-    fn id(self: &Self) -> SoundSourceId {
-        SoundSourceId::new(SoundSourceType::WaveGenerator, self.id)
-    }
-
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {
         None
     }
@@ -109,7 +103,7 @@ mod tests {
     fn test_square() {
         //let pool:WavePool = WavePool::new();
 
-        let mut wave_source = WaveSource::new(0);
+        let mut wave_source = WaveSource::default();
         wave_source.init(WaveType::Square, 2600);
         let mut last = wave_source.get_next();
         let mut transitions: u32 = 0;
