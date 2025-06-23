@@ -10,6 +10,7 @@ use core::ops::Sub;
 /// easy choice to represent this information... except a lot of micro-controllers don't
 /// have hardware floating point support.
 ///
+#[allow(unused)]
 pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub + Default {
     /// Maximum playable sound sample
     ///

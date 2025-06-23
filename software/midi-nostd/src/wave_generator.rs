@@ -8,6 +8,7 @@ use core::marker::PhantomData;
 
 /// Start with just square waves
 ///
+#[allow(unused)]
 pub enum WaveType {
     Square,
 }
@@ -15,16 +16,18 @@ pub enum WaveType {
 ///
 /// Wave source generic for a sample type and frequency
 ///
+#[allow(unused)]
 struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
     wave_type: WaveType,
     sound_frequency: u32,
     count: u32,
     _marker: PhantomData<T>,
 }
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> Drop for GenericWaveSource<T, PLAY_FREQUENCY> {
-    fn drop(&mut self) {}
-}
+//impl<T: SoundSample, const PLAY_FREQUENCY: u32> Drop for GenericWaveSource<T, PLAY_FREQUENCY> {
+//    fn drop(&mut self) {}
+//}
 
+#[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T, PLAY_FREQUENCY> {
     fn default() -> Self {
         let wave_type = WaveType::Square;
@@ -39,6 +42,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T,
     }
 }
 
+#[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {
     pub fn init(self: &mut Self, wave_type: WaveType, arg_sound_frequency: u32) {
         let count: u32 = 0;
@@ -66,6 +70,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     }
 }
 
+#[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
@@ -86,7 +91,9 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     }
 }
 
+#[allow(unused)]
 type WaveSource = GenericWaveSource<SoundSampleI32, 24000>;
+#[allow(unused)]
 type WavePool = GenericSoundPool<
     SoundSampleI32,
     2400,
