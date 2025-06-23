@@ -248,7 +248,7 @@ impl<
         const TYPE_ID: usize,
     > GenericSoundPool<SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
 {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let sound_source: [MySoundSource; N] = core::array::from_fn(|_i| MySoundSource::default());
         let free_list: SoundSourceFreeListImpl<N> = SoundSourceFreeListImpl::new();
         let fake = SAMPLE::default();

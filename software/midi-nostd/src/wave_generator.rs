@@ -96,7 +96,7 @@ type WaveSource = GenericWaveSource<SoundSampleI32, 24000>;
 #[allow(unused)]
 type WavePool = GenericSoundPool<
     SoundSampleI32,
-    2400,
+    24000,
     WaveSource,
     3,
     { SoundSourceType::WaveGenerator as usize },
@@ -108,8 +108,6 @@ mod tests {
 
     #[test]
     fn test_square() {
-        //let pool:WavePool = WavePool::new();
-
         let mut wave_source = WaveSource::default();
         wave_source.init(WaveType::Square, 2600);
         let mut last = wave_source.get_next();
@@ -122,5 +120,10 @@ mod tests {
             last = current;
         }
         assert_eq!(transitions, 2600 * 2);
+    }
+
+    #[test]
+    fn test_square_from_pool() {
+        let _pool: WavePool = WavePool::new();
     }
 }
