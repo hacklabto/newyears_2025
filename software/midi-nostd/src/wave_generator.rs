@@ -129,5 +129,7 @@ mod tests {
         let mut all_pools = SoundSources::<SoundSampleI32, 24000 >::create_with_single_pool_for_test(
             &mut wave_pool,
             SoundSourceType::WaveGenerator ); 
+        let wave_id = all_pools.alloc( SoundSourceType::WaveGenerator );
+        all_pools.free( wave_id );
     }
 }

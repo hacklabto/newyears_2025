@@ -191,7 +191,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>:
         SoundSourceId::new(SoundSourceType::from_usize(self.get_type_id()), pool_id)
     }
 
-    fn pool_free(self: &mut Self, id: &SoundSourceId) {
+    fn pool_free(self: &mut Self, id: SoundSourceId) {
         assert_eq!(self.get_type_id(), id.source_type as usize);
         self.free(id.id);
     }
@@ -225,6 +225,16 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
             core::array::from_fn(|_i| None );
         pools[ test_pool_slot as usize] = Some(test_pool);
         Self{ pools }
+    }
+
+    pub fn alloc( self: &mut Self, sound_source_type: SoundSourceType ) -> SoundSourceId 
+    {
+        self.pools[sound_source_type as usize].as_mut().expect("skill issue").pool_alloc()
+    }
+
+    pub fn free( self: &mut Self, id: SoundSourceId)
+    {
+        self.pools[id.source_type as usize].as_mut().expect("skill issue").pool_free( id )
     }
 
     pub fn has_next(self: &mut Self, id: &SoundSourceId) -> bool {
