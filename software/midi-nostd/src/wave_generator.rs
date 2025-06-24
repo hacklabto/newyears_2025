@@ -105,6 +105,7 @@ type WavePool = GenericSoundPool<
 #[cfg(test)]
 mod tests {
     use crate::wave_generator::*;
+    use crate::sound_source::SoundSources;
 
     #[test]
     fn test_square() {
@@ -124,6 +125,9 @@ mod tests {
 
     #[test]
     fn test_square_from_pool() {
-        let _pool: WavePool = WavePool::new();
+        let mut wave_pool: WavePool = WavePool::new();
+        let mut all_pools = SoundSources::<SoundSampleI32, 24000 >::create_with_single_pool_for_test(
+            &mut wave_pool,
+            SoundSourceType::WaveGenerator ); 
     }
 }
