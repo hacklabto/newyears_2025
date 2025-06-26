@@ -4,14 +4,9 @@ use crate::sound_source::GenericSoundPool;
 use crate::sound_source::SoundSource;
 use crate::sound_source::SoundSourceId;
 use crate::sound_source::SoundSourceType;
+use crate::sound_source::WaveType;
+use crate::sound_source::SoundSourceAttributes;
 use core::marker::PhantomData;
-
-/// Start with just square waves
-///
-#[allow(unused)]
-pub enum WaveType {
-    Square,
-}
 
 ///
 /// Wave source generic for a sample type and frequency
@@ -81,6 +76,9 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     fn has_next(&self) -> bool {
         true
     }
+    fn set_attribute( key: SoundSourceAttributes, value: usize ) {
+
+    }
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {
         None
@@ -130,6 +128,7 @@ mod tests {
             &mut wave_pool,
             SoundSourceType::WaveGenerator ); 
         let wave_id = all_pools.alloc( SoundSourceType::WaveGenerator );
+        //all_pools.init( wave_id, WaveType::Square, 2600, 100  )
         all_pools.free( wave_id );
     }
 }

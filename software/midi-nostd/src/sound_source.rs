@@ -84,6 +84,24 @@ pub struct SoundSourceId {
     pub id: usize,
 }
 
+///
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[allow(unused)]
+pub enum SoundSourceAttributes {
+    WaveType,
+    Frequiency,
+    Volume
+}
+
+/// Start with just square waves
+///
+#[allow(unused)]
+#[repr(usize)]
+pub enum WaveType {
+    Square = 0,
+}
+
+
 #[allow(unused)]
 impl SoundSourceId {
     pub fn new(source_type: SoundSourceType, id: usize) -> Self {
@@ -105,11 +123,16 @@ impl SoundSourceId {
 ///
 #[allow(unused)]
 pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
+    /// Returns false if the sound source is done playing
+    ///
     fn has_next(self: &Self) -> bool;
 
     /// Draw a sample from a source
     ///
     fn get_next(self: &mut Self) -> SAMPLE;
+
+    /// Set Attribute
+    fn set_attribute( key: SoundSourceAttributes, value: usize );
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId>;
     fn child_sound_source(self: &Self) -> Option<SoundSourceId>;
