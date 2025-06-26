@@ -5,7 +5,7 @@ use crate::sound_source::SoundSourceId;
 use crate::sound_source::SoundSourceType;
 use crate::sound_source::WaveType;
 use crate::sound_source::SoundSourceAttributes;
-use crate::sound_sources::GenericSoundPool;
+use crate::sound_source_pool_impl::GenericSoundPool;
 use core::marker::PhantomData;
 
 ///
