@@ -1,17 +1,17 @@
 #[allow(unused)]
-pub trait SoundSourceFreeList {
+pub trait FreeList {
     fn alloc(self: &mut Self) -> usize;
     fn free(self: &mut Self, item_to_free: usize);
 }
 
 #[allow(unused)]
-pub struct SoundSourceFreeListImpl<const N: usize> {
+pub struct FreeListImpl<const N: usize> {
     free_list: [Option<usize>; N],
     free_list_head: Option<usize>,
 }
 
 #[allow(unused)]
-impl<const N: usize> SoundSourceFreeList for SoundSourceFreeListImpl<N> {
+impl<const N: usize> FreeList for FreeListImpl<N> {
     fn alloc(self: &mut Self) -> usize {
         let allocated_item = self
             .free_list_head
@@ -28,7 +28,7 @@ impl<const N: usize> SoundSourceFreeList for SoundSourceFreeListImpl<N> {
 }
 
 #[allow(unused)]
-impl<const N: usize> SoundSourceFreeListImpl<N> {
+impl<const N: usize> FreeListImpl<N> {
     pub fn new() -> Self {
         let free_list: [Option<usize>; N] =
             core::array::from_fn(|idx| if idx == N - 1 { None } else { Some(idx + 1) });
@@ -46,7 +46,7 @@ mod free_list_tests {
     use crate::free_list::*;
     #[test]
     fn free_list_should_alloc_and_free() {
-        let mut free_list: SoundSourceFreeListImpl<3> = SoundSourceFreeListImpl::new();
+        let mut free_list: FreeListImpl<3> = FreeListImpl::new();
         assert_eq!(0, free_list.alloc());
         assert_eq!(1, free_list.alloc());
         assert_eq!(2, free_list.alloc());

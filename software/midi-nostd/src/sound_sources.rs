@@ -3,12 +3,12 @@ use crate::sound_source::SoundSourceAttributes;
 use crate::sound_source::SoundSource;
 use crate::sound_source::SoundSourceId;
 use crate::sound_source::SoundSourceType;
-use crate::free_list::SoundSourceFreeList;
-use crate::free_list::SoundSourceFreeListImpl;
+use crate::free_list::FreeList;
+use crate::free_list::FreeListImpl;
 
 #[allow(unused)]
 pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>:
-    SoundSourceFreeList
+    FreeList
 {
     // Functions that need to be filled in by implementor
     //
@@ -93,7 +93,7 @@ pub struct GenericSoundPool<
     const TYPE_ID: usize,
 > {
     sound_source: [MySoundSource; N],
-    free_list: SoundSourceFreeListImpl<N>,
+    free_list: FreeListImpl<N>,
     fake: SAMPLE, // TODO, spiral on phantom data
 }
 
@@ -108,7 +108,7 @@ impl<
 {
     pub fn new() -> Self {
         let sound_source: [MySoundSource; N] = core::array::from_fn(|_i| MySoundSource::default());
-        let free_list: SoundSourceFreeListImpl<N> = SoundSourceFreeListImpl::new();
+        let free_list: FreeListImpl<N> = FreeListImpl::new();
         let fake = SAMPLE::default();
         Self {
             sound_source,
@@ -125,7 +125,7 @@ impl<
         MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
         const N: usize,
         const TYPE_ID: usize,
-    > SoundSourceFreeList for GenericSoundPool<SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
+    > FreeList for GenericSoundPool<SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
 {
     fn alloc(self: &mut Self) -> usize {
         self.free_list.alloc()
