@@ -89,7 +89,7 @@ pub struct SoundSourceId {
 #[allow(unused)]
 pub enum SoundSourceAttributes {
     WaveType,
-    Frequiency,
+    Frequency,
     Volume
 }
 
@@ -132,7 +132,7 @@ pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     fn get_next(self: &mut Self) -> SAMPLE;
 
     /// Set Attribute
-    fn set_attribute( key: SoundSourceAttributes, value: usize );
+    fn set_attribute( self: &mut Self, key: SoundSourceAttributes, value: usize );
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId>;
     fn child_sound_source(self: &Self) -> Option<SoundSourceId>;
@@ -207,6 +207,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>:
     //
     fn pool_has_next(self: &Self, element: usize) -> bool;
     fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE;
+    fn pool_set_attribute( self: &mut Self, element: usize, key: SoundSourceAttributes, value: usize );
     fn get_type_id(self: &Self) -> usize;
 
     fn pool_alloc(self: &mut Self) -> SoundSourceId {
@@ -227,6 +228,10 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>:
     fn get_next(self: &mut Self, id: &SoundSourceId) -> SAMPLE {
         assert_eq!(self.get_type_id(), id.source_type as usize);
         self.pool_get_next(id.id)
+    }
+    fn set_attribute (self: &mut Self, id: &SoundSourceId, key: SoundSourceAttributes, value: usize) {
+        assert_eq!(self.get_type_id(), id.source_type as usize);
+        self.pool_set_attribute(id.id, key, value)
     }
 }
 
@@ -265,6 +270,9 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
     }
     pub fn get_next(self: &mut Self, id: &SoundSourceId) -> SAMPLE {
         return self.pools[id.source_type as usize].as_mut().expect("panic if none").get_next(id);
+    }
+    pub fn set_attribute (self: &mut Self, id: &SoundSourceId, key: SoundSourceAttributes, value: usize) {
+        return self.pools[id.source_type as usize].as_mut().expect("panic if none").set_attribute(id, key, value );
     }
 }
 
@@ -334,6 +342,9 @@ impl<
     }
     fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE {
         self.sound_source[element].get_next()
+    }
+    fn pool_set_attribute( self: &mut Self, element: usize, key: SoundSourceAttributes, value: usize ) {
+        self.sound_source[element].set_attribute(key, value)
     }
     fn get_type_id(self: &Self) -> usize {
         TYPE_ID

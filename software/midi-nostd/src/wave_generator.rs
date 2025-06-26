@@ -76,8 +76,10 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     fn has_next(&self) -> bool {
         true
     }
-    fn set_attribute( key: SoundSourceAttributes, value: usize ) {
-
+    fn set_attribute( &mut self, key: SoundSourceAttributes, value: usize ) {
+        if key == SoundSourceAttributes::Frequency {
+            self.sound_frequency = (value as u32) * 1000;
+        }
     }
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {
@@ -128,7 +130,18 @@ mod tests {
             &mut wave_pool,
             SoundSourceType::WaveGenerator ); 
         let wave_id = all_pools.alloc( SoundSourceType::WaveGenerator );
-        //all_pools.init( wave_id, WaveType::Square, 2600, 100  )
+        all_pools.set_attribute( &wave_id, SoundSourceAttributes::Frequency, 2600 );
+
+        let mut last = all_pools.get_next(&wave_id);
+        let mut transitions: u32 = 0;
+        for _ in 0..24000 {
+            let current = all_pools.get_next(&wave_id);
+            if current != last {
+                transitions = transitions + 1;
+            }
+            last = current;
+        }
+        assert_eq!(transitions, 2600 * 2);
         all_pools.free( wave_id );
     }
 }
