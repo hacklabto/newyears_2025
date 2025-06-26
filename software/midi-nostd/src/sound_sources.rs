@@ -1,15 +1,218 @@
-use crate::wave_generator::WaveSource;
-use crate::wave_generator::WaveType;
-use crate::sound_source::SoundSourceType;
+use crate::sound_sample::SoundSample;
+use crate::sound_source::SoundSourceAttributes;
+use crate::sound_source::SoundSource;
 use crate::sound_source::SoundSourceId;
+use crate::sound_source::SoundSourceType;
 
-const WAVE_BUFFER_SUZE:usize = 100
+#[allow(unused)]
+pub trait SoundSourceFreeList {
+    fn alloc(self: &mut Self) -> usize;
+    fn free(self: &mut Self, item_to_free: usize);
+}
 
-pub struct SoundSources
+#[allow(unused)]
+pub struct SoundSourceFreeListImpl<const N: usize> {
+    free_list: [Option<usize>; N],
+    free_list_head: Option<usize>,
+}
+
+#[allow(unused)]
+impl<const N: usize> SoundSourceFreeList for SoundSourceFreeListImpl<N> {
+    fn alloc(self: &mut Self) -> usize {
+        let allocated_item = self
+            .free_list_head
+            .expect("Unhandled out of sound pool error");
+        self.free_list_head = self.free_list[allocated_item];
+        self.free_list[allocated_item] = None;
+        allocated_item
+    }
+    fn free(self: &mut Self, item_to_free: usize) {
+        assert!(self.free_list[item_to_free].is_none());
+        self.free_list[item_to_free] = self.free_list_head;
+        self.free_list_head = Some(item_to_free);
+    }
+}
+
+#[allow(unused)]
+impl<const N: usize> SoundSourceFreeListImpl<N> {
+    pub fn new() -> Self {
+        let free_list: [Option<usize>; N] =
+            core::array::from_fn(|idx| if idx == N - 1 { None } else { Some(idx + 1) });
+        let free_list_head: Option<usize> = Some(0);
+
+        Self {
+            free_list,
+            free_list_head,
+        }
+    }
+}
+
+#[cfg(test)]
+mod free_list_tests {
+    use crate::sound_sources::*;
+    #[test]
+    fn free_list_should_alloc_and_free() {
+        let mut free_list: SoundSourceFreeListImpl<3> = SoundSourceFreeListImpl::new();
+        assert_eq!(0, free_list.alloc());
+        assert_eq!(1, free_list.alloc());
+        assert_eq!(2, free_list.alloc());
+        free_list.free(1);
+        free_list.free(0);
+        free_list.free(2);
+        assert_eq!(2, free_list.alloc());
+        assert_eq!(0, free_list.alloc());
+        assert_eq!(1, free_list.alloc());
+    }
+}
+
+#[allow(unused)]
+pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>:
+    SoundSourceFreeList
 {
-    wave_sourcees: [ WaveSource; WAVE_BUFFER_SIZE ]
+    // Functions that need to be filled in by implementor
+    //
+    fn pool_has_next(self: &Self, element: usize) -> bool;
+    fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE;
+    fn pool_set_attribute( self: &mut Self, element: usize, key: SoundSourceAttributes, value: usize );
+    fn get_type_id(self: &Self) -> usize;
+
+    fn pool_alloc(self: &mut Self) -> SoundSourceId {
+        let pool_id = self.alloc();
+        SoundSourceId::new(SoundSourceType::from_usize(self.get_type_id()), pool_id)
+    }
+
+    fn pool_free(self: &mut Self, id: SoundSourceId) {
+        assert_eq!(self.get_type_id(), id.source_type as usize);
+        self.free(id.id);
+    }
+
+    fn has_next(self: &mut Self, id: &SoundSourceId) -> bool {
+        assert_eq!(self.get_type_id(), id.source_type as usize);
+        self.pool_has_next(id.id)
+    }
+
+    fn get_next(self: &mut Self, id: &SoundSourceId) -> SAMPLE {
+        assert_eq!(self.get_type_id(), id.source_type as usize);
+        self.pool_get_next(id.id)
+    }
+    fn set_attribute (self: &mut Self, id: &SoundSourceId, key: SoundSourceAttributes, value: usize) {
+        assert_eq!(self.get_type_id(), id.source_type as usize);
+        self.pool_set_attribute(id.id, key, value)
+    }
 }
 
-impl SoundSourcePool< {
+#[allow(unused)]
+const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
+
+#[allow(unused)]
+pub struct SoundSources<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
+    pools: [Option<&'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>>; MAX_ENUM_MAP],
 }
 
+#[allow(unused)]
+impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE, PLAY_FREQUENCY> {
+    pub fn create_with_single_pool_for_test(
+        test_pool: &'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>,
+        test_pool_slot: SoundSourceType ) -> Self
+    {
+        let mut pools: [Option<&'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>>; MAX_ENUM_MAP] =
+            core::array::from_fn(|_i| None );
+        pools[ test_pool_slot as usize] = Some(test_pool);
+        Self{ pools }
+    }
+
+    pub fn alloc( self: &mut Self, sound_source_type: SoundSourceType ) -> SoundSourceId 
+    {
+        self.pools[sound_source_type as usize].as_mut().expect("skill issue").pool_alloc()
+    }
+
+    pub fn free( self: &mut Self, id: SoundSourceId)
+    {
+        self.pools[id.source_type as usize].as_mut().expect("skill issue").pool_free( id )
+    }
+
+    pub fn has_next(self: &mut Self, id: &SoundSourceId) -> bool {
+        return self.pools[id.source_type as usize].as_mut().expect("panic if none").has_next(id);
+    }
+    pub fn get_next(self: &mut Self, id: &SoundSourceId) -> SAMPLE {
+        return self.pools[id.source_type as usize].as_mut().expect("panic if none").get_next(id);
+    }
+    pub fn set_attribute (self: &mut Self, id: &SoundSourceId, key: SoundSourceAttributes, value: usize) {
+        return self.pools[id.source_type as usize].as_mut().expect("panic if none").set_attribute(id, key, value );
+    }
+}
+
+//_SAMPLE: PhantomData<SoundSample>,
+#[allow(unused)]
+pub struct GenericSoundPool<
+    SAMPLE: SoundSample,
+    const PLAY_FREQUENCY: u32,
+    MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
+    const N: usize,
+    const TYPE_ID: usize,
+> {
+    sound_source: [MySoundSource; N],
+    free_list: SoundSourceFreeListImpl<N>,
+    fake: SAMPLE, // TODO, spiral on phantom data
+}
+
+#[allow(unused)]
+impl<
+        SAMPLE: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
+        const N: usize,
+        const TYPE_ID: usize,
+    > GenericSoundPool<SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
+{
+    pub fn new() -> Self {
+        let sound_source: [MySoundSource; N] = core::array::from_fn(|_i| MySoundSource::default());
+        let free_list: SoundSourceFreeListImpl<N> = SoundSourceFreeListImpl::new();
+        let fake = SAMPLE::default();
+        Self {
+            sound_source,
+            free_list,
+            fake,
+        }
+    }
+}
+
+#[allow(unused)]
+impl<
+        SAMPLE: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
+        const N: usize,
+        const TYPE_ID: usize,
+    > SoundSourceFreeList for GenericSoundPool<SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
+{
+    fn alloc(self: &mut Self) -> usize {
+        self.free_list.alloc()
+    }
+    fn free(self: &mut Self, item_to_free: usize) {
+        self.free_list.free(item_to_free)
+    }
+}
+
+impl<
+        SAMPLE: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
+        const N: usize,
+        const TYPE_ID: usize,
+    > SoundSourcePool<'_, SAMPLE, PLAY_FREQUENCY>
+    for GenericSoundPool<SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
+{
+    fn pool_has_next(self: &Self, element: usize) -> bool {
+        self.sound_source[element].has_next()
+    }
+    fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE {
+        self.sound_source[element].get_next()
+    }
+    fn pool_set_attribute( self: &mut Self, element: usize, key: SoundSourceAttributes, value: usize ) {
+        self.sound_source[element].set_attribute(key, value)
+    }
+    fn get_type_id(self: &Self) -> usize {
+        TYPE_ID
+    }
+}
