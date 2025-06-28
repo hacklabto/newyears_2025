@@ -17,12 +17,16 @@ def do_table_entry( wave_function, idx ):
     wave_domain = wave_function( wave_range )
     return str(int( wave_domain * 1024 ))
 
-def output_table( function_name, wave_function ):
+def do_table_row( wave_function, big_idx ):
+    row_numbers = [do_table_entry( wave_function, big_idx + i) for i in range( 16 ) ]
+    return "    " + ",".join( row_numbers )
+
+def output_table( function_name, wave_function ): 
+    row_lines = [do_table_row( wave_function, i) for i in range( 0, 1024, 16 ) ]
+    print( "#[allow(unused)]" )
     print( "const", function_name, ": [u32; 1024 ] = [" )
-    for big_idx in range(0,1024,16):
-        row_numbers = [do_table_entry( wave_function, big_idx + i) for i in range( 16 ) ]
-        print("    ", ", ".join( row_numbers ) )
-    print( "];" );
+    print( ",\n".join( row_lines ))
+    print( "];" )
     print( "" )
 
 output_table( "TRIANGLE_WAVE",  do_triangle     )
