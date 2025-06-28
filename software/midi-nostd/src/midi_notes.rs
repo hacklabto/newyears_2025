@@ -1,4 +1,4 @@
-#[allow(unused)]
+# reference frequencies * 100.
 const MIDI_NOTE_TO_FREQ: [u32; 128] = [
     1254385, 1183982, 1117530, 1054808, 995606, 939727, 886984, 837202, 790213, 745862, 704000,
     664488, 627193, 591991, 558765, 527404, 497803, 469864, 443492, 418601, 395107, 372931, 352000,
@@ -12,7 +12,6 @@ const MIDI_NOTE_TO_FREQ: [u32; 128] = [
     1298, 1225, 1156, 1091, 1030, 972, 918, 866, 818,
 ];
 
-#[allow(unused)]
 pub fn midi_note_to_freq(midi_note: u8) -> u32 {
     let midi_note_flipped: usize = (127 - midi_note).into();
     let freq: u32 = MIDI_NOTE_TO_FREQ[midi_note_flipped];
@@ -28,9 +27,10 @@ mod tests {
     #[test]
     // Sanity test a few notes against reference frequencies
     fn test_samples() {
-        assert_eq!(26163, midi_note_to_freq(60)); // C4
-        assert_eq!(44000, midi_note_to_freq(69)); // A4
-        assert_eq!(2750, midi_note_to_freq(21)); // A0
-        assert_eq!(98777, midi_note_to_freq(83)); // B5
+        assert_eq!(26163, midi_note_to_freq(60)); // C4 (261.63 Hz * 100)
+        assert_eq!(44000, midi_note_to_freq(69)); // A4 (440 Hz * 100)
+        assert_eq!(2750, midi_note_to_freq(21)); // A0 (27.5 Hz * 100)
+        assert_eq!(98777, midi_note_to_freq(83)); // B5 (987.77 * 100)
     }
-}
+} 
+
