@@ -1,9 +1,32 @@
-   
+import math  
 
-def output_sines():
-    for idx in range(0,1024):
-        print(idx)
+def do_square( wave_range ):
+    return 0.0 if wave_range < .5 else 1.0
 
+def do_sine( wave_range ):
+    return math.sin(wave_range * math.pi * 2.0) * .5 + .5
 
-output_sines()
+def do_sawtooth( wave_range ):
+    return wave_range
+
+def do_triangle( wave_range ):
+    return wave_range * 2.0 if wave_range < .5 else (1.0-wave_range) * 2.0
+
+def do_table_entry( wave_function, idx ):
+    wave_range = idx / 1024.0
+    wave_domain = wave_function( wave_range )
+    return str(int( wave_domain * 1024 ))
+
+def output_table( function_name, wave_function ):
+    print( "const", function_name, ": [u32; 1024 ] = [" )
+    for big_idx in range(0,1024,16):
+        row_numbers = [do_table_entry( wave_function, big_idx + i) for i in range( 16 ) ]
+        print("    ", ", ".join( row_numbers ) )
+    print( "];" );
+    print( "" )
+
+output_table( "TRIANGLE_WAVE",  do_triangle     )
+output_table( "SINE_WAVE",      do_sine         )
+output_table( "SQUARE_WAVE",    do_square       )
+output_table( "SAWTOOTH_WAVE",  do_sawtooth     )
 
