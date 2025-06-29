@@ -5,6 +5,7 @@ use crate::sound_source::SoundSourceId;
 use crate::sound_source::SoundSourceType;
 use crate::sound_source::WaveType;
 use crate::sound_source::SoundSourceAttributes;
+use crate::wave_tables::WAVE_TABLE_SIZE;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use core::marker::PhantomData;
 
@@ -48,8 +49,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     pub fn init(self: &mut Self, wave_type: WaveType, arg_sound_frequency: u32) {
         let table_idx: u32 = 0;
         let table_remainder: u32 = 0;
-        // I want (arg_sound_frequency * 1024) / (100 * PLAY_FREQUENCY);
-        let inc_numerator: u32  = arg_sound_frequency * 1024;
+        // I want (arg_sound_frequency * WAVE_TABLE_SIZE) / (100 * PLAY_FREQUENCY);
+        let inc_numerator: u32  = arg_sound_frequency * (WAVE_TABLE_SIZE as u32);
         let inc_denominator: u32 = (100 * PLAY_FREQUENCY );
         let table_idx_inc: u32 = inc_numerator / inc_denominator;
         let table_remainder_inc: u32 = inc_numerator % inc_denominator;
@@ -87,9 +88,9 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     //
     // Next consideration - I probably want my table to be a power of 2, so I can loop
     // through the table my masking off the upper bits instead of doing a remainder, which
-    // may be an expensive operation on some hardware.  So say 1024.
+    // may be an expensive operation on some hardware.  So say WAVE_TABLE_SIZE.
     //
-    // Ideally, I want my input frequency to be the target frequency * 1024.
+    // Ideally, I want my input frequency to be the target frequency * WAVE_TABLE_SIZE.
     //
     fn get_next_square(&mut self) -> T {
         self.table_idx += self.table_idx_inc;
@@ -99,7 +100,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
             self.table_remainder -= inc_denominator;
             self.table_idx += 1;
         }
-        self.table_idx = self.table_idx & ( 1024-1 );
+        self.table_idx = self.table_idx & (( WAVE_TABLE_SIZE as u32) -1 );
         if self.table_idx < 512 {
             T::min()
         } else {
@@ -121,7 +122,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     }
     fn set_attribute( &mut self, key: SoundSourceAttributes, value: usize ) {
         if key == SoundSourceAttributes::Frequency {
-            let inc_numerator: u32  = (value as u32) * 1024;
+            let inc_numerator: u32  = (value as u32) * (WAVE_TABLE_SIZE as u32);
             let inc_denominator: u32 = (100 * PLAY_FREQUENCY );
             self.table_idx_inc = inc_numerator / inc_denominator;
             self.table_remainder_inc = inc_numerator % inc_denominator;

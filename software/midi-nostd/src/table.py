@@ -15,7 +15,7 @@ def do_triangle( wave_range ):
 def do_table_entry( wave_function, idx ):
     wave_range = idx / 1024.0
     wave_domain = wave_function( wave_range )
-    return str(int( wave_domain * 1024 ))
+    return str(int( wave_domain * 256))
 
 def do_table_row( wave_function, big_idx ):
     row_numbers = [do_table_entry( wave_function, big_idx + i) for i in range( 16 ) ]
@@ -28,6 +28,9 @@ def output_table( function_name, wave_function ):
     print( ",\n".join( row_lines ))
     print( "];" )
     print( "" )
+
+print( "#[allow(unused)]" )
+print("pub const WAVE_TABLE_SIZE: usize=1024;\n");
 
 output_table( "TRIANGLE_WAVE",  do_triangle     )
 output_table( "SINE_WAVE",      do_sine         )
