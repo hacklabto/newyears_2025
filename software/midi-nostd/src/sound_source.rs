@@ -90,7 +90,7 @@ pub struct SoundSourceId {
 pub enum SoundSourceAttributes {
     WaveType,
     Frequency,
-    Volume
+    Volume,
 }
 
 /// Start with just square waves
@@ -103,7 +103,6 @@ pub enum WaveType {
     SawTooth = 2,
     Sine = 3,
 }
-
 
 #[allow(unused)]
 impl SoundSourceId {
@@ -135,9 +134,8 @@ pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     fn get_next(self: &mut Self) -> SAMPLE;
 
     /// Set Attribute
-    fn set_attribute( self: &mut Self, key: SoundSourceAttributes, value: usize );
+    fn set_attribute(self: &mut Self, key: SoundSourceAttributes, value: usize);
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId>;
     fn child_sound_source(self: &Self) -> Option<SoundSourceId>;
 }
-

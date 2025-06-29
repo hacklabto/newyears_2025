@@ -1,6 +1,9 @@
-// reference frequencies * 100.
-//
+// All frequencies will be multiplied by 100 so low frequency notes (i.e.,
+// 16.35 hz) can be represented as an integer (1635 in this case)
+// TODO - Should this constant be in this file?  Probably not, bit it seems silly to
+// make a frequency.rs with just this entry.
 
+pub const FREQUENCY_MULTIPLIER: u32 = 100;
 
 #[allow(unused)]
 const MIDI_NOTE_TO_FREQ: [u32; 128] = [
@@ -28,14 +31,18 @@ pub fn midi_note_to_freq(midi_note: u8) -> u32 {
 mod tests {
 
     use crate::midi_notes::midi_note_to_freq;
+    use crate::midi_notes::FREQUENCY_MULTIPLIER;
 
     #[test]
     // Sanity test a few notes against reference frequencies
     fn test_samples() {
-        assert_eq!(26163, midi_note_to_freq(60)); // C4 (261.63 Hz * 100)
+        // C4 (261.63 Hz * 100)
+        assert_eq!(
+            261.63 * (FREQUENCY_MULTIPLIER as f32),
+            midi_note_to_freq(60) as f32
+        );
         assert_eq!(44000, midi_note_to_freq(69)); // A4 (440 Hz * 100)
         assert_eq!(2750, midi_note_to_freq(21)); // A0 (27.5 Hz * 100)
         assert_eq!(98777, midi_note_to_freq(83)); // B5 (987.77 * 100)
     }
-} 
-
+}

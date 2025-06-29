@@ -58,4 +58,3 @@ mod free_list_tests {
         assert_eq!(1, free_list.alloc());
     }
 }
-
