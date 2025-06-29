@@ -1,4 +1,8 @@
-# reference frequencies * 100.
+// reference frequencies * 100.
+//
+
+
+#[allow(unused)]
 const MIDI_NOTE_TO_FREQ: [u32; 128] = [
     1254385, 1183982, 1117530, 1054808, 995606, 939727, 886984, 837202, 790213, 745862, 704000,
     664488, 627193, 591991, 558765, 527404, 497803, 469864, 443492, 418601, 395107, 372931, 352000,
@@ -12,6 +16,7 @@ const MIDI_NOTE_TO_FREQ: [u32; 128] = [
     1298, 1225, 1156, 1091, 1030, 972, 918, 866, 818,
 ];
 
+#[allow(unused)]
 pub fn midi_note_to_freq(midi_note: u8) -> u32 {
     let midi_note_flipped: usize = (127 - midi_note).into();
     let freq: u32 = MIDI_NOTE_TO_FREQ[midi_note_flipped];
