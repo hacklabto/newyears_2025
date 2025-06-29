@@ -24,7 +24,7 @@ def do_table_row( wave_function, big_idx ):
 def output_table( function_name, wave_function ): 
     row_lines = [do_table_row( wave_function, i) for i in range( 0, 1024, 16 ) ]
     print( "#[allow(unused)]" )
-    print( "const", function_name, ": [u32; 1024 ] = [" )
+    print( "const", function_name, ": [u32; WAVE_TABLE_SIZE] = [" )
     print( ",\n".join( row_lines ))
     print( "];" )
     print( "" )
