@@ -26,6 +26,9 @@ pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub + Default {
     ///
     fn to_u16(&self) -> u16;
 
+    /// Create a sound sample from something more suitable for tables
+    fn new(init_val: u16) -> Self;
+
     /// Guarantee that a sample is playable
     ///
     /// out of bounds samples are cliped.
@@ -67,6 +70,10 @@ impl SoundSample for SoundSampleI32 {
     }
     fn min() -> Self {
         Self::new(-0x8000)
+    }
+    fn new(sample: u16) -> Self {
+        let int_sample: i32 = (sample as i32) - 0x8000;
+        Self::new(int_sample)
     }
 
     fn to_u16(&self) -> u16 {

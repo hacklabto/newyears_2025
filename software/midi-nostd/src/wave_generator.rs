@@ -7,6 +7,7 @@ use crate::sound_source::SoundSourceId;
 use crate::sound_source::SoundSourceType;
 use crate::sound_source::WaveType;
 use crate::sound_source_pool_impl::GenericSoundPool;
+use crate::wave_tables::SQUARE_WAVE;
 use crate::wave_tables::WAVE_TABLE_SIZE;
 use core::marker::PhantomData;
 
@@ -93,7 +94,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     //
     // Ideally, I want my input frequency to be the target frequency * WAVE_TABLE_SIZE.
     //
-    fn get_next_square(&mut self) -> T {
+    fn get_next_table(&mut self, table: &[u16; WAVE_TABLE_SIZE]) -> T {
         self.table_idx += self.table_idx_inc;
         self.table_remainder += self.table_remainder_inc;
         let inc_denominator: u32 = (100 * PLAY_FREQUENCY);
@@ -102,11 +103,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
             self.table_idx += 1;
         }
         self.table_idx = self.table_idx & ((WAVE_TABLE_SIZE as u32) - 1);
-        if self.table_idx < 512 {
-            T::min()
-        } else {
-            T::max()
-        }
+        T::new(table[self.table_idx as usize])
     }
 }
 
@@ -115,7 +112,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
     fn get_next(&mut self) -> T {
-        self.get_next_square()
+        self.get_next_table(&SQUARE_WAVE)
     }
 
     fn has_next(&self) -> bool {
