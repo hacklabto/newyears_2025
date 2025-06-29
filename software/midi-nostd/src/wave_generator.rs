@@ -66,38 +66,36 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
         }
     }
 
-    // Read sample from table that has wave amplitude values
+    // Read sample from table that has the wave's amplitude values
     //
-    // For now, sound_frequency is 100x the actual frequency, mostly because I
-    // multplied the note frequencies by 100 when setting up the note to frequency
-    // table.  If I also make the wave table 100 entries, then you can think of the
-    // value in self.sound_frequency as table values per second.  i.e.,
+    // The basic idea of this function is that we're going through the table
+    // at some rate (i.e., N entries per second, where N might be a fractional
+    // value).  If we go through the table faster, we play the wave back at a
+    // higher frequeny.  Slower gives a lower frequency.
     //
-    // frequency = entire single wave tables / second
-    // frequency *100 = entire single wave tables / second * 100
-    // frequency *100 = (single wave table entry (for size 100 table) / 100)/ second * 100
-    // frequency *100 = single wave table entry (for size 100 table) second
+    // The rate that we're going through the table is represented by
     //
-    // PLAY_FREQUENCY is the playback frequency, so
+    // self_table_idx_inc + self.table_remainder_inc / inc_denominator
     //
-    // frequency *100 /PLAY_FREQUENCY  = single wave table entry (size 100 ) second / PLAY_FREQUENY
+    // Where 0 <= self.table_remainder_inc/ inc_demonimator < 1 is always true.
     //
-    // If I look at an A4 note, frequency * 100 is 44000.  If PLAY_FREQUENCY is 24000, it means
-    // we go through one table entry every 24000/44000 updates, which is just over .5.
+    // The position in the table is tracked by self.table_idx, but there's always
+    // some fractional left over value.  That value is tracked by
+    // self.table_remainder, and has a "real" value of
     //
-    // If I look at A0, frequency * 100 is 2750.  24000/2750 is just under 9.  That's not
-    // fantastic, in the sense that I could get better resolution with a bigger table.
-    //
-    // Next consideration - I probably want my table to be a power of 2, so I can loop
-    // through the table my masking off the upper bits instead of doing a remainder, which
-    // may be an expensive operation on some hardware.  So say WAVE_TABLE_SIZE.
-    //
-    // Ideally, I want my input frequency to be the target frequency * WAVE_TABLE_SIZE.
+    // self.table_remainder / inc_denominator, which is always [0..1) when the
+    // function exits.
     //
     fn get_next_table(&mut self, table: &[u16; WAVE_TABLE_SIZE]) -> T {
+        // Update table position and fractional value
+        //
         self.table_idx += self.table_idx_inc;
         self.table_remainder += self.table_remainder_inc;
-        let inc_denominator: u32 = (100 * PLAY_FREQUENCY);
+        let inc_denominator: u32 = (FREQUENCY_MULTIPLIER * PLAY_FREQUENCY);
+
+        // If the fractional value represents a number greater than 1, increment
+        // the table index and decease the fractional value so it's [0..1).
+        //
         if self.table_remainder > inc_denominator {
             self.table_remainder -= inc_denominator;
             self.table_idx += 1;
