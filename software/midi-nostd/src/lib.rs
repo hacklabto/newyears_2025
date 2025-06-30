@@ -1,5 +1,6 @@
 #![no_std]
 
+mod adsr;
 mod free_list;
 mod midi_notes;
 mod sound_sample;

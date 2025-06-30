@@ -1,5 +1,6 @@
 use core::cmp::Ordering;
 use core::ops::Add;
+use core::ops::Div;
 use core::ops::Sub;
 
 ///
@@ -94,6 +95,14 @@ impl Sub for SoundSampleI32 {
     type Output = SoundSampleI32;
     fn sub(mut self, rhs: SoundSampleI32) -> SoundSampleI32 {
         self.val -= rhs.val;
+        self
+    }
+}
+
+impl Div<i32> for SoundSampleI32 {
+    type Output = SoundSampleI32;
+    fn div(mut self, rhs: i32) -> SoundSampleI32 {
+        self.val = self.val / rhs;
         self
     }
 }
