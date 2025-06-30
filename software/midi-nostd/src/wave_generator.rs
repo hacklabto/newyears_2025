@@ -7,9 +7,16 @@ use crate::sound_source::SoundSourceId;
 use crate::sound_source::SoundSourceType;
 use crate::sound_source::WaveType;
 use crate::sound_source_pool_impl::GenericSoundPool;
+use crate::wave_tables::SAWTOOTH_WAVE;
+use crate::wave_tables::SINE_WAVE;
 use crate::wave_tables::SQUARE_WAVE;
+use crate::wave_tables::TRIANGLE_WAVE;
+
 use crate::wave_tables::WAVE_TABLE_SIZE;
 use core::marker::PhantomData;
+
+const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
+    [&SQUARE_WAVE, &TRIANGLE_WAVE, &SAWTOOTH_WAVE, &SINE_WAVE];
 
 ///
 /// Wave source generic for a sample type and frequency
@@ -110,7 +117,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
     fn get_next(&mut self) -> T {
-        self.get_next_table(&SQUARE_WAVE)
+        self.get_next_table(ALL_WAVE_TABLES[self.wave_type as usize])
     }
 
     fn has_next(&self) -> bool {
