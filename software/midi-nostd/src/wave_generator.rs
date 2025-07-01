@@ -16,7 +16,7 @@ use crate::wave_tables::WAVE_TABLE_SIZE;
 use core::marker::PhantomData;
 
 const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
-    [&SQUARE_WAVE, &TRIANGLE_WAVE, &SAWTOOTH_WAVE, &SINE_WAVE];
+    [&TRIANGLE_WAVE, &SAWTOOTH_WAVE, &SINE_WAVE, &SQUARE_WAVE];
 
 ///
 /// Wave source generic for a sample type and frequency
@@ -24,6 +24,7 @@ const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
 #[allow(unused)]
 struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
     wave_type: WaveType,
+    pulse_width_cutoff: usize,
     table_idx: u32,
     table_remainder: u32,
     table_idx_inc: u32,
@@ -37,13 +38,15 @@ struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
 #[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T, PLAY_FREQUENCY> {
     fn default() -> Self {
-        let wave_type = WaveType::Square;
+        let wave_type = WaveType::PulseWidth;
+        let pulse_width_cutoff: usize = WAVE_TABLE_SIZE / 2; // 50% duty cycle by default
         let table_idx: u32 = 0;
         let table_remainder: u32 = 0;
         let table_idx_inc: u32 = 0;
         let table_remainder_inc: u32 = 0;
         Self {
             wave_type,
+            pulse_width_cutoff,
             table_idx,
             table_remainder,
             table_idx_inc,
@@ -58,13 +61,15 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     pub fn init(self: &mut Self, wave_type: WaveType, arg_sound_frequency: u32) {
         let table_idx: u32 = 0;
         let table_remainder: u32 = 0;
-        // I want (arg_sound_frequency * WAVE_TABLE_SIZE) / (FREQUNCY_MULTIPLIER * PLAY_FREQUENCY);
+        let pulse_width_cutoff: usize = WAVE_TABLE_SIZE / 2; // 50% duty cycle by default
+                                                             // I want (arg_sound_frequency * WAVE_TABLE_SIZE) / (FREQUNCY_MULTIPLIER * PLAY_FREQUENCY);
         let inc_numerator: u32 = arg_sound_frequency * (WAVE_TABLE_SIZE as u32);
         let inc_denominator: u32 = (FREQUENCY_MULTIPLIER * PLAY_FREQUENCY);
         let table_idx_inc: u32 = inc_numerator / inc_denominator;
         let table_remainder_inc: u32 = inc_numerator % inc_denominator;
         *self = Self {
             wave_type,
+            pulse_width_cutoff,
             table_idx,
             table_remainder,
             table_idx_inc,
@@ -160,7 +165,7 @@ mod tests {
     #[test]
     fn test_square() {
         let mut wave_source = WaveSource::default();
-        wave_source.init(WaveType::Square, 2600 * FREQUENCY_MULTIPLIER);
+        wave_source.init(WaveType::PulseWidth, 2600 * FREQUENCY_MULTIPLIER);
         let mut last = wave_source.get_next();
         let mut transitions: u32 = 0;
         for _ in 0..24000 {

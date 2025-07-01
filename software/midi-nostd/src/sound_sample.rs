@@ -11,12 +11,12 @@ pub struct SoundScale {
 
 #[allow(unused)]
 impl SoundScale {
-    pub fn new( scale_by: u16 ) -> Self {
+    pub fn new(scale_by: u16) -> Self {
         let scale_by_int: i32 = scale_by.into();
-        return Self{ scale_by_int }
+        return Self { scale_by_int };
     }
-    pub fn new_percent( scale_by_percent: u16 ) -> Self {
-        return Self::new( (scale_by_percent as u16) * 256 / 100 )
+    pub fn new_percent(scale_by_percent: u16) -> Self {
+        return Self::new((scale_by_percent as u16) * 256 / 100);
     }
     pub fn get_scale_by_int(&self) -> i32 {
         self.scale_by_int
@@ -60,7 +60,7 @@ pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub + Default {
 
     /// scale by some value
     ///
-    fn scale(&mut self, scale_by: SoundScale );
+    fn scale(&mut self, scale_by: SoundScale);
 
     /// Guarantee that a sample is playable
     ///
@@ -113,7 +113,7 @@ impl SoundSample for SoundSampleI32 {
         (self.val + 0x8000) as u16
     }
 
-    fn scale(&mut self, scale_by: SoundScale ) {
+    fn scale(&mut self, scale_by: SoundScale) {
         self.val = (self.val * scale_by.get_scale_by_int()) >> 8;
     }
 }
@@ -215,8 +215,8 @@ mod tests {
         v3.scale(SoundScale::new(0));
         v4.scale(SoundScale::new_percent(50));
 
-        assert!(v1 == v2);  // scaled by 1, unchanged
-        assert!(v0 == v3);  // scaled by 0
-        assert!(v1 == v4);  // scaled by .5
+        assert!(v1 == v2); // scaled by 1, unchanged
+        assert!(v0 == v3); // scaled by 0
+        assert!(v1 == v4); // scaled by .5
     }
 }

@@ -99,10 +99,10 @@ pub enum SoundSourceAttributes {
 #[allow(unused)]
 #[repr(usize)]
 pub enum WaveType {
-    Square = 0,
-    Triangle = 1,
-    SawTooth = 2,
-    Sine = 3,
+    Triangle = 0,
+    SawTooth = 1,
+    Sine = 2,
+    PulseWidth = 3,
 }
 
 #[allow(unused)]
