@@ -3,6 +3,26 @@ use core::ops::Add;
 use core::ops::Div;
 use core::ops::Sub;
 
+#[allow(unused)]
+pub struct SoundScale {
+    // 1.8 fixed point value.  Valid values are 0 to 256
+    pub scale_by_int: i32,
+}
+
+#[allow(unused)]
+impl SoundScale {
+    pub fn new( scale_by: u16 ) -> Self {
+        let scale_by_int: i32 = scale_by.into();
+        return Self{ scale_by_int }
+    }
+    pub fn new_percent( scale_by_percent: u16 ) -> Self {
+        return Self::new( (scale_by_percent as u16) * 256 / 100 )
+    }
+    pub fn get_scale_by_int(&self) -> i32 {
+        self.scale_by_int
+    }
+}
+
 /// A short explanation for this file....
 ///
 /// I'm abstracting some basic math concepts because I want this library to work
@@ -38,9 +58,9 @@ pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub + Default {
     /// Create a sound sample from something more suitable for tables
     fn new(init_val: u16) -> Self;
 
-    /// scale by val, where val is a 8.8 fixed point value.  Scales are valid from
-    /// 0.0 to 1.1 (i.e., 0 to 256).
-    fn scale(&mut self, scale_by: u16 );
+    /// scale by some value
+    ///
+    fn scale(&mut self, scale_by: SoundScale );
 
     /// Guarantee that a sample is playable
     ///
@@ -93,9 +113,8 @@ impl SoundSample for SoundSampleI32 {
         (self.val + 0x8000) as u16
     }
 
-    fn scale(&mut self, scale_by: u16 ) {
-        let int_scale_by: i32 = scale_by as i32;
-        self.val = (self.val * int_scale_by) >> 8;
+    fn scale(&mut self, scale_by: SoundScale ) {
+        self.val = (self.val * scale_by.get_scale_by_int()) >> 8;
     }
 }
 
@@ -192,9 +211,9 @@ mod tests {
         let mut v3 = SoundSampleI32::new(100);
         let mut v4 = SoundSampleI32::new(200);
 
-        v2.scale(0x100);
-        v3.scale(0x0);
-        v4.scale(0x80);
+        v2.scale(SoundScale::new_percent(100));
+        v3.scale(SoundScale::new(0));
+        v4.scale(SoundScale::new_percent(50));
 
         assert!(v1 == v2);  // scaled by 1, unchanged
         assert!(v0 == v3);  // scaled by 0
