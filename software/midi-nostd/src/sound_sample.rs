@@ -3,6 +3,14 @@ use core::ops::Add;
 use core::ops::Div;
 use core::ops::Sub;
 
+/// A short explanation for this file....
+///
+/// I'm abstracting some basic math concepts because I want this library to work
+/// well on embeded devices, and a lot of them won't have some of the things we
+/// take forgranted on desktop computers, like hardware floating point or CPU
+/// speeds in the GHz.  That means I'll be doing a lot of fixed point math.
+///
+
 ///
 /// Interface for a sound sample
 ///
@@ -29,6 +37,10 @@ pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub + Default {
 
     /// Create a sound sample from something more suitable for tables
     fn new(init_val: u16) -> Self;
+
+    /// scale by val, where val is a 8.8 fixed point value.  Scales are valid from
+    /// 0.0 to 1.1 (i.e., 0 to 256).
+    fn scale(&mut self, scale_by: u16 );
 
     /// Guarantee that a sample is playable
     ///
@@ -79,6 +91,11 @@ impl SoundSample for SoundSampleI32 {
 
     fn to_u16(&self) -> u16 {
         (self.val + 0x8000) as u16
+    }
+
+    fn scale(&mut self, scale_by: u16 ) {
+        let int_scale_by: i32 = scale_by as i32;
+        self.val = (self.val * int_scale_by) >> 8;
     }
 }
 
@@ -165,5 +182,22 @@ mod tests {
 
         assert!(v0 == v1 + v1);
         assert!(v1 == v0 - v1);
+    }
+
+    #[test]
+    fn samplei32_should_scale_properly() {
+        let v0 = SoundSampleI32::new(0);
+        let v1 = SoundSampleI32::new(100);
+        let mut v2 = SoundSampleI32::new(100);
+        let mut v3 = SoundSampleI32::new(100);
+        let mut v4 = SoundSampleI32::new(200);
+
+        v2.scale(0x100);
+        v3.scale(0x0);
+        v4.scale(0x80);
+
+        assert!(v1 == v2);  // scaled by 1, unchanged
+        assert!(v0 == v3);  // scaled by 0
+        assert!(v1 == v4);  // scaled by .5
     }
 }
