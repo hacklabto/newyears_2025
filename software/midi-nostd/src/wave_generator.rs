@@ -135,6 +135,10 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             self.table_idx_inc = inc_numerator / inc_denominator;
             self.table_remainder_inc = inc_numerator % inc_denominator;
         }
+        if key == SoundSourceAttributes::WaveType {
+            let enum_val = WaveType::from_usize( value );
+            self.wave_type = enum_val;
+        }
     }
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {
@@ -197,6 +201,40 @@ mod tests {
         for _ in 0..24000 {
             let current = all_pools.get_next(&wave_id);
             if current != last {
+                transitions = transitions + 1;
+            }
+            last = current;
+        }
+        assert_eq!(transitions, 2600 * 2);
+        all_pools.free(wave_id);
+    }
+    #[test]
+    fn test_triangle_from_pool() {
+        let mut wave_pool: WavePool = WavePool::new();
+        let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
+            &mut wave_pool,
+            SoundSourceType::WaveGenerator,
+        );
+        let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
+        all_pools.set_attribute(
+            &wave_id,
+            SoundSourceAttributes::Frequency,
+            2600 * (FREQUENCY_MULTIPLIER as usize),
+        );
+        all_pools.set_attribute(
+            &wave_id,
+            SoundSourceAttributes::WaveType,
+            WaveType::Triangle as usize,
+        );
+
+        let mut last = all_pools.get_next(&wave_id);
+        let mut transitions: u32 = 0;
+        for _ in 0..24000 {
+            let current = all_pools.get_next(&wave_id);
+            assert_ne!( current, last );
+            let last_above_0 = last.to_u16() >= 0x8000;
+            let current_above_0 = current.to_u16() >= 0x8000;
+            if last_above_0 != current_above_0 {
                 transitions = transitions + 1;
             }
             last = current;

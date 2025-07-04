@@ -83,7 +83,7 @@ pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub + Default {
 /// ~15 bits are used for the fractional component.  Playable sound is from
 /// -0x8000 (-1) to 0x7fff (1).  0 maps to zero.
 ///
-#[derive(Clone, Eq, Copy, Default)]
+#[derive(Clone, Eq, Copy, Default, Debug)]
 pub struct SoundSampleI32 {
     pub val: i32,
 }
