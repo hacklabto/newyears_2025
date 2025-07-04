@@ -1,14 +1,14 @@
 use crate::midi_notes::FREQUENCY_MULTIPLIER;
-use crate::sound_sample::SoundScale;
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
+use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
 use crate::sound_source::SoundSourceAttributes;
 use crate::sound_source::SoundSourceId;
 use crate::sound_source::SoundSourceType;
 use crate::sound_source::WaveType;
-use crate::sound_sources::SoundSources;
 use crate::sound_source_pool_impl::GenericSoundPool;
+use crate::sound_sources::SoundSources;
 use crate::wave_tables::SAWTOOTH_WAVE;
 use crate::wave_tables::SINE_WAVE;
 use crate::wave_tables::SQUARE_WAVE;
@@ -69,7 +69,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
         let table_idx: u32 = 0;
         let table_remainder: u32 = 0;
         let pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 / 2; // 50% duty cycle by default
-                                                             // I want (arg_sound_frequency * WAVE_TABLE_SIZE) / (FREQUNCY_MULTIPLIER * PLAY_FREQUENCY);
+                                                               // I want (arg_sound_frequency * WAVE_TABLE_SIZE) / (FREQUNCY_MULTIPLIER * PLAY_FREQUENCY);
         let inc_numerator: u32 = arg_sound_frequency * (WAVE_TABLE_SIZE as u32);
         let inc_denominator: u32 = (FREQUENCY_MULTIPLIER * PLAY_FREQUENCY);
         let table_idx_inc: u32 = inc_numerator / inc_denominator;
@@ -125,7 +125,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     }
 
     fn get_next_table(&mut self, table: &[u16; WAVE_TABLE_SIZE]) -> T {
-        let mut rval =  T::new(table[self.table_idx as usize]);
+        let mut rval = T::new(table[self.table_idx as usize]);
         rval.scale(self.volume);
         self.update_table_index();
         rval
@@ -134,8 +134,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     fn get_next_pulse_entry(&mut self) -> T {
         let mut rval = if self.table_idx < self.pulse_width_cutoff {
             T::max()
-        }
-        else {
+        } else {
             T::min()
         };
         rval.scale(self.volume);
@@ -143,34 +142,33 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
         self.update_table_index();
         rval
     }
-
 }
 
 #[allow(unused)]
-fn set_wave_properties( 
-    all_pools: &mut SoundSources::<SoundSampleI32, 24000>,
+fn set_wave_properties(
+    all_pools: &mut SoundSources<SoundSampleI32, 24000>,
     wave_id: &SoundSourceId,
     wave_type: WaveType,
     frequency: u32,
-    pulse_width: u8
-)
-{
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::Frequency,
-            (frequency as usize ) * (FREQUENCY_MULTIPLIER as usize),
-        );
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::WaveType,
-            wave_type as usize,
-        );
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::PulseWidth,
-            pulse_width as usize,
-        );
-
+    pulse_width: u8,
+    volume: u8,
+) {
+    all_pools.set_attribute(
+        &wave_id,
+        SoundSourceAttributes::Frequency,
+        (frequency as usize) * (FREQUENCY_MULTIPLIER as usize),
+    );
+    all_pools.set_attribute(
+        &wave_id,
+        SoundSourceAttributes::WaveType,
+        wave_type as usize,
+    );
+    all_pools.set_attribute(
+        &wave_id,
+        SoundSourceAttributes::PulseWidth,
+        pulse_width as usize,
+    );
+    all_pools.set_attribute(&wave_id, SoundSourceAttributes::Volume, volume as usize);
 }
 
 #[allow(unused)]
@@ -180,8 +178,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     fn get_next(&mut self) -> T {
         if self.wave_type == WaveType::PulseWidth {
             self.get_next_pulse_entry()
-        }
-        else {
+        } else {
             self.get_next_table(ALL_WAVE_TABLES[self.wave_type as usize])
         }
     }
@@ -197,12 +194,15 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             self.table_remainder_inc = inc_numerator % inc_denominator;
         }
         if key == SoundSourceAttributes::WaveType {
-            let enum_val = WaveType::from_usize( value );
+            let enum_val = WaveType::from_usize(value);
             self.wave_type = enum_val;
         }
         if key == SoundSourceAttributes::PulseWidth {
             let new_pulse_width_cutoff: u32 = (WAVE_TABLE_SIZE * value / 100) as u32;
             self.pulse_width_cutoff = new_pulse_width_cutoff;
+        }
+        if key == SoundSourceAttributes::Volume { 
+            self.volume = SoundScale::new_percent(value as u16 );
         }
     }
 
@@ -226,32 +226,30 @@ type WavePool = GenericSoundPool<
     { SoundSourceType::WaveGenerator as usize },
 >;
 
-
 #[cfg(test)]
 mod tests {
     use crate::sound_sources::SoundSources;
     use crate::wave_generator::*;
 
-fn sample_wave(
-    all_pools: &mut SoundSources::<SoundSampleI32, 24000>,
-    wave_id: &SoundSourceId,
-) -> (u32, u32)
-{
-    let mut last = all_pools.get_next(&wave_id);
-    let mut transitions: u32 = 0;
-    let mut area: u32 = last.to_u16() as u32;
-    for _ in 1..24000 {
-        let current = all_pools.get_next(&wave_id);
-        let last_above_0 = last.to_u16() >= 0x8000;
-        let current_above_0 = current.to_u16() >= 0x8000;
-        if last_above_0 != current_above_0 {
-            transitions = transitions + 1;
+    fn sample_wave(
+        all_pools: &mut SoundSources<SoundSampleI32, 24000>,
+        wave_id: &SoundSourceId,
+    ) -> (u32, u32) {
+        let mut last = all_pools.get_next(&wave_id);
+        let mut transitions: u32 = 0;
+        let mut area: u32 = last.to_u16() as u32;
+        for _ in 1..24000 {
+            let current = all_pools.get_next(&wave_id);
+            let last_above_0 = last.to_u16() >= 0x8000;
+            let current_above_0 = current.to_u16() >= 0x8000;
+            if last_above_0 != current_above_0 {
+                transitions = transitions + 1;
+            }
+            area = area + (current.to_u16() as u32);
+            last = current;
         }
-        area = area + (current.to_u16() as u32);
-        last = current;
-     }
-     (transitions, area )
-}
+        (transitions, area)
+    }
     #[test]
     fn test_pulse_50_from_pool() {
         let mut wave_pool: WavePool = WavePool::new();
@@ -260,12 +258,43 @@ fn sample_wave(
             SoundSourceType::WaveGenerator,
         );
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
-        set_wave_properties(&mut all_pools, &wave_id, WaveType::PulseWidth, 2600, 50 );
-        let (transitions, area) = sample_wave( &mut all_pools, &wave_id ); 
+        set_wave_properties(
+            &mut all_pools,
+            &wave_id,
+            WaveType::PulseWidth,
+            2600,
+            50,
+            100,
+        );
+        let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
 
         assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
-        // TODO  - the +1 here is something I'm having trouble reasoning about.
-        assert_eq!(0xffff*12001, area);
+                                               // TODO  - the +1 here is something I'm having trouble reasoning about.
+        assert_eq!(0xffff * 12001, area);
+        all_pools.free(wave_id);
+    }
+
+    #[test]
+    fn test_pulse_50_vol_50_from_pool() {
+        let mut wave_pool: WavePool = WavePool::new();
+        let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
+            &mut wave_pool,
+            SoundSourceType::WaveGenerator,
+        );
+        let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
+        set_wave_properties(
+            &mut all_pools,
+            &wave_id,
+            WaveType::PulseWidth,
+            2600,
+            50,
+            100,
+        );
+        let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
+
+        assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
+                                               // TODO  - the +1 here is something I'm having trouble reasoning about.
+        assert_eq!(0xffff * 12001, area);
         all_pools.free(wave_id);
     }
 
@@ -277,12 +306,19 @@ fn sample_wave(
             SoundSourceType::WaveGenerator,
         );
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
-        set_wave_properties(&mut all_pools, &wave_id, WaveType::PulseWidth, 2600, 25 );
-        let (transitions, area) = sample_wave( &mut all_pools, &wave_id ); 
+        set_wave_properties(
+            &mut all_pools,
+            &wave_id,
+            WaveType::PulseWidth,
+            2600,
+            25,
+            100,
+        );
+        let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
 
         assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
-        // TODO  - the +1 here is something I'm having trouble reasoning about.
-        assert_eq!(0xffff*6001, area);
+                                               // TODO  - the +1 here is something I'm having trouble reasoning about.
+        assert_eq!(0xffff * 6001, area);
         all_pools.free(wave_id);
     }
 
@@ -294,9 +330,9 @@ fn sample_wave(
             SoundSourceType::WaveGenerator,
         );
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
-        set_wave_properties(&mut all_pools, &wave_id, WaveType::Triangle, 2600, 0 );
+        set_wave_properties(&mut all_pools, &wave_id, WaveType::Triangle, 2600, 0, 100);
 
-        let (transitions, _area) = sample_wave( &mut all_pools, &wave_id ); 
+        let (transitions, _area) = sample_wave(&mut all_pools, &wave_id);
         assert_eq!(transitions, 2600 * 2);
         all_pools.free(wave_id);
     }

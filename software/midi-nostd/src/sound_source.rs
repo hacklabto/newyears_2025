@@ -96,7 +96,7 @@ pub enum SoundSourceAttributes {
 
 /// Different Wave Types
 ///
-#[derive(Clone, Copy, PartialEq )]
+#[derive(Clone, Copy, PartialEq)]
 #[allow(unused)]
 #[repr(usize)]
 pub enum WaveType {
@@ -116,7 +116,7 @@ impl WaveType {
             _ => None,
         };
         let enum_value = optional_enum_value.expect("bad usize  aveType");
-        assert_eq!( usize_value, enum_value as usize ); // cheap sanity check
+        assert_eq!(usize_value, enum_value as usize); // cheap sanity check
         enum_value
     }
 }
