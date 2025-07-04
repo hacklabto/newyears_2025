@@ -45,10 +45,11 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T,
         let volume = SoundScale::new_percent(100); // full volume
         let wave_type = WaveType::PulseWidth;
         let pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 / 2; // 50% duty cycle by default
-        let table_idx: u32 = 0;
-        let table_remainder: u32 = 0;
         let table_idx_inc: u32 = 0;
         let table_remainder_inc: u32 = 0;
+        let table_idx: u32 = 0;
+        let inc_denominator: u32 = (FREQUENCY_MULTIPLIER * PLAY_FREQUENCY);
+        let table_remainder: u32 = inc_denominator / 2;
         Self {
             volume,
             wave_type,
@@ -66,14 +67,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T,
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {
     pub fn init(self: &mut Self, wave_type: WaveType, arg_sound_frequency: u32) {
         let volume = SoundScale::new_percent(100); // full volume
-        let table_idx: u32 = 0;
-        let table_remainder: u32 = 0;
         let pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 / 2; // 50% duty cycle by default
                                                                // I want (arg_sound_frequency * WAVE_TABLE_SIZE) / (FREQUNCY_MULTIPLIER * PLAY_FREQUENCY);
         let inc_numerator: u32 = arg_sound_frequency * (WAVE_TABLE_SIZE as u32);
         let inc_denominator: u32 = (FREQUENCY_MULTIPLIER * PLAY_FREQUENCY);
         let table_idx_inc: u32 = inc_numerator / inc_denominator;
         let table_remainder_inc: u32 = inc_numerator % inc_denominator;
+        let table_idx: u32 = 0;
+        let table_remainder: u32 = inc_denominator / 2;
         *self = Self {
             volume,
             wave_type,
@@ -201,8 +202,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             let new_pulse_width_cutoff: u32 = (WAVE_TABLE_SIZE * value / 100) as u32;
             self.pulse_width_cutoff = new_pulse_width_cutoff;
         }
-        if key == SoundSourceAttributes::Volume { 
-            self.volume = SoundScale::new_percent(value as u16 );
+        if key == SoundSourceAttributes::Volume {
+            self.volume = SoundScale::new_percent(value as u16);
         }
     }
 
@@ -231,13 +232,21 @@ mod tests {
     use crate::sound_sources::SoundSources;
     use crate::wave_generator::*;
 
+    fn abs_sample(sample: u16) -> u16 {
+        if sample >= 0x8000 {
+            sample - 0x8000
+        } else {
+            0x8000 - sample
+        }
+    }
+
     fn sample_wave(
         all_pools: &mut SoundSources<SoundSampleI32, 24000>,
         wave_id: &SoundSourceId,
     ) -> (u32, u32) {
         let mut last = all_pools.get_next(&wave_id);
         let mut transitions: u32 = 0;
-        let mut area: u32 = last.to_u16() as u32;
+        let mut area: u32 = abs_sample(last.to_u16()) as u32;
         for _ in 1..24000 {
             let current = all_pools.get_next(&wave_id);
             let last_above_0 = last.to_u16() >= 0x8000;
@@ -245,7 +254,7 @@ mod tests {
             if last_above_0 != current_above_0 {
                 transitions = transitions + 1;
             }
-            area = area + (current.to_u16() as u32);
+            area = area + abs_sample(current.to_u16()) as u32;
             last = current;
         }
         (transitions, area)
@@ -269,8 +278,8 @@ mod tests {
         let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
 
         assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
-                                               // TODO  - the +1 here is something I'm having trouble reasoning about.
-        assert_eq!(0xffff * 12001, area);
+
+        assert_eq!(0x7fff * 12000 + 0x8000 * 12000, area);
         all_pools.free(wave_id);
     }
 
@@ -288,13 +297,13 @@ mod tests {
             WaveType::PulseWidth,
             2600,
             50,
-            100,
+            50,
         );
         let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
 
         assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
-                                               // TODO  - the +1 here is something I'm having trouble reasoning about.
-        assert_eq!(0xffff * 12001, area);
+
+        assert_eq!(0x3fff * 12000 + 0x4000 * 12000, area);
         all_pools.free(wave_id);
     }
 
@@ -317,8 +326,7 @@ mod tests {
         let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
 
         assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
-                                               // TODO  - the +1 here is something I'm having trouble reasoning about.
-        assert_eq!(0xffff * 6001, area);
+        assert_eq!(0x7fff * 6000 + 0x8000 * 18000, area);
         all_pools.free(wave_id);
     }
 
