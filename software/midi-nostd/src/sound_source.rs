@@ -95,7 +95,7 @@ pub enum SoundSourceAttributes {
 
 /// Different Wave Types
 ///
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq )]
 #[allow(unused)]
 #[repr(usize)]
 pub enum WaveType {

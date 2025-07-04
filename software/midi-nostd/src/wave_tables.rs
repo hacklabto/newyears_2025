@@ -1,5 +1,6 @@
 #[allow(unused)]
 pub const WAVE_TABLE_SIZE: usize = 1024;
+pub const WAVE_TABLE_SIZE_U32: u32 = 1024;
 
 #[allow(unused)]
 pub const TRIANGLE_WAVE: [u16; WAVE_TABLE_SIZE] = [
