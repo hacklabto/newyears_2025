@@ -226,11 +226,32 @@ type WavePool = GenericSoundPool<
     { SoundSourceType::WaveGenerator as usize },
 >;
 
+
 #[cfg(test)]
 mod tests {
     use crate::sound_sources::SoundSources;
     use crate::wave_generator::*;
 
+fn sample_wave(
+    all_pools: &mut SoundSources::<SoundSampleI32, 24000>,
+    wave_id: &SoundSourceId,
+) -> (u32, u32)
+{
+    let mut last = all_pools.get_next(&wave_id);
+    let mut transitions: u32 = 0;
+    let mut area: u32 = last.to_u16() as u32;
+    for _ in 1..24000 {
+        let current = all_pools.get_next(&wave_id);
+        let last_above_0 = last.to_u16() >= 0x8000;
+        let current_above_0 = current.to_u16() >= 0x8000;
+        if last_above_0 != current_above_0 {
+            transitions = transitions + 1;
+        }
+        area = area + (current.to_u16() as u32);
+        last = current;
+     }
+     (transitions, area )
+}
     #[test]
     fn test_pulse_50_from_pool() {
         let mut wave_pool: WavePool = WavePool::new();
@@ -240,18 +261,8 @@ mod tests {
         );
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
         set_wave_properties(&mut all_pools, &wave_id, WaveType::PulseWidth, 2600, 50 );
+        let (transitions, area) = sample_wave( &mut all_pools, &wave_id ); 
 
-        let mut last = all_pools.get_next(&wave_id);
-        let mut transitions: u32 = 0;
-        let mut area: u32 = last.to_u16() as u32;
-        for _ in 1..24000 {
-            let current = all_pools.get_next(&wave_id);
-            if current != last {
-                transitions = transitions + 1;
-            }
-            area = area + (current.to_u16() as u32);
-            last = current;
-        }
         assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
         // TODO  - the +1 here is something I'm having trouble reasoning about.
         assert_eq!(0xffff*12001, area);
@@ -267,18 +278,8 @@ mod tests {
         );
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
         set_wave_properties(&mut all_pools, &wave_id, WaveType::PulseWidth, 2600, 25 );
+        let (transitions, area) = sample_wave( &mut all_pools, &wave_id ); 
 
-        let mut last = all_pools.get_next(&wave_id);
-        let mut transitions: u32 = 0;
-        let mut area: u32 = last.to_u16() as u32;
-        for _ in 1..24000 {
-            let current = all_pools.get_next(&wave_id);
-            if current != last {
-                transitions = transitions + 1;
-            }
-            area = area + (current.to_u16() as u32);
-            last = current;
-        }
         assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
         // TODO  - the +1 here is something I'm having trouble reasoning about.
         assert_eq!(0xffff*6001, area);
@@ -295,18 +296,7 @@ mod tests {
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
         set_wave_properties(&mut all_pools, &wave_id, WaveType::Triangle, 2600, 0 );
 
-        let mut last = all_pools.get_next(&wave_id);
-        let mut transitions: u32 = 0;
-        for _ in 1..24000 {
-            let current = all_pools.get_next(&wave_id);
-            assert_ne!( current, last );
-            let last_above_0 = last.to_u16() >= 0x8000;
-            let current_above_0 = current.to_u16() >= 0x8000;
-            if last_above_0 != current_above_0 {
-                transitions = transitions + 1;
-            }
-            last = current;
-        }
+        let (transitions, _area) = sample_wave( &mut all_pools, &wave_id ); 
         assert_eq!(transitions, 2600 * 2);
         all_pools.free(wave_id);
     }
