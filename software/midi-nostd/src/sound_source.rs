@@ -91,6 +91,7 @@ pub enum SoundSourceAttributes {
     WaveType,
     Frequency,
     Volume,
+    PulseWidth,
 }
 
 /// Different Wave Types

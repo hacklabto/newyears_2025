@@ -164,6 +164,10 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             let enum_val = WaveType::from_usize( value );
             self.wave_type = enum_val;
         }
+        if key == SoundSourceAttributes::PulseWidth {
+            let new_pulse_width_cutoff: u32 = (WAVE_TABLE_SIZE * value / 100) as u32;
+            self.pulse_width_cutoff = new_pulse_width_cutoff;
+        }
     }
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {
@@ -208,7 +212,7 @@ mod tests {
     }
 
     #[test]
-    fn test_square_from_pool() {
+    fn test_pulse_50_from_pool() {
         let mut wave_pool: WavePool = WavePool::new();
         let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
             &mut wave_pool,
@@ -224,6 +228,11 @@ mod tests {
             &wave_id,
             SoundSourceAttributes::WaveType,
             WaveType::PulseWidth as usize,
+        );
+        all_pools.set_attribute(
+            &wave_id,
+            SoundSourceAttributes::PulseWidth,
+            50,
         );
 
         let mut last = all_pools.get_next(&wave_id);
@@ -242,6 +251,48 @@ mod tests {
         assert_eq!(0xffff*12001, area);
         all_pools.free(wave_id);
     }
+
+    #[test]
+    fn test_pulse_25_from_pool() {
+        let mut wave_pool: WavePool = WavePool::new();
+        let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
+            &mut wave_pool,
+            SoundSourceType::WaveGenerator,
+        );
+        let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
+        all_pools.set_attribute(
+            &wave_id,
+            SoundSourceAttributes::Frequency,
+            2600 * (FREQUENCY_MULTIPLIER as usize),
+        );
+        all_pools.set_attribute(
+            &wave_id,
+            SoundSourceAttributes::WaveType,
+            WaveType::PulseWidth as usize,
+        );
+        all_pools.set_attribute(
+            &wave_id,
+            SoundSourceAttributes::PulseWidth,
+            25,
+        );
+
+        let mut last = all_pools.get_next(&wave_id);
+        let mut transitions: u32 = 0;
+        let mut area: u32 = last.to_u16() as u32;
+        for _ in 1..24000 {
+            let current = all_pools.get_next(&wave_id);
+            if current != last {
+                transitions = transitions + 1;
+            }
+            area = area + (current.to_u16() as u32);
+            last = current;
+        }
+        assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
+        // TODO  - the +1 here is something I'm having trouble reasoning about.
+        assert_eq!(0xffff*6001, area);
+        all_pools.free(wave_id);
+    }
+
     #[test]
     fn test_triangle_from_pool() {
         let mut wave_pool: WavePool = WavePool::new();
