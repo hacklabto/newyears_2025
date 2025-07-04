@@ -195,17 +195,25 @@ mod tests {
             SoundSourceAttributes::Frequency,
             2600 * (FREQUENCY_MULTIPLIER as usize),
         );
+        all_pools.set_attribute(
+            &wave_id,
+            SoundSourceAttributes::WaveType,
+            WaveType::PulseWidth as usize,
+        );
 
         let mut last = all_pools.get_next(&wave_id);
         let mut transitions: u32 = 0;
+        let mut area: u32 = 0;
         for _ in 0..24000 {
             let current = all_pools.get_next(&wave_id);
             if current != last {
                 transitions = transitions + 1;
             }
+            area = area + (current.to_u16() as u32);
             last = current;
         }
-        assert_eq!(transitions, 2600 * 2);
+        assert_eq!(2600 * 2, transitions);
+        assert_eq!(0x8000*24000, area); // default pulse width is 50%.
         all_pools.free(wave_id);
     }
     #[test]
