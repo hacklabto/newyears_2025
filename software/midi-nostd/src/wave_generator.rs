@@ -1,4 +1,5 @@
 use crate::midi_notes::FREQUENCY_MULTIPLIER;
+use crate::sound_sample::SoundScale;
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
@@ -6,6 +7,7 @@ use crate::sound_source::SoundSourceAttributes;
 use crate::sound_source::SoundSourceId;
 use crate::sound_source::SoundSourceType;
 use crate::sound_source::WaveType;
+use crate::sound_sources::SoundSources;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::wave_tables::SAWTOOTH_WAVE;
 use crate::wave_tables::SINE_WAVE;
@@ -24,6 +26,7 @@ const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
 ///
 #[allow(unused)]
 struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
+    volume: SoundScale,
     wave_type: WaveType,
     pulse_width_cutoff: u32,
     table_idx: u32,
@@ -39,6 +42,7 @@ struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
 #[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T, PLAY_FREQUENCY> {
     fn default() -> Self {
+        let volume = SoundScale::new_percent(100); // full volume
         let wave_type = WaveType::PulseWidth;
         let pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 / 2; // 50% duty cycle by default
         let table_idx: u32 = 0;
@@ -46,6 +50,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T,
         let table_idx_inc: u32 = 0;
         let table_remainder_inc: u32 = 0;
         Self {
+            volume,
             wave_type,
             pulse_width_cutoff,
             table_idx,
@@ -60,6 +65,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T,
 #[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {
     pub fn init(self: &mut Self, wave_type: WaveType, arg_sound_frequency: u32) {
+        let volume = SoundScale::new_percent(100); // full volume
         let table_idx: u32 = 0;
         let table_remainder: u32 = 0;
         let pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 / 2; // 50% duty cycle by default
@@ -69,6 +75,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
         let table_idx_inc: u32 = inc_numerator / inc_denominator;
         let table_remainder_inc: u32 = inc_numerator % inc_denominator;
         *self = Self {
+            volume,
             wave_type,
             pulse_width_cutoff,
             table_idx,
@@ -118,22 +125,51 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     }
 
     fn get_next_table(&mut self, table: &[u16; WAVE_TABLE_SIZE]) -> T {
-        let rval =  T::new(table[self.table_idx as usize]);
+        let mut rval =  T::new(table[self.table_idx as usize]);
+        rval.scale(self.volume);
         self.update_table_index();
         rval
     }
 
     fn get_next_pulse_entry(&mut self) -> T {
-        let rval = if self.table_idx < self.pulse_width_cutoff {
+        let mut rval = if self.table_idx < self.pulse_width_cutoff {
             T::max()
         }
         else {
             T::min()
         };
+        rval.scale(self.volume);
         // For sanity, keep the same core logic as get_next_table.
         self.update_table_index();
         rval
     }
+
+}
+
+#[allow(unused)]
+fn set_wave_properties( 
+    all_pools: &mut SoundSources::<SoundSampleI32, 24000>,
+    wave_id: &SoundSourceId,
+    wave_type: WaveType,
+    frequency: u32,
+    pulse_width: u8
+)
+{
+        all_pools.set_attribute(
+            &wave_id,
+            SoundSourceAttributes::Frequency,
+            (frequency as usize ) * (FREQUENCY_MULTIPLIER as usize),
+        );
+        all_pools.set_attribute(
+            &wave_id,
+            SoundSourceAttributes::WaveType,
+            wave_type as usize,
+        );
+        all_pools.set_attribute(
+            &wave_id,
+            SoundSourceAttributes::PulseWidth,
+            pulse_width as usize,
+        );
 
 }
 
@@ -196,22 +232,6 @@ mod tests {
     use crate::wave_generator::*;
 
     #[test]
-    fn test_square() {
-        let mut wave_source = WaveSource::default();
-        wave_source.init(WaveType::PulseWidth, 2600 * FREQUENCY_MULTIPLIER);
-        let mut last = wave_source.get_next();
-        let mut transitions: u32 = 0;
-        for _ in 1..24000 {
-            let current = wave_source.get_next();
-            if current != last {
-                transitions = transitions + 1;
-            }
-            last = current;
-        }
-        assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
-    }
-
-    #[test]
     fn test_pulse_50_from_pool() {
         let mut wave_pool: WavePool = WavePool::new();
         let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
@@ -219,21 +239,7 @@ mod tests {
             SoundSourceType::WaveGenerator,
         );
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::Frequency,
-            2600 * (FREQUENCY_MULTIPLIER as usize),
-        );
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::WaveType,
-            WaveType::PulseWidth as usize,
-        );
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::PulseWidth,
-            50,
-        );
+        set_wave_properties(&mut all_pools, &wave_id, WaveType::PulseWidth, 2600, 50 );
 
         let mut last = all_pools.get_next(&wave_id);
         let mut transitions: u32 = 0;
@@ -260,21 +266,7 @@ mod tests {
             SoundSourceType::WaveGenerator,
         );
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::Frequency,
-            2600 * (FREQUENCY_MULTIPLIER as usize),
-        );
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::WaveType,
-            WaveType::PulseWidth as usize,
-        );
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::PulseWidth,
-            25,
-        );
+        set_wave_properties(&mut all_pools, &wave_id, WaveType::PulseWidth, 2600, 25 );
 
         let mut last = all_pools.get_next(&wave_id);
         let mut transitions: u32 = 0;
@@ -301,16 +293,7 @@ mod tests {
             SoundSourceType::WaveGenerator,
         );
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::Frequency,
-            2600 * (FREQUENCY_MULTIPLIER as usize),
-        );
-        all_pools.set_attribute(
-            &wave_id,
-            SoundSourceAttributes::WaveType,
-            WaveType::Triangle as usize,
-        );
+        set_wave_properties(&mut all_pools, &wave_id, WaveType::Triangle, 2600, 0 );
 
         let mut last = all_pools.get_next(&wave_id);
         let mut transitions: u32 = 0;
