@@ -340,8 +340,27 @@ mod tests {
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
         set_wave_properties(&mut all_pools, &wave_id, WaveType::Triangle, 2600, 0, 100);
 
-        let (transitions, _area) = sample_wave(&mut all_pools, &wave_id);
+        let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
         assert_eq!(transitions, 2600 * 2);
+        // Triangles are half the area squares are.
+        assert_eq!(12000*0x4000 + 12000*0x3fff, area);
+        all_pools.free(wave_id);
+    }
+
+    #[test]
+    fn test_triangle_from_pool_vol_50percent() {
+        let mut wave_pool: WavePool = WavePool::new();
+        let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
+            &mut wave_pool,
+            SoundSourceType::WaveGenerator,
+        );
+        let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
+        set_wave_properties(&mut all_pools, &wave_id, WaveType::Triangle, 2600, 0, 50);
+
+        let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
+        assert_eq!(transitions, 2600 * 2);
+        // Triangles are half the area squares are.  200 is rounding error or a bug.
+        assert_eq!(12000*0x2000 + 12000*0x1fff + 200, area);
         all_pools.free(wave_id);
     }
 }
