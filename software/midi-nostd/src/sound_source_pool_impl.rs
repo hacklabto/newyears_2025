@@ -81,7 +81,7 @@ impl<
     ) -> bool {
         self.sound_source[element].has_next(all_sources)
     }
-    fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE {
+    fn pool_get_next(self: &Self, element: usize) -> SAMPLE {
         self.sound_source[element].get_next()
     }
     fn update(self: &mut Self) {

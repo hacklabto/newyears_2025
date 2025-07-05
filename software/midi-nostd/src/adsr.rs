@@ -62,7 +62,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
-    fn get_next(&mut self) -> T {
+    fn get_next(&self) -> T {
         assert!(self.state != AdsrState::Ended);
         T::max()
     }

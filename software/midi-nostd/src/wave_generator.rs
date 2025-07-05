@@ -125,13 +125,13 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
         self.table_idx = self.table_idx & ((WAVE_TABLE_SIZE as u32) - 1);
     }
 
-    fn get_next_table(&mut self, table: &[u16; WAVE_TABLE_SIZE]) -> T {
+    fn get_next_table(&self, table: &[u16; WAVE_TABLE_SIZE]) -> T {
         let mut rval = T::new(table[self.table_idx as usize]);
         rval.scale(self.volume);
         rval
     }
 
-    fn get_next_pulse_entry(&mut self) -> T {
+    fn get_next_pulse_entry(&self) -> T {
         let mut rval = if self.table_idx < self.pulse_width_cutoff {
             T::max()
         } else {
@@ -173,7 +173,7 @@ fn set_wave_properties(
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
-    fn get_next(&mut self) -> T {
+    fn get_next(&self) -> T {
         if self.wave_type == WaveType::PulseWidth {
             self.get_next_pulse_entry()
         } else {
