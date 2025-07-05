@@ -3,12 +3,17 @@ use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_sources::SoundSources;
 
 #[allow(unused)]
 pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: FreeList {
     // Functions that need to be filled in by implementor
     //
-    fn pool_has_next(self: &Self, element: usize) -> bool;
+    fn pool_has_next(
+        self: &Self,
+        element: usize,
+        all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
+    ) -> bool;
     fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE;
     fn pool_set_attribute(
         self: &mut Self,
@@ -28,9 +33,13 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
         self.free(id.id);
     }
 
-    fn has_next(self: &mut Self, id: &SoundSourceId) -> bool {
+    fn has_next(
+        self: &Self,
+        id: &SoundSourceId,
+        all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
+    ) -> bool {
         assert_eq!(self.get_type_id(), id.source_type as usize);
-        self.pool_has_next(id.id)
+        self.pool_has_next(id.id, all_sources)
     }
 
     fn get_next(self: &mut Self, id: &SoundSourceId) -> SAMPLE {

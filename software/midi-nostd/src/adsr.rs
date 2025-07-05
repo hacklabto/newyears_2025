@@ -3,7 +3,7 @@ use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::SoundSourceAttributes;
-//use crate::sound_source_pool_impl::GenericSoundPool;
+use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
 
 #[allow(unused)]
@@ -67,7 +67,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         T::max()
     }
 
-    fn has_next(&self) -> bool {
+    fn has_next(self: &Self, _all_sources: &SoundSources<T, PLAY_FREQUENCY>) -> bool {
         self.state != AdsrState::Ended
     }
     fn set_attribute(&mut self, key: SoundSourceAttributes, value: usize) {}

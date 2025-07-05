@@ -1,6 +1,7 @@
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_sources::SoundSources;
 //use core::marker::PhantomData;
 
 ///
@@ -19,7 +20,7 @@ use crate::sound_source_msgs::SoundSourceAttributes;
 pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     /// Returns false if the sound source is done playing
     ///
-    fn has_next(self: &Self) -> bool;
+    fn has_next(self: &Self, all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>) -> bool;
 
     /// Draw a sample from a source
     ///
