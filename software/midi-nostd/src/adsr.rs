@@ -6,11 +6,22 @@ use crate::sound_source::SoundSourceId;
 //use crate::sound_source_pool_impl::GenericSoundPool;
 use core::marker::PhantomData;
 
+#[allow(unused)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum AdsrState {
+    Attack,
+    Delay,
+    Sustain,
+    Release,
+    Ended,
+}
+
 ///
 /// ADSR envelope
 ///
 #[allow(unused)]
 struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
+    state: AdsrState,              // CurrentState
     attack_max_volume: SoundScale, // Reduction in volume after attack finishes
     sustain_volume: SoundScale,    // Reduction in volume during sustain phase
     a: u32,                        // timed, units are 1/PLAY_FREQUENCY
@@ -23,6 +34,7 @@ struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
 #[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T, PLAY_FREQUENCY> {
     fn default() -> Self {
+        let state = AdsrState::Ended;
         let attack_max_volume = SoundScale::default();
         let a = PLAY_FREQUENCY / 8;
         let d = PLAY_FREQUENCY / 3;
@@ -31,6 +43,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T,
         let child_sound = SoundSourceId::default();
 
         Self {
+            state,
             attack_max_volume,
             a,
             d,
@@ -43,21 +56,19 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T,
 }
 
 #[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {
-    //pub fn init(self: &mut Self, wave_type: WaveType, arg_sound_frequency: u32) {
-    //}
-}
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {}
 
 #[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
     fn get_next(&mut self) -> T {
+        assert!(self.state != AdsrState::Ended);
         T::max()
     }
 
     fn has_next(&self) -> bool {
-        true
+        self.state != AdsrState::Ended
     }
     fn set_attribute(&mut self, key: SoundSourceAttributes, value: usize) {}
 
@@ -66,6 +77,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     }
 
     fn child_sound_source(self: &Self) -> Option<SoundSourceId> {
-        None
+        Some(self.child_sound)
     }
 }
