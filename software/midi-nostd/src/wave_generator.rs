@@ -174,7 +174,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
     fn get_next(&mut self) -> T {
-        self.update();
         if self.wave_type == WaveType::PulseWidth {
             self.get_next_pulse_entry()
         } else {
@@ -247,10 +246,12 @@ mod tests {
         all_pools: &mut SoundSources<SoundSampleI32, 24000>,
         wave_id: &SoundSourceId,
     ) -> (u32, u32) {
+        all_pools.update();
         let mut last = all_pools.get_next(&wave_id);
         let mut transitions: u32 = 0;
         let mut area: u32 = abs_sample(last.to_u16()) as u32;
         for _ in 1..24000 {
+            all_pools.update();
             let current = all_pools.get_next(&wave_id);
             let last_above_0 = last.to_u16() >= 0x8000;
             let current_above_0 = current.to_u16() >= 0x8000;

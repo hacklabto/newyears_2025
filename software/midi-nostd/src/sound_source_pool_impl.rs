@@ -84,6 +84,14 @@ impl<
     fn pool_get_next(self: &mut Self, element: usize) -> SAMPLE {
         self.sound_source[element].get_next()
     }
+    fn update(self: &mut Self) {
+        for idx in 0..N {
+            if self.free_list.is_active(idx) {
+                self.sound_source[idx].update();
+            }
+        }
+    }
+
     fn pool_set_attribute(
         self: &mut Self,
         element: usize,
