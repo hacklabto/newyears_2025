@@ -84,6 +84,15 @@ pub struct SoundSourceId {
     pub id: usize,
 }
 
+#[allow(unused)]
+impl Default for SoundSourceId {
+    fn default() -> Self {
+        let source_type: SoundSourceType = SoundSourceType::WaveGenerator;
+        let id: usize = 0;
+        Self { source_type, id }
+    }
+}
+
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[allow(unused)]

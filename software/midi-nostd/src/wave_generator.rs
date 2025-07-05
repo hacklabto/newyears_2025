@@ -291,14 +291,7 @@ mod tests {
             SoundSourceType::WaveGenerator,
         );
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
-        set_wave_properties(
-            &mut all_pools,
-            &wave_id,
-            WaveType::PulseWidth,
-            2600,
-            50,
-            50,
-        );
+        set_wave_properties(&mut all_pools, &wave_id, WaveType::PulseWidth, 2600, 50, 50);
         let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
 
         assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
@@ -343,7 +336,7 @@ mod tests {
         let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
         assert_eq!(transitions, 2600 * 2);
         // Triangles are half the area squares are.
-        assert_eq!(12000*0x4000 + 12000*0x3fff, area);
+        assert_eq!(12000 * 0x4000 + 12000 * 0x3fff, area);
         all_pools.free(wave_id);
     }
 
@@ -360,7 +353,7 @@ mod tests {
         let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
         assert_eq!(transitions, 2600 * 2);
         // Triangles are half the area squares are.  200 is rounding error or a bug.
-        assert_eq!(12000*0x2000 + 12000*0x1fff + 200, area);
+        assert_eq!(12000 * 0x2000 + 12000 * 0x1fff + 200, area);
         all_pools.free(wave_id);
     }
 }
