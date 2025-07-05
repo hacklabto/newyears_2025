@@ -173,7 +173,7 @@ fn set_wave_properties(
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
-    fn get_next(&self) -> T {
+    fn get_next(self: &Self, _all_sources: &SoundSources<T, PLAY_FREQUENCY>) -> T {
         if self.wave_type == WaveType::PulseWidth {
             self.get_next_pulse_entry()
         } else {

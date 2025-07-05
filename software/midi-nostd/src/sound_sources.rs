@@ -56,7 +56,7 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
         return self.pools[id.source_type as usize]
             .as_ref()
             .expect("panic if none")
-            .get_next(id);
+            .get_next(id, &self);
     }
     pub fn set_attribute(
         self: &mut Self,
