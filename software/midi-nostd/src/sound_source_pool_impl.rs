@@ -3,8 +3,8 @@ use crate::free_list::FreeListImpl;
 use crate::sound_sample::SoundSample;
 use crate::sound_source::SoundSource;
 use crate::sound_source::SoundSourceAttributes;
-use crate::sound_source::SoundSourceId;
-use crate::sound_source::SoundSourceType;
+use crate::sound_source_id::SoundSourceId;
+use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_pool::SoundSourcePool;
 
 #[allow(unused)]

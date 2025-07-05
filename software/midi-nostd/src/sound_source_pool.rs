@@ -1,8 +1,8 @@
 use crate::free_list::FreeList;
 use crate::sound_sample::SoundSample;
 use crate::sound_source::SoundSourceAttributes;
-use crate::sound_source::SoundSourceId;
-use crate::sound_source::SoundSourceType;
+use crate::sound_source_id::SoundSourceId;
+use crate::sound_source_id::SoundSourceType;
 
 #[allow(unused)]
 pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: FreeList {

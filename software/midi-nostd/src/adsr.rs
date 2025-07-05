@@ -2,7 +2,7 @@ use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
 use crate::sound_source::SoundSourceAttributes;
-use crate::sound_source::SoundSourceId;
+use crate::sound_source_id::SoundSourceId;
 //use crate::sound_source_pool_impl::GenericSoundPool;
 use core::marker::PhantomData;
 
