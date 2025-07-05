@@ -128,7 +128,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     fn get_next_table(&mut self, table: &[u16; WAVE_TABLE_SIZE]) -> T {
         let mut rval = T::new(table[self.table_idx as usize]);
         rval.scale(self.volume);
-        self.update_table_index();
         rval
     }
 
@@ -139,8 +138,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
             T::min()
         };
         rval.scale(self.volume);
-        // For sanity, keep the same core logic as get_next_table.
-        self.update_table_index();
         rval
     }
 }
@@ -177,6 +174,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
     fn get_next(&mut self) -> T {
+        self.update();
         if self.wave_type == WaveType::PulseWidth {
             self.get_next_pulse_entry()
         } else {
@@ -187,6 +185,11 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     fn has_next(self: &Self, _all_sources: &SoundSources<T, PLAY_FREQUENCY>) -> bool {
         true
     }
+
+    fn update(&mut self) {
+        self.update_table_index();
+    }
+
     fn set_attribute(&mut self, key: SoundSourceAttributes, value: usize) {
         if key == SoundSourceAttributes::Frequency {
             let inc_numerator: u32 = (value as u32) * (WAVE_TABLE_SIZE as u32);
@@ -277,7 +280,7 @@ mod tests {
         );
         let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
 
-        assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
+        assert_eq!(2600 * 2, transitions);
 
         assert_eq!(0x7fff * 12000 + 0x8000 * 12000, area);
         all_pools.free(wave_id);
@@ -294,8 +297,7 @@ mod tests {
         set_wave_properties(&mut all_pools, &wave_id, WaveType::PulseWidth, 2600, 50, 50);
         let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
 
-        assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
-
+        assert_eq!(2600 * 2, transitions);
         assert_eq!(0x3fff * 12000 + 0x4000 * 12000, area);
         all_pools.free(wave_id);
     }
@@ -318,7 +320,7 @@ mod tests {
         );
         let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
 
-        assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
+        assert_eq!(2600 * 2, transitions); // we don't get the last transition in square.
         assert_eq!(0x7fff * 6000 + 0x8000 * 18000, area);
         all_pools.free(wave_id);
     }

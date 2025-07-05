@@ -70,6 +70,9 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     fn has_next(self: &Self, _all_sources: &SoundSources<T, PLAY_FREQUENCY>) -> bool {
         self.state != AdsrState::Ended
     }
+
+    fn update(&mut self) {}
+
     fn set_attribute(&mut self, key: SoundSourceAttributes, value: usize) {}
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {

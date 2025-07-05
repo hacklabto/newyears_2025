@@ -46,6 +46,9 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
         assert_eq!(self.get_type_id(), id.source_type as usize);
         self.pool_get_next(id.id)
     }
+
+    fn update(self: &mut Self) {}
+
     fn set_attribute(
         self: &mut Self,
         id: &SoundSourceId,

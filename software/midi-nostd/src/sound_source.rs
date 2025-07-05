@@ -26,6 +26,9 @@ pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     ///
     fn get_next(self: &mut Self) -> SAMPLE;
 
+    /// Update the state one tick
+    fn update(self: &mut Self);
+
     /// Set Attribute
     fn set_attribute(self: &mut Self, key: SoundSourceAttributes, value: usize);
 

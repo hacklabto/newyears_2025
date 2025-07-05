@@ -24,6 +24,14 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
         Self { pools }
     }
 
+    pub fn update(self: &mut Self) {
+        for pool in &mut (self.pools) {
+            if pool.is_some() {
+                pool.as_mut().expect("it exists").update();
+            }
+        }
+    }
+
     pub fn alloc(self: &mut Self, sound_source_type: SoundSourceType) -> SoundSourceId {
         self.pools[sound_source_type as usize]
             .as_mut()

@@ -60,6 +60,9 @@ impl<
     fn free(self: &mut Self, item_to_free: usize) {
         self.free_list.free(item_to_free)
     }
+    fn is_active(self: &Self, idx: usize) -> bool {
+        self.free_list.is_active(idx)
+    }
 }
 
 impl<
