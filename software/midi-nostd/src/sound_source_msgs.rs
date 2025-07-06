@@ -1,3 +1,6 @@
+use crate::sound_source_id::SoundSourceId;
+use crate::free_list::FreeListImpl;
+
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[allow(unused)]
@@ -34,3 +37,34 @@ impl WaveType {
         enum_value
     }
 }
+
+#[allow(unused)]
+pub struct SoundSourceMsg {
+    dest_id: SoundSourceId,
+    attribute: SoundSourceAttributes,
+    value: usize 
+}
+
+#[allow(unused)]
+impl Default for SoundSourceMsg {
+    fn default() -> Self {
+        let dest_id = SoundSourceId::default();
+        let attribute = SoundSourceAttributes::Frequency;
+        let value = 0;
+        Self{ dest_id, attribute, value }
+    }
+}
+
+#[allow(unused)]
+pub struct SoundSourceMsgs<const N: usize> {
+    messages: [SoundSourceMsg; N ],
+    free_list: FreeListImpl<N>
+}
+
+//#[allow(unused)]
+//impl Default for SoundSourceMsgs<const N: usize> {
+//    fn default() -> Self {
+//        let messages: [SoundSourceMsg; N] = default();
+//    }
+//}
+
