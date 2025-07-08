@@ -4,6 +4,7 @@ use crate::sound_sample::SoundSample;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_sources::SoundSources;
 
@@ -88,10 +89,10 @@ impl<
     ) -> SAMPLE {
         self.sound_source[element].get_next(all_sources)
     }
-    fn update(self: &mut Self) {
+    fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
         for idx in 0..N {
             if self.free_list.is_active(idx) {
-                self.sound_source[idx].update();
+                self.sound_source[idx].update(new_msgs);
             }
         }
     }

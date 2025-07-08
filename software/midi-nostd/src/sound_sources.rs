@@ -2,6 +2,7 @@ use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_pool::SoundSourcePool;
 
 #[allow(unused)]
@@ -24,10 +25,10 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
         Self { pools }
     }
 
-    pub fn update(self: &mut Self) {
+    pub fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
         for pool in &mut (self.pools) {
             if pool.is_some() {
-                pool.as_mut().expect("it exists").update();
+                pool.as_mut().expect("it exists").update(new_msgs);
             }
         }
     }

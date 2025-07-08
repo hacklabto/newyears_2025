@@ -71,13 +71,13 @@ impl SoundSourceMsg {
 }
 
 #[allow(unused)]
-pub struct SoundSourceMsgs<const N: usize> {
+pub struct SoundSourceMsgPool<const N: usize> {
     messages: [SoundSourceMsg; N],
     last: usize,
 }
 
 #[allow(unused)]
-impl<const N: usize> Default for SoundSourceMsgs<N> {
+impl<const N: usize> Default for SoundSourceMsgPool<N> {
     fn default() -> Self {
         let messages: [SoundSourceMsg; N] = core::array::from_fn(|_i| SoundSourceMsg::default());
         let last: usize = 0;
@@ -86,7 +86,7 @@ impl<const N: usize> Default for SoundSourceMsgs<N> {
 }
 
 #[allow(unused)]
-impl<const N: usize> SoundSourceMsgs<N> {
+impl<const N: usize> SoundSourceMsgPool<N> {
     pub fn append(self: &mut Self, msg: SoundSourceMsg) {
         assert!(self.last != N); // mostly for clarity, rust will check anyway
         self.messages[self.last] = msg;
@@ -100,6 +100,9 @@ impl<const N: usize> SoundSourceMsgs<N> {
     }
 }
 
+#[allow(unused)]
+pub type SoundSourceMsgs = SoundSourceMsgPool<100>;
+
 #[cfg(test)]
 mod tests {
     use crate::sound_source_id::SoundSourceId;
@@ -110,7 +113,7 @@ mod tests {
 
     #[test]
     fn messages_should_work() {
-        let mut messages = SoundSourceMsgs::<10>::default();
+        let mut messages = SoundSourceMsgs::default();
         assert_eq!(0, messages.get_msgs().len());
 
         let m0 = SoundSourceMsg::new(

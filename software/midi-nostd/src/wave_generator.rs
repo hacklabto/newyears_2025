@@ -6,6 +6,7 @@ use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::WaveType;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
@@ -185,7 +186,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         true
     }
 
-    fn update(&mut self) {
+    fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {
         self.update_table_index();
     }
 
@@ -245,13 +246,14 @@ mod tests {
     fn sample_wave(
         all_pools: &mut SoundSources<SoundSampleI32, 24000>,
         wave_id: &SoundSourceId,
+        new_msgs: &mut SoundSourceMsgs,
     ) -> (u32, u32) {
-        all_pools.update();
+        all_pools.update(new_msgs);
         let mut last = all_pools.get_next(&wave_id);
         let mut transitions: u32 = 0;
         let mut area: u32 = abs_sample(last.to_u16()) as u32;
         for _ in 1..24000 {
-            all_pools.update();
+            all_pools.update(new_msgs);
             let current = all_pools.get_next(&wave_id);
             let last_above_0 = last.to_u16() >= 0x8000;
             let current_above_0 = current.to_u16() >= 0x8000;
@@ -279,7 +281,8 @@ mod tests {
             50,
             100,
         );
-        let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
+        let mut new_msgs = SoundSourceMsgs::default();
+        let (transitions, area) = sample_wave(&mut all_pools, &wave_id, &mut new_msgs);
 
         assert_eq!(2600 * 2, transitions);
 
@@ -296,7 +299,8 @@ mod tests {
         );
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
         set_wave_properties(&mut all_pools, &wave_id, WaveType::PulseWidth, 2600, 50, 50);
-        let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
+        let mut new_msgs = SoundSourceMsgs::default();
+        let (transitions, area) = sample_wave(&mut all_pools, &wave_id, &mut new_msgs);
 
         assert_eq!(2600 * 2, transitions);
         assert_eq!(0x3fff * 12000 + 0x4000 * 12000, area);
@@ -319,7 +323,8 @@ mod tests {
             25,
             100,
         );
-        let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
+        let mut new_msgs = SoundSourceMsgs::default();
+        let (transitions, area) = sample_wave(&mut all_pools, &wave_id, &mut new_msgs);
 
         assert_eq!(2600 * 2, transitions); // we don't get the last transition in square.
         assert_eq!(0x7fff * 6000 + 0x8000 * 18000, area);
@@ -336,7 +341,8 @@ mod tests {
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
         set_wave_properties(&mut all_pools, &wave_id, WaveType::Triangle, 2600, 0, 100);
 
-        let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
+        let mut new_msgs = SoundSourceMsgs::default();
+        let (transitions, area) = sample_wave(&mut all_pools, &wave_id, &mut new_msgs);
         assert_eq!(transitions, 2600 * 2);
         // Triangles are half the area squares are.
         assert_eq!(12000 * 0x4000 + 12000 * 0x3fff, area);
@@ -353,7 +359,8 @@ mod tests {
         let wave_id = all_pools.alloc(SoundSourceType::WaveGenerator);
         set_wave_properties(&mut all_pools, &wave_id, WaveType::Triangle, 2600, 0, 50);
 
-        let (transitions, area) = sample_wave(&mut all_pools, &wave_id);
+        let mut new_msgs = SoundSourceMsgs::default();
+        let (transitions, area) = sample_wave(&mut all_pools, &wave_id, &mut new_msgs);
         assert_eq!(transitions, 2600 * 2);
         // Triangles are half the area squares are.  200 is rounding error or a bug.
         assert_eq!(12000 * 0x2000 + 12000 * 0x1fff + 200, area);

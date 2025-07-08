@@ -3,6 +3,7 @@ use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_sources::SoundSources;
 
 #[allow(unused)]
@@ -55,7 +56,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
         self.pool_get_next(id.id, all_sources)
     }
 
-    fn update(self: &mut Self);
+    fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
 
     fn set_attribute(
         self: &mut Self,
