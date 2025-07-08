@@ -5,6 +5,7 @@ use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsgs;
+use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_sources::SoundSources;
 
@@ -97,7 +98,12 @@ impl<
         }
     }
 
-    fn pool_set_attribute(self: &mut Self, element: usize, key: SoundSourceKey, value: usize) {
+    fn pool_set_attribute(
+        self: &mut Self,
+        element: usize,
+        key: SoundSourceKey,
+        value: SoundSourceValue,
+    ) {
         self.sound_source[element].set_attribute(key, value)
     }
     fn get_type_id(self: &Self) -> usize {

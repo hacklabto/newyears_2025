@@ -3,6 +3,7 @@ use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsgs;
+use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 
 #[allow(unused)]
@@ -59,7 +60,12 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
             .expect("panic if none")
             .get_next(id, &self);
     }
-    fn set_attribute(self: &mut Self, id: &SoundSourceId, key: SoundSourceKey, value: usize) {
+    fn set_attribute(
+        self: &mut Self,
+        id: &SoundSourceId,
+        key: SoundSourceKey,
+        value: SoundSourceValue,
+    ) {
         return self.pools[id.source_type() as usize]
             .as_mut()
             .expect("panic if none")
@@ -67,7 +73,7 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
     }
     pub fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs) {
         for msg in msgs.get_msgs() {
-            self.set_attribute(&msg.dest_id, msg.attribute, msg.value);
+            self.set_attribute(&msg.dest_id, msg.attribute, msg.value.clone());
         }
         msgs.clear();
     }

@@ -8,6 +8,7 @@ use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
+use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_msgs::WaveType;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
@@ -157,22 +158,22 @@ fn set_wave_properties(
     msgs.append(SoundSourceMsg::new(
         wave_id.clone(),
         SoundSourceKey::Frequency,
-        (frequency as usize) * (FREQUENCY_MULTIPLIER as usize),
+        SoundSourceValue::new_usize(frequency as usize * (FREQUENCY_MULTIPLIER as usize)),
     ));
     msgs.append(SoundSourceMsg::new(
         wave_id.clone(),
         SoundSourceKey::WaveType,
-        wave_type as usize,
+        SoundSourceValue::new_wave_type(wave_type),
     ));
     msgs.append(SoundSourceMsg::new(
         wave_id.clone(),
         SoundSourceKey::PulseWidth,
-        pulse_width as usize,
+        SoundSourceValue::new_usize(pulse_width as usize),
     ));
     msgs.append(SoundSourceMsg::new(
         wave_id.clone(),
         SoundSourceKey::Volume,
-        volume as usize,
+        SoundSourceValue::new_usize(volume as usize),
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
 }
@@ -197,23 +198,22 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         self.update_table_index();
     }
 
-    fn set_attribute(&mut self, key: SoundSourceKey, value: usize) {
+    fn set_attribute(&mut self, key: SoundSourceKey, value: SoundSourceValue) {
         if key == SoundSourceKey::Frequency {
-            let inc_numerator: u32 = (value as u32) * (WAVE_TABLE_SIZE as u32);
+            let inc_numerator: u32 = (value.get_usize() as u32) * (WAVE_TABLE_SIZE as u32);
             let inc_denominator: u32 = (FREQUENCY_MULTIPLIER * PLAY_FREQUENCY);
             self.table_idx_inc = inc_numerator / inc_denominator;
             self.table_remainder_inc = inc_numerator % inc_denominator;
         }
         if key == SoundSourceKey::WaveType {
-            let enum_val = WaveType::from_usize(value);
-            self.wave_type = enum_val;
+            self.wave_type = value.get_wave_type();
         }
         if key == SoundSourceKey::PulseWidth {
-            let new_pulse_width_cutoff: u32 = (WAVE_TABLE_SIZE * value / 100) as u32;
+            let new_pulse_width_cutoff: u32 = (WAVE_TABLE_SIZE * value.get_usize() / 100) as u32;
             self.pulse_width_cutoff = new_pulse_width_cutoff;
         }
         if key == SoundSourceKey::Volume {
-            self.volume = SoundScale::new_percent(value as u16);
+            self.volume = SoundScale::new_percent(value.get_usize() as u16);
         }
     }
 

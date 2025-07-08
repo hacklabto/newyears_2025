@@ -12,7 +12,7 @@ pub enum SoundSourceKey {
 
 /// Different Wave Types
 ///
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 #[allow(unused)]
 #[repr(usize)]
 pub enum WaveType {
@@ -22,7 +22,9 @@ pub enum WaveType {
     PulseWidth = 3,
 }
 
+#[allow(unused)]
 impl WaveType {
+    // TODO, delete.
     pub fn from_usize(usize_value: usize) -> Self {
         let optional_enum_value: Option<Self> = match usize_value {
             0 => Some(WaveType::Triangle),
@@ -39,10 +41,40 @@ impl WaveType {
 
 #[derive(Clone, PartialEq, Debug)]
 #[allow(unused)]
+pub enum SoundSourceValue {
+    Uninitialized,
+    WaveType { wave_type: WaveType },
+    USizeType { num_type: usize },
+}
+
+#[allow(unused)]
+impl SoundSourceValue {
+    pub fn new_usize(num_type: usize) -> Self {
+        SoundSourceValue::USizeType { num_type }
+    }
+    pub fn new_wave_type(wave_type: WaveType) -> Self {
+        SoundSourceValue::WaveType { wave_type }
+    }
+    pub fn get_usize(self: &Self) -> usize {
+        match self {
+            SoundSourceValue::USizeType { num_type } => *num_type,
+            _ => panic!("This isn't a usize"),
+        }
+    }
+    pub fn get_wave_type(self: &Self) -> WaveType {
+        match self {
+            SoundSourceValue::WaveType { wave_type } => *wave_type,
+            _ => panic!("This isn't a wave type"),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+#[allow(unused)]
 pub struct SoundSourceMsg {
     pub dest_id: SoundSourceId,
     pub attribute: SoundSourceKey,
-    pub value: usize,
+    pub value: SoundSourceValue,
 }
 
 #[allow(unused)]
@@ -50,7 +82,7 @@ impl Default for SoundSourceMsg {
     fn default() -> Self {
         let dest_id = SoundSourceId::default();
         let attribute = SoundSourceKey::Frequency;
-        let value = 0;
+        let value = SoundSourceValue::Uninitialized;
         Self {
             dest_id,
             attribute,
@@ -61,7 +93,7 @@ impl Default for SoundSourceMsg {
 
 #[allow(unused)]
 impl SoundSourceMsg {
-    pub fn new(dest_id: SoundSourceId, attribute: SoundSourceKey, value: usize) -> Self {
+    pub fn new(dest_id: SoundSourceId, attribute: SoundSourceKey, value: SoundSourceValue) -> Self {
         return Self {
             dest_id,
             attribute,
@@ -110,6 +142,7 @@ mod tests {
     use crate::sound_source_msgs::SoundSourceKey;
     use crate::sound_source_msgs::SoundSourceMsg;
     use crate::sound_source_msgs::SoundSourceMsgs;
+    use crate::sound_source_msgs::SoundSourceValue;
 
     #[test]
     fn messages_should_work() {
@@ -119,12 +152,12 @@ mod tests {
         let m0 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::WaveGenerator, 5),
             SoundSourceKey::Frequency,
-            2600,
+            SoundSourceValue::new_usize(2600),
         );
         let m1 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::AdsrEnvelope, 3),
             SoundSourceKey::Volume,
-            100,
+            SoundSourceValue::new_usize(100),
         );
         messages.append(m0.clone());
         messages.append(m1.clone());
