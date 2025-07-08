@@ -1,7 +1,7 @@
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
-use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_pool::SoundSourcePool;
 
@@ -59,12 +59,7 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
             .expect("panic if none")
             .get_next(id, &self);
     }
-    fn set_attribute(
-        self: &mut Self,
-        id: &SoundSourceId,
-        key: SoundSourceAttributes,
-        value: usize,
-    ) {
+    fn set_attribute(self: &mut Self, id: &SoundSourceId, key: SoundSourceKey, value: usize) {
         return self.pools[id.source_type() as usize]
             .as_mut()
             .expect("panic if none")

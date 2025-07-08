@@ -1,6 +1,6 @@
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_sources::SoundSources;
 //use core::marker::PhantomData;
@@ -31,7 +31,7 @@ pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
 
     /// Set Attribute
-    fn set_attribute(self: &mut Self, key: SoundSourceAttributes, value: usize);
+    fn set_attribute(self: &mut Self, key: SoundSourceKey, value: usize);
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId>;
     fn child_sound_source(self: &Self) -> Option<SoundSourceId>;

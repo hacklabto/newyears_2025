@@ -3,7 +3,7 @@ use crate::sound_source_id::SoundSourceId;
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[allow(unused)]
-pub enum SoundSourceAttributes {
+pub enum SoundSourceKey {
     WaveType,
     Frequency,
     Volume,
@@ -41,7 +41,7 @@ impl WaveType {
 #[allow(unused)]
 pub struct SoundSourceMsg {
     pub dest_id: SoundSourceId,
-    pub attribute: SoundSourceAttributes,
+    pub attribute: SoundSourceKey,
     pub value: usize,
 }
 
@@ -49,7 +49,7 @@ pub struct SoundSourceMsg {
 impl Default for SoundSourceMsg {
     fn default() -> Self {
         let dest_id = SoundSourceId::default();
-        let attribute = SoundSourceAttributes::Frequency;
+        let attribute = SoundSourceKey::Frequency;
         let value = 0;
         Self {
             dest_id,
@@ -61,7 +61,7 @@ impl Default for SoundSourceMsg {
 
 #[allow(unused)]
 impl SoundSourceMsg {
-    pub fn new(dest_id: SoundSourceId, attribute: SoundSourceAttributes, value: usize) -> Self {
+    pub fn new(dest_id: SoundSourceId, attribute: SoundSourceKey, value: usize) -> Self {
         return Self {
             dest_id,
             attribute,
@@ -107,7 +107,7 @@ pub type SoundSourceMsgs = SoundSourceMsgPool<100>;
 mod tests {
     use crate::sound_source_id::SoundSourceId;
     use crate::sound_source_id::SoundSourceType;
-    use crate::sound_source_msgs::SoundSourceAttributes;
+    use crate::sound_source_msgs::SoundSourceKey;
     use crate::sound_source_msgs::SoundSourceMsg;
     use crate::sound_source_msgs::SoundSourceMsgs;
 
@@ -118,12 +118,12 @@ mod tests {
 
         let m0 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::WaveGenerator, 5),
-            SoundSourceAttributes::Frequency,
+            SoundSourceKey::Frequency,
             2600,
         );
         let m1 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::AdsrEnvelope, 3),
-            SoundSourceAttributes::Volume,
+            SoundSourceKey::Volume,
             100,
         );
         messages.append(m0.clone());

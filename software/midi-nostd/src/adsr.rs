@@ -2,7 +2,7 @@ use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
@@ -74,7 +74,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
 
     fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {}
 
-    fn set_attribute(&mut self, key: SoundSourceAttributes, value: usize) {}
+    fn set_attribute(&mut self, key: SoundSourceKey, value: usize) {}
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {
         None

@@ -2,7 +2,7 @@ use crate::free_list::FreeList;
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
-use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_sources::SoundSources;
 
@@ -20,12 +20,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
         element: usize,
         all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> SAMPLE;
-    fn pool_set_attribute(
-        self: &mut Self,
-        element: usize,
-        key: SoundSourceAttributes,
-        value: usize,
-    );
+    fn pool_set_attribute(self: &mut Self, element: usize, key: SoundSourceKey, value: usize);
     fn get_type_id(self: &Self) -> usize;
 
     fn pool_alloc(self: &mut Self) -> SoundSourceId {
@@ -58,12 +53,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
 
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
 
-    fn set_attribute(
-        self: &mut Self,
-        id: &SoundSourceId,
-        key: SoundSourceAttributes,
-        value: usize,
-    ) {
+    fn set_attribute(self: &mut Self, id: &SoundSourceId, key: SoundSourceKey, value: usize) {
         assert_eq!(self.get_type_id(), id.source_type() as usize);
         self.pool_set_attribute(id.id(), key, value)
     }
