@@ -35,8 +35,8 @@ impl<const N: usize> FreeList for FreeListImpl<N> {
 }
 
 #[allow(unused)]
-impl<const N: usize> FreeListImpl<N> {
-    pub fn new() -> Self {
+impl<const N: usize> Default for FreeListImpl<N> {
+    fn default() -> Self {
         let active_list: [bool; N] = core::array::from_fn(|_idx| false);
         let free_list: [Option<usize>; N] =
             core::array::from_fn(|idx| if idx == N - 1 { None } else { Some(idx + 1) });
@@ -55,7 +55,7 @@ mod free_list_tests {
     use crate::free_list::*;
     #[test]
     fn free_list_should_alloc_and_free() {
-        let mut free_list: FreeListImpl<3> = FreeListImpl::new();
+        let mut free_list: FreeListImpl<3> = FreeListImpl::default();
         for idx in 0..3 {
             assert_eq!(false, free_list.is_active(idx));
         }

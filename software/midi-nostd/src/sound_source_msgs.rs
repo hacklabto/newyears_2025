@@ -61,10 +61,14 @@ pub struct SoundSourceMsgs<const N: usize> {
     free_list: FreeListImpl<N>
 }
 
-//#[allow(unused)]
-//impl Default for SoundSourceMsgs<const N: usize> {
-//    fn default() -> Self {
-//        let messages: [SoundSourceMsg; N] = default();
-//    }
-//}
+#[allow(unused)]
+impl <const N: usize>  Default for SoundSourceMsgs<N> {
+    fn default() -> Self {
+        let messages: [SoundSourceMsg; N] = core::array::from_fn(|_i| SoundSourceMsg::default());
+        let free_list: FreeListImpl<N> = FreeListImpl::default();
+        return Self{ messages, free_list }
+    }
+}
+
+
 

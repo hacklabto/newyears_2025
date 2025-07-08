@@ -35,7 +35,7 @@ impl<
 {
     pub fn new() -> Self {
         let sound_source: [MySoundSource; N] = core::array::from_fn(|_i| MySoundSource::default());
-        let free_list: FreeListImpl<N> = FreeListImpl::new();
+        let free_list: FreeListImpl<N> = FreeListImpl::default();
         let fake = SAMPLE::default();
         Self {
             sound_source,
