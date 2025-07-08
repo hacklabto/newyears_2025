@@ -34,8 +34,8 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
     }
 
     fn pool_free(self: &mut Self, id: SoundSourceId) {
-        assert_eq!(self.get_type_id(), id.source_type as usize);
-        self.free(id.id);
+        assert_eq!(self.get_type_id(), id.source_type() as usize);
+        self.free(id.id());
     }
 
     fn has_next(
@@ -43,8 +43,8 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
         id: &SoundSourceId,
         all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> bool {
-        assert_eq!(self.get_type_id(), id.source_type as usize);
-        self.pool_has_next(id.id, all_sources)
+        assert_eq!(self.get_type_id(), id.source_type() as usize);
+        self.pool_has_next(id.id(), all_sources)
     }
 
     fn get_next(
@@ -52,8 +52,8 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
         id: &SoundSourceId,
         all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> SAMPLE {
-        assert_eq!(self.get_type_id(), id.source_type as usize);
-        self.pool_get_next(id.id, all_sources)
+        assert_eq!(self.get_type_id(), id.source_type() as usize);
+        self.pool_get_next(id.id(), all_sources)
     }
 
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
@@ -64,7 +64,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
         key: SoundSourceAttributes,
         value: usize,
     ) {
-        assert_eq!(self.get_type_id(), id.source_type as usize);
-        self.pool_set_attribute(id.id, key, value)
+        assert_eq!(self.get_type_id(), id.source_type() as usize);
+        self.pool_set_attribute(id.id(), key, value)
     }
 }

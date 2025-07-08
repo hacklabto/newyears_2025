@@ -77,23 +77,57 @@ mod tests {
 
 #[allow(unused)]
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub struct SoundSourceId {
+pub struct SoundSourceRealId {
     pub source_type: SoundSourceType,
     pub id: usize,
+}
+
+//#[allow(unused)]
+//impl Default for SoundSourceRealId {
+//    fn default() -> Self {
+//        let source_type: SoundSourceType = SoundSourceType::WaveGenerator;
+//        let id: usize = 0;
+//        Self { source_type, id }
+//    }
+//}
+
+#[allow(unused)]
+impl SoundSourceRealId {
+    pub fn new(source_type: SoundSourceType, id: usize) -> Self {
+        Self { source_type, id }
+    }
+}
+
+#[allow(unused)]
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum SoundSourceId {
+    Uninitialized,
+    UseMsgDefault,
+    Real { real: SoundSourceRealId },
 }
 
 #[allow(unused)]
 impl Default for SoundSourceId {
     fn default() -> Self {
-        let source_type: SoundSourceType = SoundSourceType::WaveGenerator;
-        let id: usize = 0;
-        Self { source_type, id }
+        return SoundSourceId::Uninitialized
     }
 }
 
-#[allow(unused)]
 impl SoundSourceId {
     pub fn new(source_type: SoundSourceType, id: usize) -> Self {
-        Self { source_type, id }
+        SoundSourceId::Real { real: SoundSourceRealId::new( source_type, id ) }
+    }
+    pub fn source_type(self: Self ) -> SoundSourceType {
+        match self {
+                SoundSourceId::Real{ real } => real.source_type,
+                _ => panic!("ID only exists if the enum is real"),
+        }
+    }
+    pub fn id(self: Self ) -> usize {
+        match self {
+                SoundSourceId::Real{ real } => real.id,
+                _ => panic!("ID only exists if the enum is real"),
+        }
     }
 }
+

@@ -41,20 +41,20 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
     }
 
     pub fn free(self: &mut Self, id: SoundSourceId) {
-        self.pools[id.source_type as usize]
+        self.pools[id.source_type() as usize]
             .as_mut()
             .expect("skill issue")
             .pool_free(id)
     }
 
     pub fn has_next(self: &Self, id: &SoundSourceId) -> bool {
-        return self.pools[id.source_type as usize]
+        return self.pools[id.source_type() as usize]
             .as_ref()
             .expect("panic if none")
             .has_next(id, &self);
     }
     pub fn get_next(self: &Self, id: &SoundSourceId) -> SAMPLE {
-        return self.pools[id.source_type as usize]
+        return self.pools[id.source_type() as usize]
             .as_ref()
             .expect("panic if none")
             .get_next(id, &self);
@@ -65,7 +65,7 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
         key: SoundSourceAttributes,
         value: usize,
     ) {
-        return self.pools[id.source_type as usize]
+        return self.pools[id.source_type() as usize]
             .as_mut()
             .expect("panic if none")
             .set_attribute(id, key, value);
