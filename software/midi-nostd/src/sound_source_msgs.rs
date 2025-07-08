@@ -69,6 +69,13 @@ impl SoundSourceValue {
     }
 }
 
+#[allow(unused)]
+impl Default for SoundSourceValue {
+    fn default() -> Self {
+        SoundSourceValue::Uninitialized
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 #[allow(unused)]
 pub struct SoundSourceMsg {
@@ -82,7 +89,7 @@ impl Default for SoundSourceMsg {
     fn default() -> Self {
         let dest_id = SoundSourceId::default();
         let attribute = SoundSourceKey::Frequency;
-        let value = SoundSourceValue::Uninitialized;
+        let value = SoundSourceValue::default();
         Self {
             dest_id,
             attribute,
