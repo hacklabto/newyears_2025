@@ -76,7 +76,7 @@ mod tests {
 }
 
 #[allow(unused)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct SoundSourceId {
     pub source_type: SoundSourceType,
     pub id: usize,
