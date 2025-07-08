@@ -59,7 +59,7 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
             .expect("panic if none")
             .get_next(id, &self);
     }
-    pub fn set_attribute(
+    fn set_attribute(
         self: &mut Self,
         id: &SoundSourceId,
         key: SoundSourceAttributes,
@@ -69,5 +69,11 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE
             .as_mut()
             .expect("panic if none")
             .set_attribute(id, key, value);
+    }
+    pub fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs) {
+        for msg in msgs.get_msgs() {
+            self.set_attribute(&msg.dest_id, msg.attribute, msg.value);
+        }
+        msgs.clear();
     }
 }

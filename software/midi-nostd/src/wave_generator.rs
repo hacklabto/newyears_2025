@@ -6,6 +6,7 @@ use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceAttributes;
+use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::WaveType;
 use crate::sound_source_pool_impl::GenericSoundPool;
@@ -152,22 +153,28 @@ fn set_wave_properties(
     pulse_width: u8,
     volume: u8,
 ) {
-    all_pools.set_attribute(
-        &wave_id,
+    let mut msgs = SoundSourceMsgs::default();
+    msgs.append(SoundSourceMsg::new(
+        wave_id.clone(),
         SoundSourceAttributes::Frequency,
         (frequency as usize) * (FREQUENCY_MULTIPLIER as usize),
-    );
-    all_pools.set_attribute(
-        &wave_id,
+    ));
+    msgs.append(SoundSourceMsg::new(
+        wave_id.clone(),
         SoundSourceAttributes::WaveType,
         wave_type as usize,
-    );
-    all_pools.set_attribute(
-        &wave_id,
+    ));
+    msgs.append(SoundSourceMsg::new(
+        wave_id.clone(),
         SoundSourceAttributes::PulseWidth,
         pulse_width as usize,
-    );
-    all_pools.set_attribute(&wave_id, SoundSourceAttributes::Volume, volume as usize);
+    ));
+    msgs.append(SoundSourceMsg::new(
+        wave_id.clone(),
+        SoundSourceAttributes::Volume,
+        volume as usize,
+    ));
+    all_pools.process_and_clear_msgs(&mut msgs);
 }
 
 #[allow(unused)]

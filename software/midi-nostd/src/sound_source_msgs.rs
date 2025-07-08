@@ -40,9 +40,9 @@ impl WaveType {
 #[derive(Clone, PartialEq, Debug)]
 #[allow(unused)]
 pub struct SoundSourceMsg {
-    dest_id: SoundSourceId,
-    attribute: SoundSourceAttributes,
-    value: usize,
+    pub dest_id: SoundSourceId,
+    pub attribute: SoundSourceAttributes,
+    pub value: usize,
 }
 
 #[allow(unused)]
@@ -61,7 +61,7 @@ impl Default for SoundSourceMsg {
 
 #[allow(unused)]
 impl SoundSourceMsg {
-    fn new(dest_id: SoundSourceId, attribute: SoundSourceAttributes, value: usize) -> Self {
+    pub fn new(dest_id: SoundSourceId, attribute: SoundSourceAttributes, value: usize) -> Self {
         return Self {
             dest_id,
             attribute,
