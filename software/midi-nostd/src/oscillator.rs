@@ -9,6 +9,7 @@ use crate::sound_source_msgs::OscillatorType;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
+use crate::sound_source_msgs::SoundSourceOscillatorInit;
 use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
@@ -145,31 +146,28 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericOscillator<T, PLAY_FREQUE
 pub fn set_oscillator_properties(
     all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
     oscillator_id: &SoundSourceId,
-    oscillator_type: OscillatorType,
-    frequency: u32,
-    pulse_width: u8,
-    volume: u8,
+    init_values: &SoundSourceOscillatorInit,
 ) {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
         oscillator_id.clone(),
         SoundSourceKey::Frequency,
-        SoundSourceValue::new_u32(frequency * FREQUENCY_MULTIPLIER),
+        SoundSourceValue::new_u32(init_values.frequency * FREQUENCY_MULTIPLIER),
     ));
     msgs.append(SoundSourceMsg::new(
         oscillator_id.clone(),
         SoundSourceKey::OscillatorType,
-        SoundSourceValue::new_oscillator_type(oscillator_type),
+        SoundSourceValue::new_oscillator_type(init_values.oscillator_type),
     ));
     msgs.append(SoundSourceMsg::new(
         oscillator_id.clone(),
         SoundSourceKey::PulseWidth,
-        SoundSourceValue::new_u8(pulse_width),
+        SoundSourceValue::new_u8(init_values.pulse_width),
     ));
     msgs.append(SoundSourceMsg::new(
         oscillator_id.clone(),
         SoundSourceKey::Volume,
-        SoundSourceValue::new_u8(volume),
+        SoundSourceValue::new_u8(init_values.volume),
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
 }
@@ -273,10 +271,7 @@ mod tests {
         set_oscillator_properties(
             &mut all_pools,
             &oscillator_id,
-            OscillatorType::PulseWidth,
-            2600,
-            50,
-            100,
+            &SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 2600, 50, 100),
         );
         let mut new_msgs = SoundSourceMsgs::default();
         let (transitions, area) = sample_wave(&mut all_pools, &oscillator_id, &mut new_msgs);
@@ -294,10 +289,7 @@ mod tests {
         set_oscillator_properties(
             &mut all_pools,
             &oscillator_id,
-            OscillatorType::PulseWidth,
-            2600,
-            50,
-            50,
+            &SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 2600, 50, 50),
         );
         let mut new_msgs = SoundSourceMsgs::default();
         let (transitions, area) = sample_wave(&mut all_pools, &oscillator_id, &mut new_msgs);
@@ -314,10 +306,7 @@ mod tests {
         set_oscillator_properties(
             &mut all_pools,
             &oscillator_id,
-            OscillatorType::PulseWidth,
-            2600,
-            25,
-            100,
+            &SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 2600, 25, 100),
         );
         let mut new_msgs = SoundSourceMsgs::default();
         let (transitions, area) = sample_wave(&mut all_pools, &oscillator_id, &mut new_msgs);
@@ -334,10 +323,7 @@ mod tests {
         set_oscillator_properties(
             &mut all_pools,
             &oscillator_id,
-            OscillatorType::Triangle,
-            2600,
-            0,
-            100,
+            &SoundSourceOscillatorInit::new(OscillatorType::Triangle, 2600, 0, 100),
         );
 
         let mut new_msgs = SoundSourceMsgs::default();
@@ -355,10 +341,7 @@ mod tests {
         set_oscillator_properties(
             &mut all_pools,
             &oscillator_id,
-            OscillatorType::Triangle,
-            2600,
-            0,
-            50,
+            &SoundSourceOscillatorInit::new(OscillatorType::Triangle, 2600, 0, 50),
         );
 
         let mut new_msgs = SoundSourceMsgs::default();

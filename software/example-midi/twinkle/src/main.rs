@@ -6,6 +6,7 @@
 extern crate portaudio;
 use midi_nostd::sound_sample::SoundSample;
 use midi_nostd::sound_sources::SoundSources;
+use midi_nostd::sound_source_msgs::SoundSourceOscillatorInit;
 use midly::Smf;
 
 use portaudio as pa;
@@ -53,10 +54,12 @@ fn run() -> Result<(), pa::Error> {
     midi_nostd::oscillator::set_oscillator_properties(
         &mut all_pools,
         &wave_id,
-        midi_nostd::sound_source_msgs::OscillatorType::Sine,
-        2600,
-        25,
-        50,
+        &SoundSourceOscillatorInit::new(
+            midi_nostd::sound_source_msgs::OscillatorType::Sine,
+            2600,
+            25,
+            50
+        )
     );
 
     // Initialise sinusoidal wavetable.

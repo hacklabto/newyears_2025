@@ -37,6 +37,30 @@ impl OscillatorType {
 }
 
 #[derive(Clone, PartialEq, Debug)]
+pub struct SoundSourceOscillatorInit {
+    pub oscillator_type: OscillatorType,
+    pub frequency: u32,
+    pub pulse_width: u8,
+    pub volume: u8,
+}
+
+impl SoundSourceOscillatorInit {
+    pub fn new(
+        oscillator_type: OscillatorType,
+        frequency: u32,
+        pulse_width: u8,
+        volume: u8,
+    ) -> Self {
+        return Self {
+            oscillator_type,
+            frequency,
+            pulse_width,
+            volume,
+        };
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
     OscillatorType { oscillator_type: OscillatorType },
