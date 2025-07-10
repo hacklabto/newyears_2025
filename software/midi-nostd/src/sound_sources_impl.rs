@@ -25,10 +25,10 @@ pub struct SoundSourcesImpl<
     >,
 }
 
-impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize>
-    SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS>
+impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize> Default
+    for SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS>
 {
-    pub fn new() -> Self {
+    fn default() -> Self {
         let oscilator_pool = GenericSoundPool::<
             SAMPLE,
             PLAY_FREQUENCY,
@@ -38,7 +38,11 @@ impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize
         >::new();
         Self { oscilator_pool }
     }
+}
 
+impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize>
+    SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS>
+{
     pub fn get_pool<'a>(
         self: &'a mut Self,
         _sound_source_type: SoundSourceType,
