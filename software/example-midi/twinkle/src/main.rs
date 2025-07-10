@@ -4,8 +4,8 @@
 //! Bencina.
 
 extern crate portaudio;
-use midi_nostd::sound_sources::SoundSources;
 use midi_nostd::sound_sample::SoundSample;
+use midi_nostd::sound_sources::SoundSources;
 use midly::Smf;
 
 use portaudio as pa;
@@ -22,7 +22,7 @@ fn midly_exploration() {
     for (i, track) in smf.tracks.iter().enumerate() {
         println!("track {} has {} events", i, track.len());
         for event in track {
-            println!("Event Detla {} {:?}", event.delta, event.kind );
+            println!("Event Detla {} {:?}", event.delta, event.kind);
         }
     }
 }
@@ -44,12 +44,16 @@ fn run() -> Result<(), pa::Error> {
         SAMPLE_RATE, FRAMES_PER_BUFFER
     );
 
-    let mut all_pools = midi_nostd::sound_sources_impl::SoundSourcesImpl::<midi_nostd::sound_sample::SoundSampleI32, 24000,32>::new();
-    let wave_id = all_pools.alloc(midi_nostd::sound_source_id::SoundSourceType::WaveGenerator);
-    midi_nostd::wave_generator::set_wave_properties(
+    let mut all_pools = midi_nostd::sound_sources_impl::SoundSourcesImpl::<
+        midi_nostd::sound_sample::SoundSampleI32,
+        24000,
+        32,
+    >::new();
+    let wave_id = all_pools.alloc(midi_nostd::sound_source_id::SoundSourceType::Oscillator);
+    midi_nostd::oscillator::set_oscillator_properties(
         &mut all_pools,
         &wave_id,
-        midi_nostd::sound_source_msgs::WaveType::Sine,
+        midi_nostd::sound_source_msgs::OscillatorType::Sine,
         2600,
         25,
         50,
@@ -75,7 +79,7 @@ fn run() -> Result<(), pa::Error> {
         for _ in 0..frames {
             all_pools.update(&mut new_msgs);
             let current = all_pools.get_next(&wave_id);
-            let converted: f32 = (((current.to_u16() as i32) - 32768 ) as f32 ) / 32768.0;
+            let converted: f32 = (((current.to_u16() as i32) - 32768) as f32) / 32768.0;
             buffer[idx] = converted; //sine[left_phase];
             buffer[idx + 1] = converted; // = sine[right_phase];
             left_phase += 1;

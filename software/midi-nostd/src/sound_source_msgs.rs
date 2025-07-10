@@ -3,7 +3,7 @@ use crate::sound_source_id::SoundSourceId;
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SoundSourceKey {
-    WaveType,
+    OscillatorType,
     Frequency,
     Volume,
     PulseWidth,
@@ -13,21 +13,21 @@ pub enum SoundSourceKey {
 ///
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[repr(usize)]
-pub enum WaveType {
+pub enum OscillatorType {
     Triangle = 0,
     SawTooth = 1,
     Sine = 2,
     PulseWidth = 3,
 }
 
-impl WaveType {
+impl OscillatorType {
     // TODO, delete.
     pub fn from_usize(usize_value: usize) -> Self {
         let optional_enum_value: Option<Self> = match usize_value {
-            0 => Some(WaveType::Triangle),
-            1 => Some(WaveType::SawTooth),
-            2 => Some(WaveType::Sine),
-            3 => Some(WaveType::PulseWidth),
+            0 => Some(OscillatorType::Triangle),
+            1 => Some(OscillatorType::SawTooth),
+            2 => Some(OscillatorType::Sine),
+            3 => Some(OscillatorType::PulseWidth),
             _ => None,
         };
         let enum_value = optional_enum_value.expect("bad usize  aveType");
@@ -39,7 +39,7 @@ impl WaveType {
 #[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
-    WaveType { wave_type: WaveType },
+    OscillatorType { oscillator_type: OscillatorType },
     U32Type { num: u32 },
     U8Type { num: u8 },
 }
@@ -51,8 +51,8 @@ impl SoundSourceValue {
     pub fn new_u8(num: u8) -> Self {
         SoundSourceValue::U8Type { num }
     }
-    pub fn new_wave_type(wave_type: WaveType) -> Self {
-        SoundSourceValue::WaveType { wave_type }
+    pub fn new_oscillator_type(oscillator_type: OscillatorType) -> Self {
+        SoundSourceValue::OscillatorType { oscillator_type }
     }
     pub fn get_u32(self: &Self) -> u32 {
         match self {
@@ -66,9 +66,9 @@ impl SoundSourceValue {
             _ => panic!("This isn't a u8"),
         }
     }
-    pub fn get_wave_type(self: &Self) -> WaveType {
+    pub fn get_oscillator_type(self: &Self) -> OscillatorType {
         match self {
-            SoundSourceValue::WaveType { wave_type } => *wave_type,
+            SoundSourceValue::OscillatorType { oscillator_type } => *oscillator_type,
             _ => panic!("This isn't a wave type"),
         }
     }
@@ -154,7 +154,7 @@ mod tests {
         assert_eq!(0, messages.get_msgs().len());
 
         let m0 = SoundSourceMsg::new(
-            SoundSourceId::new(SoundSourceType::WaveGenerator, 5),
+            SoundSourceId::new(SoundSourceType::Oscillator, 5),
             SoundSourceKey::Frequency,
             SoundSourceValue::new_u32(2600),
         );

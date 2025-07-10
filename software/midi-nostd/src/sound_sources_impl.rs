@@ -1,3 +1,4 @@
+use crate::oscillator::GenericOscillator;
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
@@ -7,7 +8,6 @@ use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
-use crate::wave_generator::GenericWaveSource;
 
 //const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
 
@@ -19,9 +19,9 @@ pub struct SoundSourcesImpl<
     oscilator_pool: GenericSoundPool<
         SAMPLE,
         PLAY_FREQUENCY,
-        GenericWaveSource<SAMPLE, PLAY_FREQUENCY>,
+        GenericOscillator<SAMPLE, PLAY_FREQUENCY>,
         NUM_OSCILATORS,
-        { SoundSourceType::WaveGenerator as usize },
+        { SoundSourceType::Oscillator as usize },
     >,
 }
 
@@ -32,9 +32,9 @@ impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize
         let oscilator_pool = GenericSoundPool::<
             SAMPLE,
             PLAY_FREQUENCY,
-            GenericWaveSource<SAMPLE, PLAY_FREQUENCY>,
+            GenericOscillator<SAMPLE, PLAY_FREQUENCY>,
             NUM_OSCILATORS,
-            { SoundSourceType::WaveGenerator as usize },
+            { SoundSourceType::Oscillator as usize },
         >::new();
         Self { oscilator_pool }
     }
