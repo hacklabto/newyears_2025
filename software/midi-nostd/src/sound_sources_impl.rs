@@ -57,7 +57,7 @@ impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize
     }
     fn set_attribute(
         self: &mut Self,
-        id: &SoundSourceId,
+        id: SoundSourceId,
         key: SoundSourceKey,
         value: SoundSourceValue,
     ) {
@@ -91,7 +91,7 @@ impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize
     }
     fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs) {
         for msg in msgs.get_msgs() {
-            self.set_attribute(&msg.dest_id, msg.attribute, msg.value.clone());
+            self.set_attribute(msg.dest_id.expect("todo"), msg.attribute, msg.value.clone());
         }
         msgs.clear();
     }

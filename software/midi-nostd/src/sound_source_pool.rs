@@ -60,7 +60,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
 
     fn set_attribute(
         self: &mut Self,
-        id: &SoundSourceId,
+        id: SoundSourceId,
         key: SoundSourceKey,
         value: SoundSourceValue,
     ) {

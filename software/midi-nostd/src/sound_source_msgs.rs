@@ -4,6 +4,7 @@ use crate::sound_source_id::SoundSourceId;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SoundSourceKey {
     InitOscillator,
+    SoundSourceCreated,
 }
 
 /// Different Wave Types
@@ -69,6 +70,9 @@ pub enum SoundSourceValue {
     OscillatorInit {
         init_values: SoundSourceOscillatorInit,
     },
+    CreatedId {
+        created_id: SoundSourceId,
+    },
 }
 
 impl SoundSourceValue {
@@ -80,6 +84,9 @@ impl SoundSourceValue {
     }
     pub fn new_oscillator_init(init_values: SoundSourceOscillatorInit) -> Self {
         SoundSourceValue::OscillatorInit { init_values }
+    }
+    pub fn new_created_id(created_id: SoundSourceId) -> Self {
+        SoundSourceValue::CreatedId { created_id }
     }
 
     pub fn get_u32(self: &Self) -> u32 {
@@ -100,6 +107,12 @@ impl SoundSourceValue {
             _ => panic!("This isn't a wave type"),
         }
     }
+    pub fn get_created_id(self: &Self) -> &SoundSourceId {
+        match self {
+            SoundSourceValue::CreatedId { created_id } => created_id,
+            _ => panic!("This isn't a wave type"),
+        }
+    }
 }
 
 impl Default for SoundSourceValue {
@@ -110,14 +123,14 @@ impl Default for SoundSourceValue {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SoundSourceMsg {
-    pub dest_id: SoundSourceId,
+    pub dest_id: Option<SoundSourceId>, // No ID == handle at top level.
     pub attribute: SoundSourceKey,
     pub value: SoundSourceValue,
 }
 
 impl Default for SoundSourceMsg {
     fn default() -> Self {
-        let dest_id = SoundSourceId::default();
+        let dest_id = None;
         let attribute = SoundSourceKey::InitOscillator;
         let value = SoundSourceValue::default();
         Self {
@@ -131,7 +144,7 @@ impl Default for SoundSourceMsg {
 impl SoundSourceMsg {
     pub fn new(dest_id: SoundSourceId, attribute: SoundSourceKey, value: SoundSourceValue) -> Self {
         return Self {
-            dest_id,
+            dest_id: Some(dest_id),
             attribute,
             value,
         };
