@@ -5,25 +5,51 @@ use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
+use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
+use crate::wave_generator::GenericWaveSource;
 
-const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
+//const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
 
-pub struct SoundSourcesImpl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
-    pools: [Option<&'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>>; MAX_ENUM_MAP],
+pub struct SoundSourcesImpl<
+    SAMPLE: SoundSample,
+    const PLAY_FREQUENCY: u32,
+    const NUM_OSCILATORS: usize,
+> {
+    oscilator_pool: GenericSoundPool<
+        SAMPLE,
+        PLAY_FREQUENCY,
+        GenericWaveSource<SAMPLE, PLAY_FREQUENCY>,
+        NUM_OSCILATORS,
+        { SoundSourceType::WaveGenerator as usize },
+    >,
 }
 
-impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>
-    SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY>
+impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize>
+    SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS>
 {
-    pub fn create_with_single_pool_for_test(
-        test_pool: &'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>,
-        test_pool_slot: SoundSourceType,
-    ) -> Self {
-        let mut pools: [Option<&'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>>;
-            MAX_ENUM_MAP] = core::array::from_fn(|_i| None);
-        pools[test_pool_slot as usize] = Some(test_pool);
-        Self { pools }
+    pub fn new() -> Self {
+        let oscilator_pool = GenericSoundPool::<
+            SAMPLE,
+            PLAY_FREQUENCY,
+            GenericWaveSource<SAMPLE, PLAY_FREQUENCY>,
+            NUM_OSCILATORS,
+            { SoundSourceType::WaveGenerator as usize },
+        >::new();
+        Self { oscilator_pool }
+    }
+
+    pub fn get_pool<'a>(
+        self: &'a mut Self,
+        _sound_source_type: SoundSourceType,
+    ) -> &'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> {
+        return &mut self.oscilator_pool; // temp, obviously.
+    }
+    pub fn get_const_pool<'a>(
+        self: &'a Self,
+        _sound_source_type: SoundSourceType,
+    ) -> &'a dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> {
+        return &self.oscilator_pool; // temp, obviously.
     }
     fn set_attribute(
         self: &mut Self,
@@ -31,49 +57,33 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>
         key: SoundSourceKey,
         value: SoundSourceValue,
     ) {
-        return self.pools[id.source_type() as usize]
-            .as_mut()
-            .expect("panic if none")
+        return self
+            .get_pool(id.source_type())
             .set_attribute(id, key, value);
     }
 }
 
-impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'_, SAMPLE, PLAY_FREQUENCY>
-    for SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY>
+impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize>
+    SoundSources<'_, SAMPLE, PLAY_FREQUENCY>
+    for SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS>
 {
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
-        for pool in &mut (self.pools) {
-            if pool.is_some() {
-                pool.as_mut().expect("it exists").update(new_msgs);
-            }
-        }
+        self.oscilator_pool.update(new_msgs);
     }
 
     fn alloc(self: &mut Self, sound_source_type: SoundSourceType) -> SoundSourceId {
-        self.pools[sound_source_type as usize]
-            .as_mut()
-            .expect("skill issue")
-            .pool_alloc()
+        self.get_pool(sound_source_type).pool_alloc()
     }
 
     fn free(self: &mut Self, id: SoundSourceId) {
-        self.pools[id.source_type() as usize]
-            .as_mut()
-            .expect("skill issue")
-            .pool_free(id)
+        self.get_pool(id.source_type()).pool_free(id)
     }
 
     fn has_next(self: &Self, id: &SoundSourceId) -> bool {
-        return self.pools[id.source_type() as usize]
-            .as_ref()
-            .expect("panic if none")
-            .has_next(id, self);
+        self.get_const_pool(id.source_type()).has_next(id, self)
     }
     fn get_next(self: &Self, id: &SoundSourceId) -> SAMPLE {
-        return self.pools[id.source_type() as usize]
-            .as_ref()
-            .expect("panic if none")
-            .get_next(id, self);
+        self.get_const_pool(id.source_type()).get_next(id, self)
     }
     fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs) {
         for msg in msgs.get_msgs() {
