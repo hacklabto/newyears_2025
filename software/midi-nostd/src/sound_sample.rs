@@ -16,7 +16,7 @@ impl SoundScale {
         let scale_by_int: i32 = scale_by.into();
         return Self { scale_by_int };
     }
-    pub fn new_percent(scale_by_percent: u16) -> Self {
+    pub fn new_percent(scale_by_percent: u8) -> Self {
         return Self::new((scale_by_percent as u16) * 256 / 100);
     }
     pub fn get_scale_by_int(&self) -> i32 {

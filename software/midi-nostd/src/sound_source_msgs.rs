@@ -44,21 +44,31 @@ impl WaveType {
 pub enum SoundSourceValue {
     Uninitialized,
     WaveType { wave_type: WaveType },
-    USizeType { num_type: usize },
+    U32Type { num: u32 },
+    U8Type { num: u8 },
 }
 
 #[allow(unused)]
 impl SoundSourceValue {
-    pub fn new_usize(num_type: usize) -> Self {
-        SoundSourceValue::USizeType { num_type }
+    pub fn new_u32(num: u32) -> Self {
+        SoundSourceValue::U32Type { num }
+    }
+    pub fn new_u8(num: u8) -> Self {
+        SoundSourceValue::U8Type { num }
     }
     pub fn new_wave_type(wave_type: WaveType) -> Self {
         SoundSourceValue::WaveType { wave_type }
     }
-    pub fn get_usize(self: &Self) -> usize {
+    pub fn get_u32(self: &Self) -> u32 {
         match self {
-            SoundSourceValue::USizeType { num_type } => *num_type,
-            _ => panic!("This isn't a usize"),
+            SoundSourceValue::U32Type{ num } => *num,
+            _ => panic!("This isn't a u32"),
+        }
+    }
+    pub fn get_u8(self: &Self) -> u8 {
+        match self {
+            SoundSourceValue::U8Type{ num } => *num,
+            _ => panic!("This isn't a u8"),
         }
     }
     pub fn get_wave_type(self: &Self) -> WaveType {
@@ -159,12 +169,12 @@ mod tests {
         let m0 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::WaveGenerator, 5),
             SoundSourceKey::Frequency,
-            SoundSourceValue::new_usize(2600),
+            SoundSourceValue::new_u32(2600),
         );
         let m1 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::AdsrEnvelope, 3),
             SoundSourceKey::Volume,
-            SoundSourceValue::new_usize(100),
+            SoundSourceValue::new_u32(100),
         );
         messages.append(m0.clone());
         messages.append(m1.clone());
