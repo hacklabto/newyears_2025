@@ -21,11 +21,11 @@ use crate::sound_sources::SoundSources;
 pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     /// Returns false if the sound source is done playing
     ///
-    fn has_next(self: &Self, all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>) -> bool;
+    fn has_next(self: &Self, all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>) -> bool;
 
     /// Draw a sample from a source
     ///
-    fn get_next(self: &Self, all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>) -> SAMPLE;
+    fn get_next(self: &Self, all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>) -> SAMPLE;
 
     /// Update the state one tick
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);

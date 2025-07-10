@@ -143,7 +143,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
 }
 
 pub fn set_wave_properties(
-    all_pools: &mut SoundSources<SoundSampleI32, 24000>,
+    all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
     wave_id: &SoundSourceId,
     wave_type: WaveType,
     frequency: u32,
@@ -177,7 +177,7 @@ pub fn set_wave_properties(
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
-    fn get_next(self: &Self, _all_sources: &SoundSources<T, PLAY_FREQUENCY>) -> T {
+    fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
         if self.wave_type == WaveType::PulseWidth {
             self.get_next_pulse_entry()
         } else {
@@ -185,7 +185,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         }
     }
 
-    fn has_next(self: &Self, _all_sources: &SoundSources<T, PLAY_FREQUENCY>) -> bool {
+    fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
         true
     }
 
@@ -234,6 +234,7 @@ pub type WavePool = GenericSoundPool<
 mod tests {
     use crate::sound_sources::SoundSources;
     use crate::wave_generator::*;
+    use crate::sound_sources_impl::SoundSourcesImpl;
 
     fn abs_sample(sample: u16) -> u16 {
         if sample >= 0x8000 {
@@ -244,7 +245,7 @@ mod tests {
     }
 
     fn sample_wave(
-        all_pools: &mut SoundSources<SoundSampleI32, 24000>,
+        all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
         wave_id: &SoundSourceId,
         new_msgs: &mut SoundSourceMsgs,
     ) -> (u32, u32) {
@@ -268,7 +269,7 @@ mod tests {
     #[test]
     fn test_pulse_50_from_pool() {
         let mut wave_pool: WavePool = WavePool::new();
-        let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
             &mut wave_pool,
             SoundSourceType::WaveGenerator,
         );
@@ -293,7 +294,7 @@ mod tests {
     #[test]
     fn test_pulse_50_vol_50_from_pool() {
         let mut wave_pool: WavePool = WavePool::new();
-        let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
             &mut wave_pool,
             SoundSourceType::WaveGenerator,
         );
@@ -310,7 +311,7 @@ mod tests {
     #[test]
     fn test_pulse_25_from_pool() {
         let mut wave_pool: WavePool = WavePool::new();
-        let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
             &mut wave_pool,
             SoundSourceType::WaveGenerator,
         );
@@ -334,7 +335,7 @@ mod tests {
     #[test]
     fn test_triangle_from_pool() {
         let mut wave_pool: WavePool = WavePool::new();
-        let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
             &mut wave_pool,
             SoundSourceType::WaveGenerator,
         );
@@ -352,7 +353,7 @@ mod tests {
     #[test]
     fn test_triangle_from_pool_vol_50percent() {
         let mut wave_pool: WavePool = WavePool::new();
-        let mut all_pools = SoundSources::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000>::create_with_single_pool_for_test(
             &mut wave_pool,
             SoundSourceType::WaveGenerator,
         );

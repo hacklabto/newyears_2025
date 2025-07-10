@@ -64,12 +64,12 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericAdsr<T, PLAY_FREQUENCY> {
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericAdsr<T, PLAY_FREQUENCY>
 {
-    fn get_next(self: &Self, _all_sources: &SoundSources<T, PLAY_FREQUENCY>) -> T {
+    fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
         assert!(self.state != AdsrState::Ended);
         T::max()
     }
 
-    fn has_next(self: &Self, _all_sources: &SoundSources<T, PLAY_FREQUENCY>) -> bool {
+    fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
         self.state != AdsrState::Ended
     }
 

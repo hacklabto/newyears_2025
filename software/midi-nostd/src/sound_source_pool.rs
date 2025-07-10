@@ -13,12 +13,12 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
     fn pool_has_next(
         self: &Self,
         element: usize,
-        all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
+        all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> bool;
     fn pool_get_next(
         self: &Self,
         element: usize,
-        all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
+        all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> SAMPLE;
     fn pool_set_attribute(
         self: &mut Self,
@@ -41,7 +41,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
     fn has_next(
         self: &Self,
         id: &SoundSourceId,
-        all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
+        all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> bool {
         assert_eq!(self.get_type_id(), id.source_type() as usize);
         self.pool_has_next(id.id(), all_sources)
@@ -50,7 +50,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
     fn get_next(
         self: &Self,
         id: &SoundSourceId,
-        all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
+        all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> SAMPLE {
         assert_eq!(self.get_type_id(), id.source_type() as usize);
         self.pool_get_next(id.id(), all_sources)

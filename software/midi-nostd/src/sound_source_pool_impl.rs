@@ -71,14 +71,14 @@ impl<
     fn pool_has_next(
         self: &Self,
         element: usize,
-        all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
+        all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> bool {
         self.sound_source[element].has_next(all_sources)
     }
     fn pool_get_next(
         self: &Self,
         element: usize,
-        all_sources: &SoundSources<SAMPLE, PLAY_FREQUENCY>,
+        all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> SAMPLE {
         self.sound_source[element].get_next(all_sources)
     }
