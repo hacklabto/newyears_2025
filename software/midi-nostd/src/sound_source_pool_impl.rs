@@ -2,17 +2,13 @@ use crate::free_list::FreeList;
 use crate::free_list::FreeListImpl;
 use crate::sound_sample::SoundSample;
 use crate::sound_source::SoundSource;
-use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_sources::SoundSources;
+use core::marker::PhantomData;
 
-#[allow(unused)]
-const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
-
-//_SAMPLE: PhantomData<SoundSample>,
 pub struct GenericSoundPool<
     SAMPLE: SoundSample,
     const PLAY_FREQUENCY: u32,
@@ -22,7 +18,7 @@ pub struct GenericSoundPool<
 > {
     sound_source: [MySoundSource; N],
     free_list: FreeListImpl<N>,
-    fake: SAMPLE, // TODO, spiral on phantom data
+    _marker: PhantomData<SAMPLE>,
 }
 
 impl<
@@ -36,11 +32,10 @@ impl<
     pub fn new() -> Self {
         let sound_source: [MySoundSource; N] = core::array::from_fn(|_i| MySoundSource::default());
         let free_list: FreeListImpl<N> = FreeListImpl::default();
-        let fake = SAMPLE::default();
         Self {
             sound_source,
             free_list,
-            fake,
+            _marker: PhantomData {},
         }
     }
 }
