@@ -2,7 +2,7 @@
 
 mod adsr;
 mod free_list;
-mod midi_notes;
+pub mod midi_notes;
 pub mod oscillator;
 pub mod sound_sample;
 pub mod sound_source;

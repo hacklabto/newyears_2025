@@ -4,9 +4,10 @@
 //! Bencina.
 
 extern crate portaudio;
+use midi_nostd::midi_notes::FREQUENCY_MULTIPLIER;
 use midi_nostd::sound_sample::SoundSample;
-use midi_nostd::sound_sources::SoundSources;
 use midi_nostd::sound_source_msgs::SoundSourceOscillatorInit;
+use midi_nostd::sound_sources::SoundSources;
 use midly::Smf;
 
 use portaudio as pa;
@@ -56,10 +57,10 @@ fn run() -> Result<(), pa::Error> {
         &wave_id,
         &SoundSourceOscillatorInit::new(
             midi_nostd::sound_source_msgs::OscillatorType::Sine,
-            2600,
+            2600 * FREQUENCY_MULTIPLIER,
             25,
-            50
-        )
+            50,
+        ),
     );
 
     // Initialise sinusoidal wavetable.

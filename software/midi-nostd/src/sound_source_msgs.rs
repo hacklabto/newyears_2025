@@ -7,6 +7,7 @@ pub enum SoundSourceKey {
     Frequency,
     Volume,
     PulseWidth,
+    InitOscillator,
 }
 
 /// Different Wave Types
@@ -63,9 +64,18 @@ impl SoundSourceOscillatorInit {
 #[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
-    OscillatorType { oscillator_type: OscillatorType },
-    U32Type { num: u32 },
-    U8Type { num: u8 },
+    OscillatorType {
+        oscillator_type: OscillatorType,
+    },
+    U32Type {
+        num: u32,
+    },
+    U8Type {
+        num: u8,
+    },
+    OscillatorInit {
+        init_values: SoundSourceOscillatorInit,
+    },
 }
 
 impl SoundSourceValue {
@@ -78,6 +88,10 @@ impl SoundSourceValue {
     pub fn new_oscillator_type(oscillator_type: OscillatorType) -> Self {
         SoundSourceValue::OscillatorType { oscillator_type }
     }
+    pub fn new_oscillator_init(init_values: SoundSourceOscillatorInit) -> Self {
+        SoundSourceValue::OscillatorInit { init_values }
+    }
+
     pub fn get_u32(self: &Self) -> u32 {
         match self {
             SoundSourceValue::U32Type { num } => *num,
@@ -93,6 +107,12 @@ impl SoundSourceValue {
     pub fn get_oscillator_type(self: &Self) -> OscillatorType {
         match self {
             SoundSourceValue::OscillatorType { oscillator_type } => *oscillator_type,
+            _ => panic!("This isn't a wave type"),
+        }
+    }
+    pub fn get_oscillator_init(self: &Self) -> &SoundSourceOscillatorInit {
+        match self {
+            SoundSourceValue::OscillatorInit { init_values } => init_values,
             _ => panic!("This isn't a wave type"),
         }
     }

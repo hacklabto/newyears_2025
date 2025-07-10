@@ -38,9 +38,6 @@ pub struct GenericOscillator<T: SoundSample, const PLAY_FREQUENCY: u32> {
     table_remainder_inc: u32,
     _marker: PhantomData<T>,
 }
-//impl<T: SoundSample, const PLAY_FREQUENCY: u32> Drop for GenericOscillator<T, PLAY_FREQUENCY> {
-//    fn drop(&mut self) {}
-//}
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericOscillator<T, PLAY_FREQUENCY> {
     fn default() -> Self {
@@ -151,23 +148,8 @@ pub fn set_oscillator_properties(
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
         oscillator_id.clone(),
-        SoundSourceKey::Frequency,
-        SoundSourceValue::new_u32(init_values.frequency * FREQUENCY_MULTIPLIER),
-    ));
-    msgs.append(SoundSourceMsg::new(
-        oscillator_id.clone(),
-        SoundSourceKey::OscillatorType,
-        SoundSourceValue::new_oscillator_type(init_values.oscillator_type),
-    ));
-    msgs.append(SoundSourceMsg::new(
-        oscillator_id.clone(),
-        SoundSourceKey::PulseWidth,
-        SoundSourceValue::new_u8(init_values.pulse_width),
-    ));
-    msgs.append(SoundSourceMsg::new(
-        oscillator_id.clone(),
-        SoundSourceKey::Volume,
-        SoundSourceValue::new_u8(init_values.volume),
+        SoundSourceKey::InitOscillator,
+        SoundSourceValue::new_oscillator_init(init_values.clone()),
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
 }
@@ -192,6 +174,20 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     }
 
     fn set_attribute(&mut self, key: SoundSourceKey, value: SoundSourceValue) {
+        if key == SoundSourceKey::InitOscillator {
+            let init_vals = value.get_oscillator_init();
+            let inc_numerator: u32 = init_vals.frequency * WAVE_TABLE_SIZE_U32;
+            let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
+            let new_pulse_width_cutoff: u32 =
+                WAVE_TABLE_SIZE_U32 * (init_vals.pulse_width as u32) / 100;
+            let volume = SoundScale::new_percent(init_vals.volume);
+
+            self.table_idx_inc = inc_numerator / inc_denominator;
+            self.table_remainder_inc = inc_numerator % inc_denominator;
+            self.oscillator_type = init_vals.oscillator_type;
+            self.pulse_width_cutoff = new_pulse_width_cutoff;
+            self.volume = volume;
+        }
         if key == SoundSourceKey::Frequency {
             let inc_numerator: u32 = value.get_u32() * WAVE_TABLE_SIZE_U32;
             let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
@@ -271,7 +267,12 @@ mod tests {
         set_oscillator_properties(
             &mut all_pools,
             &oscillator_id,
-            &SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 2600, 50, 100),
+            &SoundSourceOscillatorInit::new(
+                OscillatorType::PulseWidth,
+                2600 * FREQUENCY_MULTIPLIER,
+                50,
+                100,
+            ),
         );
         let mut new_msgs = SoundSourceMsgs::default();
         let (transitions, area) = sample_wave(&mut all_pools, &oscillator_id, &mut new_msgs);
@@ -289,7 +290,12 @@ mod tests {
         set_oscillator_properties(
             &mut all_pools,
             &oscillator_id,
-            &SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 2600, 50, 50),
+            &SoundSourceOscillatorInit::new(
+                OscillatorType::PulseWidth,
+                2600 * FREQUENCY_MULTIPLIER,
+                50,
+                50,
+            ),
         );
         let mut new_msgs = SoundSourceMsgs::default();
         let (transitions, area) = sample_wave(&mut all_pools, &oscillator_id, &mut new_msgs);
@@ -306,7 +312,12 @@ mod tests {
         set_oscillator_properties(
             &mut all_pools,
             &oscillator_id,
-            &SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 2600, 25, 100),
+            &SoundSourceOscillatorInit::new(
+                OscillatorType::PulseWidth,
+                2600 * FREQUENCY_MULTIPLIER,
+                25,
+                100,
+            ),
         );
         let mut new_msgs = SoundSourceMsgs::default();
         let (transitions, area) = sample_wave(&mut all_pools, &oscillator_id, &mut new_msgs);
@@ -323,12 +334,17 @@ mod tests {
         set_oscillator_properties(
             &mut all_pools,
             &oscillator_id,
-            &SoundSourceOscillatorInit::new(OscillatorType::Triangle, 2600, 0, 100),
+            &SoundSourceOscillatorInit::new(
+                OscillatorType::Triangle,
+                2600 * FREQUENCY_MULTIPLIER,
+                0,
+                100,
+            ),
         );
 
         let mut new_msgs = SoundSourceMsgs::default();
         let (transitions, area) = sample_wave(&mut all_pools, &oscillator_id, &mut new_msgs);
-        assert_eq!(transitions, 2600 * 2);
+        assert_eq!(2600 * 2, transitions);
         // Triangles are half the area squares are.
         assert_eq!(12000 * 0x4000 + 12000 * 0x3fff, area);
         all_pools.free(oscillator_id);
@@ -341,7 +357,12 @@ mod tests {
         set_oscillator_properties(
             &mut all_pools,
             &oscillator_id,
-            &SoundSourceOscillatorInit::new(OscillatorType::Triangle, 2600, 0, 50),
+            &SoundSourceOscillatorInit::new(
+                OscillatorType::Triangle,
+                2600 * FREQUENCY_MULTIPLIER,
+                0,
+                50,
+            ),
         );
 
         let mut new_msgs = SoundSourceMsgs::default();
