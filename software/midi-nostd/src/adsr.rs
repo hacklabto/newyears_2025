@@ -22,7 +22,7 @@ pub enum AdsrState {
 /// ADSR envelope
 ///
 #[allow(unused)]
-struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
+struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
     state: AdsrState,              // CurrentState
     attack_max_volume: SoundScale, // Reduction in volume after attack finishes
     sustain_volume: SoundScale,    // Reduction in volume during sustain phase
@@ -34,7 +34,7 @@ struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
 }
 
 #[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T, PLAY_FREQUENCY> {
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericAdsr<T, PLAY_FREQUENCY> {
     fn default() -> Self {
         let state = AdsrState::Ended;
         let attack_max_volume = SoundScale::default();
@@ -58,11 +58,11 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T,
 }
 
 #[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {}
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericAdsr<T, PLAY_FREQUENCY> {}
 
 #[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
-    for GenericWaveSource<T, PLAY_FREQUENCY>
+    for GenericAdsr<T, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, _all_sources: &SoundSources<T, PLAY_FREQUENCY>) -> T {
         assert!(self.state != AdsrState::Ended);

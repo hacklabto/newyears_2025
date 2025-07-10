@@ -28,7 +28,7 @@ const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
 /// Wave source generic for a sample type and frequency
 ///
 #[allow(unused)]
-struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
+pub struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
     volume: SoundScale,
     wave_type: WaveType,
     pulse_width_cutoff: u32,
@@ -146,7 +146,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
 }
 
 #[allow(unused)]
-fn set_wave_properties(
+pub fn set_wave_properties(
     all_pools: &mut SoundSources<SoundSampleI32, 24000>,
     wave_id: &SoundSourceId,
     wave_type: WaveType,
@@ -229,7 +229,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
 #[allow(unused)]
 type WaveSource = GenericWaveSource<SoundSampleI32, 24000>;
 #[allow(unused)]
-type WavePool = GenericSoundPool<
+pub type WavePool = GenericSoundPool<
     SoundSampleI32,
     24000,
     WaveSource,
