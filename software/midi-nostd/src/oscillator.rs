@@ -189,14 +189,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             self.volume = volume;
         }
     }
-
-    fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {
-        None
-    }
-
-    fn child_sound_source(self: &Self) -> Option<SoundSourceId> {
-        None
-    }
 }
 
 type Oscillator = GenericOscillator<SoundSampleI32, 24000>;

@@ -1,7 +1,6 @@
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
-use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceValue;
@@ -29,7 +28,6 @@ struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
     a: u32,                        // timed, units are 1/PLAY_FREQUENCY
     d: u32,                        // timed, units are 1/PLAY_FREQUENCY
     r: u32,                        // timed, units are 1/PLAY_FREQUENCY
-    child_sound: SoundSourceId,    // Source of the sound we're eveloping
     _marker: PhantomData<T>,
 }
 
@@ -42,7 +40,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericAdsr<T, PLAY_
         let d = PLAY_FREQUENCY / 3;
         let sustain_volume = SoundScale::default();
         let r = PLAY_FREQUENCY / 5;
-        let child_sound = SoundSourceId::default();
 
         Self {
             state,
@@ -51,7 +48,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericAdsr<T, PLAY_
             d,
             sustain_volume,
             r,
-            child_sound,
             _marker: PhantomData {},
         }
     }
@@ -76,12 +72,4 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {}
 
     fn set_attribute(&mut self, key: SoundSourceKey, value: SoundSourceValue) {}
-
-    fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {
-        None
-    }
-
-    fn child_sound_source(self: &Self) -> Option<SoundSourceId> {
-        Some(self.child_sound)
-    }
 }
