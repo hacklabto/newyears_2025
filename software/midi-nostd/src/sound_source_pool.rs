@@ -7,7 +7,6 @@ use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
 
-#[allow(unused)]
 pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: FreeList {
     // Functions that need to be filled in by implementor
     //

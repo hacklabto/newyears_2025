@@ -2,13 +2,11 @@
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(usize)]
-#[allow(unused)]
 pub enum SoundSourceType {
     WaveGenerator = 0,
     AdsrEnvelope = 1,
 }
 
-#[allow(unused)]
 impl SoundSourceType {
     pub fn from_usize(usize_value: usize) -> Self {
         let optional_enum_value: Option<Self> = match usize_value {
@@ -75,21 +73,18 @@ mod tests {
     }
 }
 
-#[allow(unused)]
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct SoundSourceRealId {
     pub source_type: SoundSourceType,
     pub id: usize,
 }
 
-#[allow(unused)]
 impl SoundSourceRealId {
     pub fn new(source_type: SoundSourceType, id: usize) -> Self {
         Self { source_type, id }
     }
 }
 
-#[allow(unused)]
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum SoundSourceId {
     Uninitialized,
@@ -97,7 +92,6 @@ pub enum SoundSourceId {
     Real { real: SoundSourceRealId },
 }
 
-#[allow(unused)]
 impl Default for SoundSourceId {
     fn default() -> Self {
         return SoundSourceId::Uninitialized;

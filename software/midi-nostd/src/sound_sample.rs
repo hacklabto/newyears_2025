@@ -3,14 +3,12 @@ use core::ops::Add;
 use core::ops::Div;
 use core::ops::Sub;
 
-#[allow(unused)]
 #[derive(Clone, Copy, Default)]
 pub struct SoundScale {
     // 1.8 fixed point value.  Valid values are 0 to 256
     pub scale_by_int: i32,
 }
 
-#[allow(unused)]
 impl SoundScale {
     pub fn new(scale_by: u16) -> Self {
         let scale_by_int: i32 = scale_by.into();
@@ -40,7 +38,6 @@ impl SoundScale {
 /// easy choice to represent this information... except a lot of micro-controllers don't
 /// have hardware floating point support.
 ///
-#[allow(unused)]
 pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub + Default {
     /// Maximum playable sound sample
     ///

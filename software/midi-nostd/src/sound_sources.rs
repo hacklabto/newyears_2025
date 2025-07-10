@@ -6,15 +6,12 @@ use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 
-#[allow(unused)]
 const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
 
-#[allow(unused)]
 pub struct SoundSources<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     pools: [Option<&'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>>; MAX_ENUM_MAP],
 }
 
-#[allow(unused)]
 impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> SoundSources<'a, SAMPLE, PLAY_FREQUENCY> {
     pub fn create_with_single_pool_for_test(
         test_pool: &'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>,

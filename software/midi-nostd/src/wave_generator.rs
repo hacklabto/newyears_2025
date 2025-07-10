@@ -27,7 +27,6 @@ const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
 ///
 /// Wave source generic for a sample type and frequency
 ///
-#[allow(unused)]
 pub struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
     volume: SoundScale,
     wave_type: WaveType,
@@ -42,7 +41,6 @@ pub struct GenericWaveSource<T: SoundSample, const PLAY_FREQUENCY: u32> {
 //    fn drop(&mut self) {}
 //}
 
-#[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T, PLAY_FREQUENCY> {
     fn default() -> Self {
         let volume = SoundScale::new_percent(100); // full volume
@@ -51,7 +49,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T,
         let table_idx_inc: u32 = 0;
         let table_remainder_inc: u32 = 0;
         let table_idx: u32 = 0;
-        let inc_denominator: u32 = (FREQUENCY_MULTIPLIER * PLAY_FREQUENCY);
+        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
         let table_remainder: u32 = inc_denominator / 2;
         Self {
             volume,
@@ -66,14 +64,13 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericWaveSource<T,
     }
 }
 
-#[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUENCY> {
     pub fn init(self: &mut Self, wave_type: WaveType, arg_sound_frequency: u32) {
         let volume = SoundScale::new_percent(100); // full volume
         let pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 / 2; // 50% duty cycle by default
                                                                // I want (arg_sound_frequency * WAVE_TABLE_SIZE) / (FREQUNCY_MULTIPLIER * PLAY_FREQUENCY);
-        let inc_numerator: u32 = arg_sound_frequency * (WAVE_TABLE_SIZE as u32);
-        let inc_denominator: u32 = (FREQUENCY_MULTIPLIER * PLAY_FREQUENCY);
+        let inc_numerator: u32 = arg_sound_frequency * WAVE_TABLE_SIZE_U32;
+        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
         let table_idx_inc: u32 = inc_numerator / inc_denominator;
         let table_remainder_inc: u32 = inc_numerator % inc_denominator;
         let table_idx: u32 = 0;
@@ -116,7 +113,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
         //
         self.table_idx += self.table_idx_inc;
         self.table_remainder += self.table_remainder_inc;
-        let inc_denominator: u32 = (FREQUENCY_MULTIPLIER * PLAY_FREQUENCY);
+        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
 
         // If the fractional value represents a number greater than 1, increment
         // the table index and decease the fractional value so it's [0..1).
@@ -125,7 +122,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
             self.table_remainder -= inc_denominator;
             self.table_idx += 1;
         }
-        self.table_idx = self.table_idx & ((WAVE_TABLE_SIZE as u32) - 1);
+        self.table_idx = self.table_idx & (WAVE_TABLE_SIZE_U32 - 1);
     }
 
     fn get_next_table(&self, table: &[u16; WAVE_TABLE_SIZE]) -> T {
@@ -145,7 +142,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericWaveSource<T, PLAY_FREQUE
     }
 }
 
-#[allow(unused)]
 pub fn set_wave_properties(
     all_pools: &mut SoundSources<SoundSampleI32, 24000>,
     wave_id: &SoundSourceId,
@@ -158,7 +154,7 @@ pub fn set_wave_properties(
     msgs.append(SoundSourceMsg::new(
         wave_id.clone(),
         SoundSourceKey::Frequency,
-        SoundSourceValue::new_u32(frequency * FREQUENCY_MULTIPLIER ),
+        SoundSourceValue::new_u32(frequency * FREQUENCY_MULTIPLIER),
     ));
     msgs.append(SoundSourceMsg::new(
         wave_id.clone(),
@@ -178,7 +174,6 @@ pub fn set_wave_properties(
     all_pools.process_and_clear_msgs(&mut msgs);
 }
 
-#[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericWaveSource<T, PLAY_FREQUENCY>
 {
@@ -194,14 +189,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         true
     }
 
-    fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {
+    fn update(&mut self, _new_msgs: &mut SoundSourceMsgs) {
         self.update_table_index();
     }
 
     fn set_attribute(&mut self, key: SoundSourceKey, value: SoundSourceValue) {
         if key == SoundSourceKey::Frequency {
-            let inc_numerator: u32 = value.get_u32() * (WAVE_TABLE_SIZE as u32);
-            let inc_denominator: u32 = (FREQUENCY_MULTIPLIER * PLAY_FREQUENCY);
+            let inc_numerator: u32 = value.get_u32() * WAVE_TABLE_SIZE_U32;
+            let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
             self.table_idx_inc = inc_numerator / inc_denominator;
             self.table_remainder_inc = inc_numerator % inc_denominator;
         }
@@ -209,7 +204,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             self.wave_type = value.get_wave_type();
         }
         if key == SoundSourceKey::PulseWidth {
-            let new_pulse_width_cutoff: u32 = ((WAVE_TABLE_SIZE as u32) * (value.get_u8() as u32)) / 100;
+            let new_pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 * (value.get_u8() as u32) / 100;
             self.pulse_width_cutoff = new_pulse_width_cutoff;
         }
         if key == SoundSourceKey::Volume {
@@ -226,9 +221,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     }
 }
 
-#[allow(unused)]
 type WaveSource = GenericWaveSource<SoundSampleI32, 24000>;
-#[allow(unused)]
 pub type WavePool = GenericSoundPool<
     SoundSampleI32,
     24000,

@@ -18,7 +18,6 @@ use crate::sound_sources::SoundSources;
 /// a note might be created by  taking a waveform at the note's frequency and modifying
 /// it using an ADSR amplitude envelope.
 ///
-#[allow(unused)]
 pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     /// Returns false if the sound source is done playing
     ///

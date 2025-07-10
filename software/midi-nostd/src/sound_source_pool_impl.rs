@@ -13,7 +13,6 @@ use crate::sound_sources::SoundSources;
 const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
 
 //_SAMPLE: PhantomData<SoundSample>,
-#[allow(unused)]
 pub struct GenericSoundPool<
     SAMPLE: SoundSample,
     const PLAY_FREQUENCY: u32,
@@ -26,7 +25,6 @@ pub struct GenericSoundPool<
     fake: SAMPLE, // TODO, spiral on phantom data
 }
 
-#[allow(unused)]
 impl<
         SAMPLE: SoundSample,
         const PLAY_FREQUENCY: u32,
@@ -47,7 +45,6 @@ impl<
     }
 }
 
-#[allow(unused)]
 impl<
         SAMPLE: SoundSample,
         const PLAY_FREQUENCY: u32,

@@ -2,7 +2,6 @@ use crate::sound_source_id::SoundSourceId;
 
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[allow(unused)]
 pub enum SoundSourceKey {
     WaveType,
     Frequency,
@@ -13,7 +12,6 @@ pub enum SoundSourceKey {
 /// Different Wave Types
 ///
 #[derive(Clone, Copy, PartialEq, Debug)]
-#[allow(unused)]
 #[repr(usize)]
 pub enum WaveType {
     Triangle = 0,
@@ -22,7 +20,6 @@ pub enum WaveType {
     PulseWidth = 3,
 }
 
-#[allow(unused)]
 impl WaveType {
     // TODO, delete.
     pub fn from_usize(usize_value: usize) -> Self {
@@ -40,7 +37,6 @@ impl WaveType {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-#[allow(unused)]
 pub enum SoundSourceValue {
     Uninitialized,
     WaveType { wave_type: WaveType },
@@ -48,7 +44,6 @@ pub enum SoundSourceValue {
     U8Type { num: u8 },
 }
 
-#[allow(unused)]
 impl SoundSourceValue {
     pub fn new_u32(num: u32) -> Self {
         SoundSourceValue::U32Type { num }
@@ -61,13 +56,13 @@ impl SoundSourceValue {
     }
     pub fn get_u32(self: &Self) -> u32 {
         match self {
-            SoundSourceValue::U32Type{ num } => *num,
+            SoundSourceValue::U32Type { num } => *num,
             _ => panic!("This isn't a u32"),
         }
     }
     pub fn get_u8(self: &Self) -> u8 {
         match self {
-            SoundSourceValue::U8Type{ num } => *num,
+            SoundSourceValue::U8Type { num } => *num,
             _ => panic!("This isn't a u8"),
         }
     }
@@ -79,7 +74,6 @@ impl SoundSourceValue {
     }
 }
 
-#[allow(unused)]
 impl Default for SoundSourceValue {
     fn default() -> Self {
         SoundSourceValue::Uninitialized
@@ -87,14 +81,12 @@ impl Default for SoundSourceValue {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-#[allow(unused)]
 pub struct SoundSourceMsg {
     pub dest_id: SoundSourceId,
     pub attribute: SoundSourceKey,
     pub value: SoundSourceValue,
 }
 
-#[allow(unused)]
 impl Default for SoundSourceMsg {
     fn default() -> Self {
         let dest_id = SoundSourceId::default();
@@ -108,7 +100,6 @@ impl Default for SoundSourceMsg {
     }
 }
 
-#[allow(unused)]
 impl SoundSourceMsg {
     pub fn new(dest_id: SoundSourceId, attribute: SoundSourceKey, value: SoundSourceValue) -> Self {
         return Self {
@@ -119,13 +110,11 @@ impl SoundSourceMsg {
     }
 }
 
-#[allow(unused)]
 pub struct SoundSourceMsgPool<const N: usize> {
     messages: [SoundSourceMsg; N],
     last: usize,
 }
 
-#[allow(unused)]
 impl<const N: usize> Default for SoundSourceMsgPool<N> {
     fn default() -> Self {
         let messages: [SoundSourceMsg; N] = core::array::from_fn(|_i| SoundSourceMsg::default());
@@ -134,7 +123,6 @@ impl<const N: usize> Default for SoundSourceMsgPool<N> {
     }
 }
 
-#[allow(unused)]
 impl<const N: usize> SoundSourceMsgPool<N> {
     pub fn append(self: &mut Self, msg: SoundSourceMsg) {
         assert!(self.last != N); // mostly for clarity, rust will check anyway
@@ -149,7 +137,6 @@ impl<const N: usize> SoundSourceMsgPool<N> {
     }
 }
 
-#[allow(unused)]
 pub type SoundSourceMsgs = SoundSourceMsgPool<100>;
 
 #[cfg(test)]

@@ -1,18 +1,15 @@
-#[allow(unused)]
 pub trait FreeList {
     fn alloc(self: &mut Self) -> usize;
     fn free(self: &mut Self, item_to_free: usize);
     fn is_active(self: &Self, idx: usize) -> bool;
 }
 
-#[allow(unused)]
 pub struct FreeListImpl<const N: usize> {
     active_list: [bool; N],
     free_list: [Option<usize>; N],
     free_list_head: Option<usize>,
 }
 
-#[allow(unused)]
 impl<const N: usize> FreeList for FreeListImpl<N> {
     fn alloc(self: &mut Self) -> usize {
         let allocated_item = self
@@ -34,7 +31,6 @@ impl<const N: usize> FreeList for FreeListImpl<N> {
     }
 }
 
-#[allow(unused)]
 impl<const N: usize> Default for FreeListImpl<N> {
     fn default() -> Self {
         let active_list: [bool; N] = core::array::from_fn(|_idx| false);
