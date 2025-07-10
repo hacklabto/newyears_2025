@@ -4,6 +4,8 @@
 //! Bencina.
 
 extern crate portaudio;
+use midi_nostd::sound_sources::SoundSources;
+use midi_nostd::sound_sample::SoundSample;
 
 use portaudio as pa;
 
@@ -28,11 +30,7 @@ fn run() -> Result<(), pa::Error> {
         SAMPLE_RATE, FRAMES_PER_BUFFER
     );
 
-    let mut wave_pool = midi_nostd::wave_generator::WavePool::new();
-    let mut all_pools = midi_nostd::sound_sources::SoundSources::<midi_nostd::sound_sample::SoundSampleI32, 24000>::create_with_single_pool_for_test(
-        &mut wave_pool,
-        midi_nostd::sound_source_id::SoundSourceType::WaveGenerator,
-    );
+    let mut all_pools = midi_nostd::sound_sources_impl::SoundSourcesImpl::<midi_nostd::sound_sample::SoundSampleI32, 24000,32>::new();
     let wave_id = all_pools.alloc(midi_nostd::sound_source_id::SoundSourceType::WaveGenerator);
     midi_nostd::wave_generator::set_wave_properties(
         &mut all_pools,
@@ -40,9 +38,8 @@ fn run() -> Result<(), pa::Error> {
         midi_nostd::sound_source_msgs::WaveType::Sine,
         2600,
         25,
-        100,
+        50,
     );
-    let _grouping = ( all_pools, wave_pool );
 
     // Initialise sinusoidal wavetable.
     let mut left_phase = 0;
@@ -60,12 +57,13 @@ fn run() -> Result<(), pa::Error> {
     // dynamic resource allocation or IO.
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         let mut idx = 0;
-        let mut _new_msgs = midi_nostd::sound_source_msgs::SoundSourceMsgs::default();
+        let mut new_msgs = midi_nostd::sound_source_msgs::SoundSourceMsgs::default();
         for _ in 0..frames {
-            //all_pools.update(&mut new_msgs);
-            //let current = groupingall_pools.get_next(&wave_id);
-            buffer[idx] = 0; //sine[left_phase];
-            buffer[idx + 1] = 0; // = sine[right_phase];
+            all_pools.update(&mut new_msgs);
+            let current = all_pools.get_next(&wave_id);
+            let converted: f32 = (((current.to_u16() as i32) - 32768 ) as f32 ) / 32768.0;
+            buffer[idx] = converted; //sine[left_phase];
+            buffer[idx + 1] = converted; // = sine[right_phase];
             left_phase += 1;
             if left_phase >= TABLE_SIZE {
                 left_phase -= TABLE_SIZE;
