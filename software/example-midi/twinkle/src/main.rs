@@ -6,6 +6,7 @@
 extern crate portaudio;
 use midi_nostd::sound_sources::SoundSources;
 use midi_nostd::sound_sample::SoundSample;
+use midly::Smf;
 
 use portaudio as pa;
 
@@ -15,7 +16,20 @@ const SAMPLE_RATE: f64 = 24_000.0;
 const FRAMES_PER_BUFFER: u32 = 64;
 const TABLE_SIZE: usize = 200;
 
+fn midly_exploration() {
+    let smf = Smf::parse(include_bytes!("../assets/MIDI_sample.mid")).unwrap();
+
+    for (i, track) in smf.tracks.iter().enumerate() {
+        println!("track {} has {} events", i, track.len());
+        for event in track {
+            println!("Event Detla {} {:?}", event.delta, event.kind );
+        }
+    }
+}
+
 fn main() {
+    midly_exploration();
+
     match run() {
         Ok(_) => {}
         e => {
