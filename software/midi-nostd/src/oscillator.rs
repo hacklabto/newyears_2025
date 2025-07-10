@@ -188,22 +188,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             self.pulse_width_cutoff = new_pulse_width_cutoff;
             self.volume = volume;
         }
-        if key == SoundSourceKey::Frequency {
-            let inc_numerator: u32 = value.get_u32() * WAVE_TABLE_SIZE_U32;
-            let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
-            self.table_idx_inc = inc_numerator / inc_denominator;
-            self.table_remainder_inc = inc_numerator % inc_denominator;
-        }
-        if key == SoundSourceKey::OscillatorType {
-            self.oscillator_type = value.get_oscillator_type();
-        }
-        if key == SoundSourceKey::PulseWidth {
-            let new_pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 * (value.get_u8() as u32) / 100;
-            self.pulse_width_cutoff = new_pulse_width_cutoff;
-        }
-        if key == SoundSourceKey::Volume {
-            self.volume = SoundScale::new_percent(value.get_u8());
-        }
     }
 
     fn peer_sound_source(self: &Self) -> Option<SoundSourceId> {

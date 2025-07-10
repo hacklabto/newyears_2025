@@ -3,10 +3,6 @@ use crate::sound_source_id::SoundSourceId;
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SoundSourceKey {
-    OscillatorType,
-    Frequency,
-    Volume,
-    PulseWidth,
     InitOscillator,
 }
 
@@ -64,9 +60,6 @@ impl SoundSourceOscillatorInit {
 #[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
-    OscillatorType {
-        oscillator_type: OscillatorType,
-    },
     U32Type {
         num: u32,
     },
@@ -85,9 +78,6 @@ impl SoundSourceValue {
     pub fn new_u8(num: u8) -> Self {
         SoundSourceValue::U8Type { num }
     }
-    pub fn new_oscillator_type(oscillator_type: OscillatorType) -> Self {
-        SoundSourceValue::OscillatorType { oscillator_type }
-    }
     pub fn new_oscillator_init(init_values: SoundSourceOscillatorInit) -> Self {
         SoundSourceValue::OscillatorInit { init_values }
     }
@@ -102,12 +92,6 @@ impl SoundSourceValue {
         match self {
             SoundSourceValue::U8Type { num } => *num,
             _ => panic!("This isn't a u8"),
-        }
-    }
-    pub fn get_oscillator_type(self: &Self) -> OscillatorType {
-        match self {
-            SoundSourceValue::OscillatorType { oscillator_type } => *oscillator_type,
-            _ => panic!("This isn't a wave type"),
         }
     }
     pub fn get_oscillator_init(self: &Self) -> &SoundSourceOscillatorInit {
@@ -134,7 +118,7 @@ pub struct SoundSourceMsg {
 impl Default for SoundSourceMsg {
     fn default() -> Self {
         let dest_id = SoundSourceId::default();
-        let attribute = SoundSourceKey::Frequency;
+        let attribute = SoundSourceKey::InitOscillator;
         let value = SoundSourceValue::default();
         Self {
             dest_id,
@@ -199,12 +183,12 @@ mod tests {
 
         let m0 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::Oscillator, 5),
-            SoundSourceKey::Frequency,
+            SoundSourceKey::InitOscillator,
             SoundSourceValue::new_u32(2600),
         );
         let m1 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::AdsrEnvelope, 3),
-            SoundSourceKey::Volume,
+            SoundSourceKey::InitOscillator,
             SoundSourceValue::new_u32(100),
         );
         messages.append(m0.clone());
