@@ -6,6 +6,7 @@ use crate::sound_source_id::SoundSourceId;
 pub enum SoundSourceKey {
     InitOscillator,
     InitAdsr,
+    ReleaseAdsr,
     SoundSourceCreated,
 }
 

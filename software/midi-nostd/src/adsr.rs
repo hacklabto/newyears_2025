@@ -94,10 +94,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
                 sustain_contribution.scale(self.sustain_volume);
                 sustain_contribution
             }
-            AdsrState::Ended => {
-                panic!("Agggggg!")
+            AdsrState::Release => {
+                let mut release_value = T::new(
+                    ((self.r - self.time_since_state_start) * 0x7fff / self.r + 0x8000) as u16,
+                );
+                release_value.scale(self.sustain_volume);
+                release_value
             }
-            AdsrState::Sustain | AdsrState::Release => todo!(),
+            AdsrState::Ended => T::new(0x8000),
         };
 
         scale
@@ -127,7 +131,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             }
             AdsrState::Sustain => {}
             AdsrState::Release => {
-                if self.time_since_state_start >= self.r {
+                if self.time_since_state_start > self.r {
                     self.time_since_state_start = 0;
                     self.state = AdsrState::Ended;
                     rerun_update = true;
@@ -147,6 +151,12 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             self.d = init_vals.d;
             self.sustain_volume = init_vals.sustain_volume;
             self.r = init_vals.r;
+            self.time_since_state_start = 0;
+        }
+        if key == SoundSourceKey::ReleaseAdsr {
+            // TODO, What if we aren't in sustain?  Probably I should take
+            // the current volume and run the release on that.
+            self.state = AdsrState::Release;
             self.time_since_state_start = 0;
         }
     }
@@ -216,6 +226,30 @@ mod tests {
         assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
         all_pools.update(&mut new_msgs);
         assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
+
+        let mut msgs = SoundSourceMsgs::default();
+        msgs.append(SoundSourceMsg::new(
+            adsr_id.clone(),
+            SoundSourceKey::ReleaseAdsr,
+            SoundSourceValue::default(),
+        ));
+        all_pools.process_and_clear_msgs(&mut msgs);
+
+        // Release state, 4 ticks to get to quiet from Sustain Volume
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0xafff, all_pools.get_next(&adsr_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0x9fff, all_pools.get_next(&adsr_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0x8fff, all_pools.get_next(&adsr_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0x8000, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(true, all_pools.has_next(&adsr_id));
+
+        // End state.  Report silence and no more data
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0x8000, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(false, all_pools.has_next(&adsr_id));
 
         all_pools.free(adsr_id);
     }
