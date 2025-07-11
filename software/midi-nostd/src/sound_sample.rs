@@ -3,7 +3,7 @@ use core::ops::Add;
 use core::ops::Div;
 use core::ops::Sub;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, PartialEq, Debug)]
 pub struct SoundScale {
     // 1.8 fixed point value.  Valid values are 0 to 256
     pub scale_by_int: i32,

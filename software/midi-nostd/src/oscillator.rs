@@ -142,14 +142,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericOscillator<T, PLAY_FREQUE
 
 pub fn set_oscillator_properties(
     all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
-    oscillator_id: &SoundSourceId,
-    init_values: &SoundSourceOscillatorInit,
+    oscillator_id: SoundSourceId,
+    init_values: SoundSourceOscillatorInit,
 ) {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
         oscillator_id.clone(),
         SoundSourceKey::InitOscillator,
-        SoundSourceValue::new_oscillator_init(init_values.clone()),
+        SoundSourceValue::new_oscillator_init(init_values),
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
 }
@@ -242,8 +242,8 @@ mod tests {
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,
-            &oscillator_id,
-            &SoundSourceOscillatorInit::new(
+            oscillator_id,
+            SoundSourceOscillatorInit::new(
                 OscillatorType::PulseWidth,
                 2600 * FREQUENCY_MULTIPLIER,
                 50,
@@ -265,8 +265,8 @@ mod tests {
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,
-            &oscillator_id,
-            &SoundSourceOscillatorInit::new(
+            oscillator_id,
+            SoundSourceOscillatorInit::new(
                 OscillatorType::PulseWidth,
                 2600 * FREQUENCY_MULTIPLIER,
                 50,
@@ -287,8 +287,8 @@ mod tests {
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,
-            &oscillator_id,
-            &SoundSourceOscillatorInit::new(
+            oscillator_id,
+            SoundSourceOscillatorInit::new(
                 OscillatorType::PulseWidth,
                 2600 * FREQUENCY_MULTIPLIER,
                 25,
@@ -309,8 +309,8 @@ mod tests {
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,
-            &oscillator_id,
-            &SoundSourceOscillatorInit::new(
+            oscillator_id,
+            SoundSourceOscillatorInit::new(
                 OscillatorType::Triangle,
                 2600 * FREQUENCY_MULTIPLIER,
                 0,
@@ -332,8 +332,8 @@ mod tests {
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,
-            &oscillator_id,
-            &SoundSourceOscillatorInit::new(
+            oscillator_id,
+            SoundSourceOscillatorInit::new(
                 OscillatorType::Triangle,
                 2600 * FREQUENCY_MULTIPLIER,
                 0,

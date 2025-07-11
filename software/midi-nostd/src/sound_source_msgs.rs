@@ -1,9 +1,11 @@
+use crate::sound_sample::SoundScale;
 use crate::sound_source_id::SoundSourceId;
 
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SoundSourceKey {
     InitOscillator,
+    InitAdsr,
     SoundSourceCreated,
 }
 
@@ -59,6 +61,33 @@ impl SoundSourceOscillatorInit {
 }
 
 #[derive(Clone, PartialEq, Debug)]
+pub struct SoundSourceAdsrInit {
+    pub attack_max_volume: SoundScale,
+    pub sustain_volume: SoundScale,
+    pub a: u32,
+    pub d: u32,
+    pub r: u32,
+}
+
+impl SoundSourceAdsrInit {
+    pub fn new(
+        attack_max_volume: SoundScale,
+        sustain_volume: SoundScale,
+        a: u32,
+        d: u32,
+        r: u32,
+    ) -> Self {
+        return Self {
+            attack_max_volume,
+            sustain_volume,
+            a,
+            d,
+            r,
+        };
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
     U32Type {
@@ -69,6 +98,9 @@ pub enum SoundSourceValue {
     },
     OscillatorInit {
         init_values: SoundSourceOscillatorInit,
+    },
+    AdsrInit {
+        init_values: SoundSourceAdsrInit,
     },
     CreatedId {
         created_id: SoundSourceId,
@@ -84,6 +116,9 @@ impl SoundSourceValue {
     }
     pub fn new_oscillator_init(init_values: SoundSourceOscillatorInit) -> Self {
         SoundSourceValue::OscillatorInit { init_values }
+    }
+    pub fn new_adsr_init(init_values: SoundSourceAdsrInit) -> Self {
+        SoundSourceValue::AdsrInit { init_values }
     }
     pub fn new_created_id(created_id: SoundSourceId) -> Self {
         SoundSourceValue::CreatedId { created_id }
@@ -104,6 +139,12 @@ impl SoundSourceValue {
     pub fn get_oscillator_init(self: &Self) -> &SoundSourceOscillatorInit {
         match self {
             SoundSourceValue::OscillatorInit { init_values } => init_values,
+            _ => panic!("This isn't a wave type"),
+        }
+    }
+    pub fn get_adsr_init(self: &Self) -> &SoundSourceAdsrInit {
+        match self {
+            SoundSourceValue::AdsrInit { init_values } => init_values,
             _ => panic!("This isn't a wave type"),
         }
     }

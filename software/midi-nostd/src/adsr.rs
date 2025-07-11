@@ -1,7 +1,11 @@
 use crate::sound_sample::SoundSample;
+use crate::sound_sample::SoundSampleI32;
 use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
+use crate::sound_source_id::SoundSourceId;
+use crate::sound_source_msgs::SoundSourceAdsrInit;
 use crate::sound_source_msgs::SoundSourceKey;
+use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
@@ -115,4 +119,46 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     }
 
     fn set_attribute(&mut self, key: SoundSourceKey, value: SoundSourceValue) {}
+}
+
+pub fn set_adsr_properties(
+    all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
+    adsr_id: SoundSourceId,
+    init_values: SoundSourceAdsrInit,
+) {
+    let mut msgs = SoundSourceMsgs::default();
+    msgs.append(SoundSourceMsg::new(
+        adsr_id,
+        SoundSourceKey::InitAdsr,
+        SoundSourceValue::new_adsr_init(init_values),
+    ));
+    all_pools.process_and_clear_msgs(&mut msgs);
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::adsr::*;
+    use crate::sound_source_id::SoundSourceType;
+    use crate::sound_sources::SoundSources;
+    use crate::sound_sources_impl::SoundSourcesImpl;
+
+    #[test]
+    fn basic_adsr_test() {
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
+        let adsr_id = all_pools.alloc(SoundSourceType::Adsr);
+
+        set_adsr_properties(
+            &mut all_pools,
+            adsr_id,
+            SoundSourceAdsrInit::new(
+                SoundScale::new_percent(100),
+                SoundScale::new_percent(50),
+                2,
+                3,
+                4,
+            ),
+        );
+
+        all_pools.free(adsr_id);
+    }
 }

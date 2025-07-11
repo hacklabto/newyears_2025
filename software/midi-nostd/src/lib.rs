@@ -1,6 +1,6 @@
 #![no_std]
 
-mod adsr;
+pub mod adsr;
 mod free_list;
 pub mod midi_notes;
 pub mod oscillator;
