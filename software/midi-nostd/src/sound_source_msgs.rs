@@ -165,6 +165,7 @@ impl Default for SoundSourceValue {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SoundSourceMsg {
+    pub src_id: Option<SoundSourceId>, // No ID == handle at top level.
     pub dest_id: Option<SoundSourceId>, // No ID == handle at top level.
     pub attribute: SoundSourceKey,
     pub value: SoundSourceValue,
@@ -172,10 +173,12 @@ pub struct SoundSourceMsg {
 
 impl Default for SoundSourceMsg {
     fn default() -> Self {
+        let src_id = None;
         let dest_id = None;
         let attribute = SoundSourceKey::InitOscillator;
         let value = SoundSourceValue::default();
         Self {
+            src_id,
             dest_id,
             attribute,
             value,
@@ -186,6 +189,7 @@ impl Default for SoundSourceMsg {
 impl SoundSourceMsg {
     pub fn new(dest_id: SoundSourceId, attribute: SoundSourceKey, value: SoundSourceValue) -> Self {
         return Self {
+            src_id: None,
             dest_id: Some(dest_id),
             attribute,
             value,
