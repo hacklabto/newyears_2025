@@ -1,3 +1,4 @@
+use crate::adsr::GenericAdsr;
 use crate::oscillator::GenericOscillator;
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
@@ -15,46 +16,80 @@ pub struct SoundSourcesImpl<
     SAMPLE: SoundSample,
     const PLAY_FREQUENCY: u32,
     const NUM_OSCILATORS: usize,
+    const NUM_ADSRS: usize,
 > {
-    oscilator_pool: GenericSoundPool<
+    oscillator_pool: GenericSoundPool<
         SAMPLE,
         PLAY_FREQUENCY,
         GenericOscillator<SAMPLE, PLAY_FREQUENCY>,
         NUM_OSCILATORS,
         { SoundSourceType::Oscillator as usize },
     >,
+    adsr_pool: GenericSoundPool<
+        SAMPLE,
+        PLAY_FREQUENCY,
+        GenericAdsr<SAMPLE, PLAY_FREQUENCY>,
+        NUM_ADSRS,
+        { SoundSourceType::Adsr as usize },
+    >,
 }
 
-impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize> Default
-    for SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS>
+impl<
+        SAMPLE: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        const NUM_OSCILATORS: usize,
+        const NUM_ADSRS: usize,
+    > Default for SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS>
 {
     fn default() -> Self {
-        let oscilator_pool = GenericSoundPool::<
+        let oscillator_pool = GenericSoundPool::<
             SAMPLE,
             PLAY_FREQUENCY,
             GenericOscillator<SAMPLE, PLAY_FREQUENCY>,
             NUM_OSCILATORS,
             { SoundSourceType::Oscillator as usize },
         >::new();
-        Self { oscilator_pool }
+        let adsr_pool = GenericSoundPool::<
+            SAMPLE,
+            PLAY_FREQUENCY,
+            GenericAdsr<SAMPLE, PLAY_FREQUENCY>,
+            NUM_ADSRS,
+            { SoundSourceType::Adsr as usize },
+        >::new();
+        Self {
+            oscillator_pool,
+            adsr_pool,
+        }
     }
 }
 
-impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize>
-    SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS>
+impl<
+        SAMPLE: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        const NUM_OSCILATORS: usize,
+        const NUM_ADSRS: usize,
+    > SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS>
 {
     pub fn get_pool<'a>(
         self: &'a mut Self,
-        _sound_source_type: SoundSourceType,
+        sound_source_type: SoundSourceType,
     ) -> &'a mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> {
-        return &mut self.oscilator_pool; // temp, obviously.
+        match sound_source_type {
+            SoundSourceType::Oscillator => &mut self.oscillator_pool,
+            SoundSourceType::Adsr => &mut self.adsr_pool,
+        }
     }
+
     pub fn get_const_pool<'a>(
         self: &'a Self,
-        _sound_source_type: SoundSourceType,
+        sound_source_type: SoundSourceType,
     ) -> &'a dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> {
-        return &self.oscilator_pool; // temp, obviously.
+        match sound_source_type {
+            SoundSourceType::Oscillator => &self.oscillator_pool,
+            SoundSourceType::Adsr => &self.adsr_pool,
+        }
     }
+
     fn set_attribute(
         self: &mut Self,
         id: SoundSourceId,
@@ -67,12 +102,17 @@ impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize
     }
 }
 
-impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_OSCILATORS: usize>
-    SoundSources<'_, SAMPLE, PLAY_FREQUENCY>
-    for SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS>
+impl<
+        SAMPLE: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        const NUM_OSCILATORS: usize,
+        const NUM_ADSRS: usize,
+    > SoundSources<'_, SAMPLE, PLAY_FREQUENCY>
+    for SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS>
 {
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
-        self.oscilator_pool.update(new_msgs);
+        self.oscillator_pool.update(new_msgs);
+        self.adsr_pool.update(new_msgs);
     }
 
     fn alloc(self: &mut Self, sound_source_type: SoundSourceType) -> SoundSourceId {

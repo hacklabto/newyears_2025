@@ -238,7 +238,7 @@ mod tests {
     }
     #[test]
     fn test_pulse_50_from_pool() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_pulse_50_vol_50_from_pool() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,
@@ -283,7 +283,7 @@ mod tests {
 
     #[test]
     fn test_pulse_25_from_pool() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,
@@ -305,7 +305,7 @@ mod tests {
 
     #[test]
     fn test_triangle_from_pool() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,
@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn test_triangle_from_pool_vol_50percent() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,

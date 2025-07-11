@@ -50,6 +50,7 @@ fn run() -> Result<(), pa::Error> {
         midi_nostd::sound_sample::SoundSampleI32,
         24000,
         32,
+        32,
     >::default();
     let wave_id = all_pools.alloc(midi_nostd::sound_source_id::SoundSourceType::Oscillator);
     midi_nostd::oscillator::set_oscillator_properties(

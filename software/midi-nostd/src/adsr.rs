@@ -21,13 +21,14 @@ pub enum AdsrState {
 /// ADSR envelope
 ///
 #[allow(unused)]
-struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
+pub struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
     state: AdsrState,              // CurrentState
     attack_max_volume: SoundScale, // Reduction in volume after attack finishes
     sustain_volume: SoundScale,    // Reduction in volume during sustain phase
     a: u32,                        // timed, units are 1/PLAY_FREQUENCY
     d: u32,                        // timed, units are 1/PLAY_FREQUENCY
     r: u32,                        // timed, units are 1/PLAY_FREQUENCY
+    time_since_state_start: u32,   // units are 1/PLAY_FREQUENCY
     _marker: PhantomData<T>,
 }
 
@@ -40,6 +41,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericAdsr<T, PLAY_
         let d = PLAY_FREQUENCY / 3;
         let sustain_volume = SoundScale::default();
         let r = PLAY_FREQUENCY / 5;
+        let time_since_state_start = 0;
 
         Self {
             state,
@@ -48,6 +50,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericAdsr<T, PLAY_
             d,
             sustain_volume,
             r,
+            time_since_state_start,
             _marker: PhantomData {},
         }
     }
@@ -61,15 +64,55 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericAdsr<T, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
-        assert!(self.state != AdsrState::Ended);
-        T::max()
+        let scale: T = match self.state {
+            AdsrState::Attack => {
+                let mut attack_value =
+                    T::new((self.time_since_state_start * 0xffff / self.a) as u16);
+                attack_value.scale(self.attack_max_volume);
+                attack_value
+            }
+            AdsrState::Ended => {
+                panic!("Agggggg!")
+            }
+            AdsrState::Delay | AdsrState::Sustain | AdsrState::Release => todo!(),
+        };
+
+        scale
     }
 
     fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
         self.state != AdsrState::Ended
     }
 
-    fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {}
+    fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {
+        let mut rerun_update = false;
+        self.time_since_state_start = self.time_since_state_start + 1;
+        match self.state {
+            AdsrState::Attack => {
+                if self.time_since_state_start >= self.a {
+                    self.time_since_state_start = 0;
+                    self.state = AdsrState::Delay;
+                    rerun_update = true;
+                }
+            }
+            AdsrState::Delay => {
+                if self.time_since_state_start >= self.d {
+                    self.time_since_state_start = 0;
+                    self.state = AdsrState::Sustain;
+                    rerun_update = true;
+                }
+            }
+            AdsrState::Sustain => {}
+            AdsrState::Release => {
+                if self.time_since_state_start >= self.r {
+                    self.time_since_state_start = 0;
+                    self.state = AdsrState::Ended;
+                    rerun_update = true;
+                }
+            }
+            AdsrState::Ended => {}
+        }
+    }
 
     fn set_attribute(&mut self, key: SoundSourceKey, value: SoundSourceValue) {}
 }

@@ -4,20 +4,20 @@
 #[repr(usize)]
 pub enum SoundSourceType {
     Oscillator = 0,
-    AdsrEnvelope = 1,
+    Adsr = 1,
 }
 
 impl SoundSourceType {
     pub fn from_usize(usize_value: usize) -> Self {
         let optional_enum_value: Option<Self> = match usize_value {
             0 => Some(SoundSourceType::Oscillator),
-            1 => Some(SoundSourceType::AdsrEnvelope),
+            1 => Some(SoundSourceType::Adsr),
             _ => None,
         };
         optional_enum_value.expect("bad usize to SoundSourceType")
     }
     pub const fn all_variants() -> &'static [SoundSourceType] {
-        &[SoundSourceType::Oscillator, SoundSourceType::AdsrEnvelope]
+        &[SoundSourceType::Oscillator, SoundSourceType::Adsr]
     }
     pub const fn max_variant_id() -> usize {
         let mut max_variant_id: Option<usize> = None;

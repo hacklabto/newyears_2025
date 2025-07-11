@@ -200,7 +200,7 @@ mod tests {
             SoundSourceValue::new_u32(2600),
         );
         let m1 = SoundSourceMsg::new(
-            SoundSourceId::new(SoundSourceType::AdsrEnvelope, 3),
+            SoundSourceId::new(SoundSourceType::Adsr, 3),
             SoundSourceKey::InitOscillator,
             SoundSourceValue::new_u32(100),
         );
