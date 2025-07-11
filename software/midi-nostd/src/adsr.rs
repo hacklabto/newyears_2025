@@ -71,14 +71,33 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         let scale: T = match self.state {
             AdsrState::Attack => {
                 let mut attack_value =
-                    T::new((self.time_since_state_start * 0xffff / self.a) as u16);
+                    T::new((self.time_since_state_start * 0x7fff / self.a + 0x8000) as u16);
                 attack_value.scale(self.attack_max_volume);
                 attack_value
+            }
+            AdsrState::Delay => {
+                let mut attack_contribution = T::new(
+                    ((self.d - self.time_since_state_start) * 0x7fff / self.d + 0x8000) as u16,
+                );
+                let mut sustain_contribution =
+                    T::new(((self.time_since_state_start) * 0x7fff / self.d + 0x8000) as u16);
+                attack_contribution.scale(self.attack_max_volume);
+                sustain_contribution.scale(self.sustain_volume);
+                T::new(
+                    (attack_contribution.to_u16() - 0x8000)
+                        + (sustain_contribution.to_u16() - 0x8000)
+                        + 0x8000,
+                )
+            }
+            AdsrState::Sustain => {
+                let mut sustain_contribution = T::new(0xffff);
+                sustain_contribution.scale(self.sustain_volume);
+                sustain_contribution
             }
             AdsrState::Ended => {
                 panic!("Agggggg!")
             }
-            AdsrState::Delay | AdsrState::Sustain | AdsrState::Release => todo!(),
+            AdsrState::Sustain | AdsrState::Release => todo!(),
         };
 
         scale
@@ -118,7 +137,19 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         }
     }
 
-    fn set_attribute(&mut self, key: SoundSourceKey, value: SoundSourceValue) {}
+    fn set_attribute(&mut self, key: SoundSourceKey, value: SoundSourceValue) {
+        if key == SoundSourceKey::InitAdsr {
+            let init_vals = value.get_adsr_init();
+
+            self.state = AdsrState::Attack;
+            self.attack_max_volume = init_vals.attack_max_volume;
+            self.a = init_vals.a;
+            self.d = init_vals.d;
+            self.sustain_volume = init_vals.sustain_volume;
+            self.r = init_vals.r;
+            self.time_since_state_start = 0;
+        }
+    }
 }
 
 pub fn set_adsr_properties(
@@ -154,10 +185,37 @@ mod tests {
                 SoundScale::new_percent(100),
                 SoundScale::new_percent(50),
                 2,
-                3,
+                4,
                 4,
             ),
         );
+
+        let mut new_msgs = SoundSourceMsgs::default();
+
+        // Attack state, 2 ticks to get to attack volume (max) from 0
+        assert_eq!(0x8000, all_pools.get_next(&adsr_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0xffff, all_pools.get_next(&adsr_id).to_u16());
+
+        // Delay state, 4 ticks to get to Sustain Volume (50%) from attack volume
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0xeffe, all_pools.get_next(&adsr_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0xdffe, all_pools.get_next(&adsr_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0xcffe, all_pools.get_next(&adsr_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
+
+        // Sustain state
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
 
         all_pools.free(adsr_id);
     }
