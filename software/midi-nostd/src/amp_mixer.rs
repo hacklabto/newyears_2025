@@ -46,8 +46,9 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         let sample_0i = (sample_0.to_u16() as i32) - 0x8000;
         let sample_1i = (sample_1.to_u16() as i32) - 0x8000;
 
-        let out_i = ((sample_0i >> 2) * (sample_1i >> 2)) >> 12;
+        let out_i = ((sample_0i >> 1) * (sample_1i >> 1)) >> 14;
         let out: u16 = (out_i + 0x8000) as u16;
+
         T::new(out)
     }
 
@@ -115,7 +116,7 @@ mod tests {
             &mut all_pools,
             SoundSourceOscillatorInit::new(
                 OscillatorType::PulseWidth,
-                2600 * FREQUENCY_MULTIPLIER,
+                260 * FREQUENCY_MULTIPLIER,
                 50,
                 50,
             ),
@@ -139,32 +140,32 @@ mod tests {
 
         let mut new_msgs = SoundSourceMsgs::default();
 
-        // Attack state, 2 ticks to get to attack volume (max) from 0
-        assert_eq!(0x8000, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8ffe, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        // TODO, this seems very wrong.
-        assert_eq!(0xffff, all_pools.get_next(&adsr_id).to_u16());
+        // Should mirror the ADSR test, about about half volume because I set the oscilator to half
+        // volume.
 
-        /*
+        assert_eq!(0x8000 + 0, all_pools.get_next(&amp_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0x8000 + 0xfff, all_pools.get_next(&amp_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0x8000 + 0x1ffe, all_pools.get_next(&amp_id).to_u16());
+
         // Delay state, 4 ticks to get to Sustain Volume (50%) from attack volume
         all_pools.update(&mut new_msgs);
-        assert_eq!(0xeffe, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(0x8000 + 0x1bfe, all_pools.get_next(&amp_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0xdffe, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(0x8000 + 0x17fe, all_pools.get_next(&amp_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0xcffe, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(0x8000 + 0x13fe, all_pools.get_next(&amp_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(0x8000 + 0x0fff, all_pools.get_next(&amp_id).to_u16());
 
         // Sustain state
         all_pools.update(&mut new_msgs);
-        assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(0x8000 + 0x0fff, all_pools.get_next(&amp_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(0x8000 + 0x0fff, all_pools.get_next(&amp_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0xbfff, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(0x8000 + 0x0fff, all_pools.get_next(&amp_id).to_u16());
 
         let mut msgs = SoundSourceMsgs::default();
         msgs.append(SoundSourceMsg::new(
@@ -177,21 +178,22 @@ mod tests {
 
         // Release state, 4 ticks to get to quiet from Sustain Volume
         all_pools.update(&mut new_msgs);
-        assert_eq!(0xafff, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(0x8000 + 0x0bff, all_pools.get_next(&amp_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x9fff, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(0x8000 + 0x07ff, all_pools.get_next(&amp_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8fff, all_pools.get_next(&adsr_id).to_u16());
+        assert_eq!(0x8000 + 0x03ff, all_pools.get_next(&amp_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000, all_pools.get_next(&adsr_id).to_u16());
-        assert_eq!(true, all_pools.has_next(&adsr_id));
+        assert_eq!(0x8000 + 0, all_pools.get_next(&amp_id).to_u16());
+        assert_eq!(true, all_pools.has_next(&amp_id));
 
         // End state.  Report silence and no more data
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000, all_pools.get_next(&adsr_id).to_u16());
-        assert_eq!(false, all_pools.has_next(&adsr_id));
+        assert_eq!(0x8000, all_pools.get_next(&amp_id).to_u16());
+        assert_eq!(false, all_pools.has_next(&amp_id));
 
         all_pools.free(adsr_id);
-        */
+        all_pools.free(oscillator_id);
+        all_pools.free(amp_id);
     }
 }
