@@ -2,9 +2,8 @@ use crate::free_list::FreeList;
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
-use crate::sound_source_msgs::SoundSourceKey;
+use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
 
 pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: FreeList {
@@ -20,13 +19,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
         element: usize,
         all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> SAMPLE;
-    fn pool_handle_msg(
-        self: &mut Self,
-        element: usize,
-        origin: &SoundSourceId,
-        key: SoundSourceKey,
-        value: SoundSourceValue,
-    );
+    fn pool_handle_msg(self: &mut Self, msg: &SoundSourceMsg);
     fn get_type_id(self: &Self) -> usize;
 
     fn pool_alloc(self: &mut Self) -> SoundSourceId {
@@ -59,14 +52,11 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
 
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
 
-    fn handle_msg(
-        self: &mut Self,
-        id: &SoundSourceId,
-        origin: &SoundSourceId,
-        key: SoundSourceKey,
-        value: SoundSourceValue,
-    ) {
-        assert_eq!(self.get_type_id(), id.source_type() as usize);
-        self.pool_handle_msg(id.id(), &origin, key, value)
+    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg) {
+        assert_eq!(
+            self.get_type_id(),
+            msg.dest_id.expect("").source_type() as usize
+        );
+        self.pool_handle_msg(msg);
     }
 }

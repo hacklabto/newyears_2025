@@ -141,9 +141,9 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         }
     }
 
-    fn handle_msg(&mut self, origin: &SoundSourceId, key: SoundSourceKey, value: SoundSourceValue) {
-        if key == SoundSourceKey::InitAdsr {
-            let init_vals = value.get_adsr_init();
+    fn handle_msg(&mut self, msg: &SoundSourceMsg) {
+        if msg.key == SoundSourceKey::InitAdsr {
+            let init_vals = msg.value.get_adsr_init();
 
             self.state = AdsrState::Attack;
             self.attack_max_volume = init_vals.attack_max_volume;
@@ -153,7 +153,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             self.r = init_vals.r;
             self.time_since_state_start = 0;
         }
-        if key == SoundSourceKey::ReleaseAdsr {
+        if msg.key == SoundSourceKey::ReleaseAdsr {
             // TODO, What if we aren't in sustain?  Probably I should take
             // the current volume and run the release on that.
             self.state = AdsrState::Release;

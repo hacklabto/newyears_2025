@@ -6,7 +6,6 @@ use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
@@ -91,16 +90,10 @@ impl<
         }
     }
 
-    fn handle_msg(
-        self: &mut Self,
-        id: &SoundSourceId,
-        origin: &SoundSourceId,
-        key: SoundSourceKey,
-        value: SoundSourceValue,
-    ) {
+    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg) {
         return self
-            .get_pool(id.source_type())
-            .handle_msg(id, origin, key, value);
+            .get_pool(msg.dest_id.expect("").source_type())
+            .handle_msg(msg);
     }
 
     fn process_meta_message(
@@ -108,14 +101,16 @@ impl<
         msg: &SoundSourceMsg,
         _new_msgs: &mut SoundSourceMsgs,
     ) {
-        if msg.attribute == SoundSourceKey::InitOscillator {
-            let oscillator_id = self.alloc(SoundSourceType::Oscillator);
-            self.handle_msg(
-                &oscillator_id,
-                &msg.src_id,
-                msg.attribute,
-                msg.value.clone(),
-            );
+        if msg.key == SoundSourceKey::InitOscillator {
+            assert!(false);
+            //let oscillator_id = self.alloc(SoundSourceType::Oscillator);
+
+            //self.handle_msg(
+            //    &oscillator_id,
+            //    &msg.src_id,
+            //    msg.attribute,
+            //    msg.value.clone(),
+            //);
         }
     }
 
@@ -128,12 +123,7 @@ impl<
             if msg.dest_id.is_none() {
                 self.process_meta_message(&msg, new_msgs);
             } else {
-                self.handle_msg(
-                    &(msg.dest_id.expect("todo")),
-                    &msg.src_id,
-                    msg.attribute,
-                    msg.value.clone(),
-                );
+                self.handle_msg(&msg)
             }
         }
         msgs.clear();

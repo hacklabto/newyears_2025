@@ -2,10 +2,8 @@ use crate::free_list::FreeList;
 use crate::free_list::FreeListImpl;
 use crate::sound_sample::SoundSample;
 use crate::sound_source::SoundSource;
-use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_msgs::SoundSourceKey;
+use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
@@ -91,14 +89,8 @@ impl<
         }
     }
 
-    fn pool_handle_msg(
-        self: &mut Self,
-        element: usize,
-        origin: &SoundSourceId,
-        key: SoundSourceKey,
-        value: SoundSourceValue,
-    ) {
-        self.sound_source[element].handle_msg(origin, key, value)
+    fn pool_handle_msg(self: &mut Self, msg: &SoundSourceMsg) {
+        self.sound_source[msg.dest_id.expect("").id()].handle_msg(msg)
     }
     fn get_type_id(self: &Self) -> usize {
         TYPE_ID

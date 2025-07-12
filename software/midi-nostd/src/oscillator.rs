@@ -173,14 +173,9 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         self.update_table_index();
     }
 
-    fn handle_msg(
-        &mut self,
-        _origin: &SoundSourceId,
-        key: SoundSourceKey,
-        value: SoundSourceValue,
-    ) {
-        if key == SoundSourceKey::InitOscillator {
-            let init_vals = value.get_oscillator_init();
+    fn handle_msg(&mut self, msg: &SoundSourceMsg) {
+        if msg.key == SoundSourceKey::InitOscillator {
+            let init_vals = msg.value.get_oscillator_init();
             let inc_numerator: u32 = init_vals.frequency * WAVE_TABLE_SIZE_U32;
             let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
             let new_pulse_width_cutoff: u32 =

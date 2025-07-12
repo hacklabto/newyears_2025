@@ -1,8 +1,6 @@
 use crate::sound_sample::SoundSample;
-use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_msgs::SoundSourceKey;
+use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
 //use core::marker::PhantomData;
 
@@ -31,10 +29,5 @@ pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
 
     /// Handle a message
-    fn handle_msg(
-        self: &mut Self,
-        origin: &SoundSourceId,
-        key: SoundSourceKey,
-        value: SoundSourceValue,
-    );
+    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg);
 }
