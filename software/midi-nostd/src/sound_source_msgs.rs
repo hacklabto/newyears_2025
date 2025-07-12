@@ -187,10 +187,15 @@ impl Default for SoundSourceMsg {
 }
 
 impl SoundSourceMsg {
-    pub fn new(dest_id: SoundSourceId, key: SoundSourceKey, value: SoundSourceValue) -> Self {
+    pub fn new(
+        dest_id: Option<SoundSourceId>,
+        src_id: SoundSourceId,
+        key: SoundSourceKey,
+        value: SoundSourceValue,
+    ) -> Self {
         return Self {
-            src_id: SoundSourceId::default(),
-            dest_id: Some(dest_id),
+            src_id: src_id,
+            dest_id: dest_id,
             key,
             value,
         };
@@ -241,12 +246,14 @@ mod tests {
         assert_eq!(0, messages.get_msgs().len());
 
         let m0 = SoundSourceMsg::new(
-            SoundSourceId::new(SoundSourceType::Oscillator, 5),
+            Some(SoundSourceId::new(SoundSourceType::Oscillator, 5)),
+            SoundSourceId::new(SoundSourceType::Oscillator, 3),
             SoundSourceKey::InitOscillator,
             SoundSourceValue::new_u32(2600),
         );
         let m1 = SoundSourceMsg::new(
-            SoundSourceId::new(SoundSourceType::Adsr, 3),
+            Some(SoundSourceId::new(SoundSourceType::Adsr, 3)),
+            SoundSourceId::new(SoundSourceType::Adsr, 5),
             SoundSourceKey::InitOscillator,
             SoundSourceValue::new_u32(100),
         );

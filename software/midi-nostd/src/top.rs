@@ -12,17 +12,15 @@ use core::marker::PhantomData;
 ///
 #[allow(unused)]
 pub struct Top<T: SoundSample, const PLAY_FREQUENCY: u32> {
-    creation_id: SoundSourceId,
+    creation_id: Option<SoundSourceId>,
     _marker: PhantomData<T>,
 }
 
 #[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for Top<T, PLAY_FREQUENCY> {
     fn default() -> Self {
-        let creation_id = SoundSourceId::default();
-
         Self {
-            creation_id,
+            creation_id: None,
             _marker: PhantomData {},
         }
     }
@@ -30,7 +28,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for Top<T, PLAY_FREQUENC
 
 #[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Top<T, PLAY_FREQUENCY> {
-    pub fn get_creation_id(self: &Self) -> SoundSourceId {
+    pub fn get_creation_id(self: &Self) -> Option<SoundSourceId> {
         self.creation_id
     }
 }
@@ -51,7 +49,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg) {
         if msg.key == SoundSourceKey::SoundSourceCreated {
-            //self.creation_id = origin.clone()
+            self.creation_id = Some(msg.src_id.clone());
         }
     }
 }

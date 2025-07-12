@@ -6,9 +6,11 @@ use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
+use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
+use crate::top::Top;
 
 //const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
 
@@ -31,6 +33,13 @@ pub struct SoundSourcesImpl<
         GenericAdsr<SAMPLE, PLAY_FREQUENCY>,
         NUM_ADSRS,
         { SoundSourceType::Adsr as usize },
+    >,
+    top_pool: GenericSoundPool<
+        SAMPLE,
+        PLAY_FREQUENCY,
+        Top<SAMPLE, PLAY_FREQUENCY>,
+        1,
+        { SoundSourceType::Top as usize },
     >,
 }
 
@@ -56,9 +65,17 @@ impl<
             NUM_ADSRS,
             { SoundSourceType::Adsr as usize },
         >::new();
+        let top_pool = GenericSoundPool::<
+            SAMPLE,
+            PLAY_FREQUENCY,
+            Top<SAMPLE, PLAY_FREQUENCY>,
+            1,
+            { SoundSourceType::Top as usize },
+        >::new();
         Self {
             oscillator_pool,
             adsr_pool,
+            top_pool,
         }
     }
 }
@@ -77,6 +94,7 @@ impl<
         match sound_source_type {
             SoundSourceType::Oscillator => &mut self.oscillator_pool,
             SoundSourceType::Adsr => &mut self.adsr_pool,
+            SoundSourceType::Top => &mut self.top_pool,
         }
     }
 
@@ -87,6 +105,7 @@ impl<
         match sound_source_type {
             SoundSourceType::Oscillator => &self.oscillator_pool,
             SoundSourceType::Adsr => &self.adsr_pool,
+            SoundSourceType::Top => &self.top_pool,
         }
     }
 
@@ -96,21 +115,17 @@ impl<
             .handle_msg(msg);
     }
 
-    fn process_meta_message(
-        self: &mut Self,
-        msg: &SoundSourceMsg,
-        _new_msgs: &mut SoundSourceMsgs,
-    ) {
+    fn process_meta_message(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         if msg.key == SoundSourceKey::InitOscillator {
-            assert!(false);
-            //let oscillator_id = self.alloc(SoundSourceType::Oscillator);
+            let oscillator_id = self.alloc(SoundSourceType::Oscillator);
 
-            //self.handle_msg(
-            //    &oscillator_id,
-            //    &msg.src_id,
-            //    msg.attribute,
-            //    msg.value.clone(),
-            //);
+            let creation_msg = SoundSourceMsg::new(
+                Some(msg.src_id.clone()),
+                oscillator_id,
+                SoundSourceKey::SoundSourceCreated,
+                SoundSourceValue::default(),
+            );
+            new_msgs.append(creation_msg);
         }
     }
 
@@ -172,5 +187,19 @@ impl<
             }
             self.process_and_clear_msgs_single_iter(&mut new_msgs, msgs);
         }
+    }
+    fn get_top_id(self: &Self) -> SoundSourceId {
+        return SoundSourceId::new(SoundSourceType::Top, 0);
+    }
+}
+impl<
+        SAMPLE: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        const NUM_OSCILATORS: usize,
+        const NUM_ADSRS: usize,
+    > SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS>
+{
+    pub fn get_last_created_sound_source(self: &Self) -> Option<SoundSourceId> {
+        return self.top_pool.get_pool_entry(0).get_creation_id();
     }
 }

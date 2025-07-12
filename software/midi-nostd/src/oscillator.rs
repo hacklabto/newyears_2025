@@ -140,20 +140,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericOscillator<T, PLAY_FREQUE
     }
 }
 
-pub fn set_oscillator_properties(
-    all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
-    oscillator_id: SoundSourceId,
-    init_values: SoundSourceOscillatorInit,
-) {
-    let mut msgs = SoundSourceMsgs::default();
-    msgs.append(SoundSourceMsg::new(
-        oscillator_id.clone(),
-        SoundSourceKey::InitOscillator,
-        SoundSourceValue::new_oscillator_init(init_values),
-    ));
-    all_pools.process_and_clear_msgs(&mut msgs);
-}
-
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     for GenericOscillator<T, PLAY_FREQUENCY>
 {
@@ -200,6 +186,21 @@ pub type WavePool = GenericSoundPool<
     { SoundSourceType::Oscillator as usize },
 >;
 
+pub fn set_oscillator_properties(
+    all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
+    oscillator_id: SoundSourceId,
+    init_values: SoundSourceOscillatorInit,
+) {
+    let mut msgs = SoundSourceMsgs::default();
+    msgs.append(SoundSourceMsg::new(
+        Some(oscillator_id.clone()),
+        all_pools.get_top_id(),
+        SoundSourceKey::InitOscillator,
+        SoundSourceValue::new_oscillator_init(init_values),
+    ));
+    all_pools.process_and_clear_msgs(&mut msgs);
+}
+
 #[cfg(test)]
 mod tests {
     use crate::oscillator::*;
@@ -239,17 +240,28 @@ mod tests {
     #[test]
     fn test_pulse_50_from_pool() {
         let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
-        let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
-        set_oscillator_properties(
-            &mut all_pools,
-            oscillator_id,
-            SoundSourceOscillatorInit::new(
-                OscillatorType::PulseWidth,
-                2600 * FREQUENCY_MULTIPLIER,
-                50,
-                100,
-            ),
+        let oscilator_properties = SoundSourceOscillatorInit::new(
+            OscillatorType::PulseWidth,
+            2600 * FREQUENCY_MULTIPLIER,
+            50,
+            100,
         );
+
+        let mut msgs = SoundSourceMsgs::default();
+        msgs.append(SoundSourceMsg::new(
+            None,
+            all_pools.get_top_id(),
+            SoundSourceKey::InitOscillator,
+            SoundSourceValue::new_oscillator_init(oscilator_properties.clone()),
+        ));
+        all_pools.process_and_clear_msgs(&mut msgs);
+
+        let oscillator_id = all_pools
+            .get_last_created_sound_source()
+            .expect("Id should have been recorded")
+            .clone();
+
+        set_oscillator_properties(&mut all_pools, oscillator_id, oscilator_properties);
         let mut new_msgs = SoundSourceMsgs::default();
         let (transitions, area) = sample_wave(&mut all_pools, &oscillator_id, &mut new_msgs);
 
@@ -284,6 +296,7 @@ mod tests {
     #[test]
     fn test_pulse_25_from_pool() {
         let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
+
         let oscillator_id = all_pools.alloc(SoundSourceType::Oscillator);
         set_oscillator_properties(
             &mut all_pools,

@@ -169,7 +169,8 @@ pub fn set_adsr_properties(
 ) {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
-        adsr_id,
+        Some(adsr_id),
+        all_pools.get_top_id(),
         SoundSourceKey::InitAdsr,
         SoundSourceValue::new_adsr_init(init_values),
     ));
@@ -229,7 +230,8 @@ mod tests {
 
         let mut msgs = SoundSourceMsgs::default();
         msgs.append(SoundSourceMsg::new(
-            adsr_id.clone(),
+            Some(adsr_id.clone()),
+            all_pools.get_top_id(),
             SoundSourceKey::ReleaseAdsr,
             SoundSourceValue::default(),
         ));

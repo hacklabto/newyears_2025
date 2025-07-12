@@ -37,6 +37,9 @@ impl<
             _marker: PhantomData {},
         }
     }
+    pub fn get_pool_entry(self: &Self, id: usize) -> &MySoundSource {
+        return &self.sound_source[id];
+    }
 }
 
 impl<

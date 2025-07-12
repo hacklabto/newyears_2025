@@ -5,6 +5,7 @@
 pub enum SoundSourceType {
     Oscillator = 0,
     Adsr = 1,
+    Top = 2,
 }
 
 impl SoundSourceType {
@@ -12,12 +13,17 @@ impl SoundSourceType {
         let optional_enum_value: Option<Self> = match usize_value {
             0 => Some(SoundSourceType::Oscillator),
             1 => Some(SoundSourceType::Adsr),
+            2 => Some(SoundSourceType::Top),
             _ => None,
         };
         optional_enum_value.expect("bad usize to SoundSourceType")
     }
     pub const fn all_variants() -> &'static [SoundSourceType] {
-        &[SoundSourceType::Oscillator, SoundSourceType::Adsr]
+        &[
+            SoundSourceType::Oscillator,
+            SoundSourceType::Adsr,
+            SoundSourceType::Top,
+        ]
     }
     pub const fn max_variant_id() -> usize {
         let mut max_variant_id: Option<usize> = None;
