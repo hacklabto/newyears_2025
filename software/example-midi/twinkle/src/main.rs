@@ -52,10 +52,8 @@ fn run() -> Result<(), pa::Error> {
         32,
         32,
     >::default();
-    let wave_id = all_pools.alloc(midi_nostd::sound_source_id::SoundSourceType::Oscillator);
-    midi_nostd::oscillator::set_oscillator_properties(
+    let wave_id = midi_nostd::oscillator::create_oscillator(
         &mut all_pools,
-        wave_id,
         SoundSourceOscillatorInit::new(
             midi_nostd::sound_source_msgs::OscillatorType::Sine,
             2600 * FREQUENCY_MULTIPLIER,
