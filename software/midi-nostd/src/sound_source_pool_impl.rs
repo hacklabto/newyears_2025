@@ -93,7 +93,7 @@ impl<
     }
 
     fn pool_handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        self.sound_source[msg.dest_id.expect("").id()].handle_msg(msg, new_msgs)
+        self.sound_source[msg.dest_id.id()].handle_msg(msg, new_msgs)
     }
     fn get_type_id(self: &Self) -> usize {
         TYPE_ID

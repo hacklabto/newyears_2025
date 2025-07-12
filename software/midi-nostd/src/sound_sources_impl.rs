@@ -114,7 +114,7 @@ impl<
 
     fn handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         return self
-            .get_pool(msg.dest_id.expect("").source_type())
+            .get_pool(msg.dest_id.source_type())
             .handle_msg(msg, new_msgs);
     }
 
@@ -127,7 +127,7 @@ impl<
             let oscillator_id = self.alloc(SoundSourceType::Oscillator);
 
             let oscilator_init_msg = SoundSourceMsg::new(
-                Some(oscillator_id),
+                oscillator_id,
                 self.get_top_id(),
                 msg.key.clone(),
                 msg.value.clone(),
@@ -138,7 +138,7 @@ impl<
             let adsr_id = self.alloc(SoundSourceType::Adsr);
 
             let adsr_init_msg = SoundSourceMsg::new(
-                Some(adsr_id),
+                adsr_id,
                 self.get_top_id(),
                 msg.key.clone(),
                 msg.value.clone(),
@@ -158,7 +158,7 @@ impl<
         for msg in msgs.get_msgs() {
             let mut handled: bool = false;
 
-            if msg.dest_id.is_none() || self.top_id == msg.dest_id.expect("") {
+            if self.top_id == msg.dest_id {
                 handled = self.process_meta_message(&msg, new_msgs);
             }
             if !handled {

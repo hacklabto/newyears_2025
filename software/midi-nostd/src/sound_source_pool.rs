@@ -53,10 +53,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
 
     fn handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        assert_eq!(
-            self.get_type_id(),
-            msg.dest_id.expect("").source_type() as usize
-        );
+        assert_eq!(self.get_type_id(), msg.dest_id.source_type() as usize);
         self.pool_handle_msg(msg, new_msgs);
     }
 }

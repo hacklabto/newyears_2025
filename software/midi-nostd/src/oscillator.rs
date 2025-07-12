@@ -175,8 +175,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             self.volume = volume;
 
             let creation_msg = SoundSourceMsg::new(
-                Some(msg.src_id.clone()),
-                msg.dest_id.clone().expect(""),
+                msg.src_id.clone(),
+                msg.dest_id.clone(),
                 SoundSourceKey::SoundSourceCreated,
                 SoundSourceValue::default(),
             );
@@ -200,7 +200,7 @@ pub fn create_oscillator(
 ) -> SoundSourceId {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
-        Some(all_pools.get_top_id()),
+        all_pools.get_top_id(),
         all_pools.get_top_id(),
         SoundSourceKey::InitOscillator,
         SoundSourceValue::new_oscillator_init(oscilator_properties),

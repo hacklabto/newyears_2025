@@ -165,16 +165,16 @@ impl Default for SoundSourceValue {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SoundSourceMsg {
-    pub src_id: SoundSourceId,          // No ID == handle at top level.
-    pub dest_id: Option<SoundSourceId>, // No ID == handle at top level.
+    pub dest_id: SoundSourceId,
+    pub src_id: SoundSourceId,
     pub key: SoundSourceKey,
     pub value: SoundSourceValue,
 }
 
 impl Default for SoundSourceMsg {
     fn default() -> Self {
+        let dest_id = SoundSourceId::default();
         let src_id = SoundSourceId::default();
-        let dest_id = None;
         let key = SoundSourceKey::InitOscillator;
         let value = SoundSourceValue::default();
         Self {
@@ -188,7 +188,7 @@ impl Default for SoundSourceMsg {
 
 impl SoundSourceMsg {
     pub fn new(
-        dest_id: Option<SoundSourceId>,
+        dest_id: SoundSourceId,
         src_id: SoundSourceId,
         key: SoundSourceKey,
         value: SoundSourceValue,
@@ -246,13 +246,13 @@ mod tests {
         assert_eq!(0, messages.get_msgs().len());
 
         let m0 = SoundSourceMsg::new(
-            Some(SoundSourceId::new(SoundSourceType::Oscillator, 5)),
+            SoundSourceId::new(SoundSourceType::Oscillator, 5),
             SoundSourceId::new(SoundSourceType::Oscillator, 3),
             SoundSourceKey::InitOscillator,
             SoundSourceValue::new_u32(2600),
         );
         let m1 = SoundSourceMsg::new(
-            Some(SoundSourceId::new(SoundSourceType::Adsr, 3)),
+            SoundSourceId::new(SoundSourceType::Adsr, 3),
             SoundSourceId::new(SoundSourceType::Adsr, 5),
             SoundSourceKey::InitOscillator,
             SoundSourceValue::new_u32(100),

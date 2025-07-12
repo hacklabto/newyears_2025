@@ -154,8 +154,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             self.time_since_state_start = 0;
 
             let creation_msg = SoundSourceMsg::new(
-                Some(msg.src_id.clone()),
-                msg.dest_id.clone().expect(""),
+                msg.src_id.clone(),
+                msg.dest_id.clone(),
                 SoundSourceKey::SoundSourceCreated,
                 SoundSourceValue::default(),
             );
@@ -176,7 +176,7 @@ pub fn create_adsr(
 ) -> SoundSourceId {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
-        Some(all_pools.get_top_id()),
+        all_pools.get_top_id(),
         all_pools.get_top_id(),
         SoundSourceKey::InitAdsr,
         SoundSourceValue::new_adsr_init(adsr_properties),
@@ -238,7 +238,7 @@ mod tests {
 
         let mut msgs = SoundSourceMsgs::default();
         msgs.append(SoundSourceMsg::new(
-            Some(adsr_id.clone()),
+            adsr_id.clone(),
             all_pools.get_top_id(),
             SoundSourceKey::ReleaseAdsr,
             SoundSourceValue::default(),
