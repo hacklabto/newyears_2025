@@ -141,7 +141,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         }
     }
 
-    fn set_attribute(&mut self, key: SoundSourceKey, value: SoundSourceValue) {
+    fn handle_msg(&mut self, origin: &SoundSourceId, key: SoundSourceKey, value: SoundSourceValue) {
         if key == SoundSourceKey::InitAdsr {
             let init_vals = value.get_adsr_init();
 

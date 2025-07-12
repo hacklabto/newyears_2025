@@ -1,4 +1,5 @@
 use crate::sound_sample::SoundSample;
+use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceValue;
@@ -29,6 +30,11 @@ pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     /// Update the state one tick
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
 
-    /// Set Attribute
-    fn set_attribute(self: &mut Self, key: SoundSourceKey, value: SoundSourceValue);
+    /// Handle a message
+    fn handle_msg(
+        self: &mut Self,
+        origin: &SoundSourceId,
+        key: SoundSourceKey,
+        value: SoundSourceValue,
+    );
 }

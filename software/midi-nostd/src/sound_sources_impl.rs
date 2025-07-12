@@ -91,32 +91,49 @@ impl<
         }
     }
 
-    fn set_attribute(
+    fn handle_msg(
         self: &mut Self,
-        id: SoundSourceId,
+        id: &SoundSourceId,
+        origin: &SoundSourceId,
         key: SoundSourceKey,
         value: SoundSourceValue,
     ) {
         return self
             .get_pool(id.source_type())
-            .set_attribute(id, key, value);
+            .handle_msg(id, origin, key, value);
     }
 
-    fn process_meta_message(self: &mut Self, msg: &SoundSourceMsg, _new_msgs: &mut SoundSourceMsgs) {
+    fn process_meta_message(
+        self: &mut Self,
+        msg: &SoundSourceMsg,
+        _new_msgs: &mut SoundSourceMsgs,
+    ) {
         if msg.attribute == SoundSourceKey::InitOscillator {
             let oscillator_id = self.alloc(SoundSourceType::Oscillator);
-            self.set_attribute( oscillator_id.clone(), msg.attribute, msg.value.clone() );
+            self.handle_msg(
+                &oscillator_id,
+                &msg.src_id,
+                msg.attribute,
+                msg.value.clone(),
+            );
         }
     }
 
-    fn process_and_clear_msgs_single_iter(self: &mut Self, msgs: &mut SoundSourceMsgs, new_msgs: &mut SoundSourceMsgs ) {
-        
+    fn process_and_clear_msgs_single_iter(
+        self: &mut Self,
+        msgs: &mut SoundSourceMsgs,
+        new_msgs: &mut SoundSourceMsgs,
+    ) {
         for msg in msgs.get_msgs() {
             if msg.dest_id.is_none() {
-                self.process_meta_message( &msg, new_msgs );
-            }
-            else {
-                self.set_attribute(msg.dest_id.expect("todo"), msg.attribute, msg.value.clone());
+                self.process_meta_message(&msg, new_msgs);
+            } else {
+                self.handle_msg(
+                    &(msg.dest_id.expect("todo")),
+                    &msg.src_id,
+                    msg.attribute,
+                    msg.value.clone(),
+                );
             }
         }
         msgs.clear();
@@ -150,8 +167,7 @@ impl<
     fn get_next(self: &Self, id: &SoundSourceId) -> SAMPLE {
         self.get_const_pool(id.source_type()).get_next(id, self)
     }
-    fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs)
-    {
+    fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs) {
         // Hopefully not a performance problem WRT to clearing on init
         let mut new_msgs = SoundSourceMsgs::default();
 
@@ -161,11 +177,10 @@ impl<
             }
             self.process_and_clear_msgs_single_iter(msgs, &mut new_msgs);
 
-            if new_msgs.get_msgs().len() == 0  {
+            if new_msgs.get_msgs().len() == 0 {
                 break;
             }
             self.process_and_clear_msgs_single_iter(&mut new_msgs, msgs);
         }
     }
 }
-

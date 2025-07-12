@@ -20,9 +20,10 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
         element: usize,
         all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> SAMPLE;
-    fn pool_set_attribute(
+    fn pool_handle_msg(
         self: &mut Self,
         element: usize,
+        origin: &SoundSourceId,
         key: SoundSourceKey,
         value: SoundSourceValue,
     );
@@ -58,13 +59,14 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
 
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
 
-    fn set_attribute(
+    fn handle_msg(
         self: &mut Self,
-        id: SoundSourceId,
+        id: &SoundSourceId,
+        origin: &SoundSourceId,
         key: SoundSourceKey,
         value: SoundSourceValue,
     ) {
         assert_eq!(self.get_type_id(), id.source_type() as usize);
-        self.pool_set_attribute(id.id(), key, value)
+        self.pool_handle_msg(id.id(), &origin, key, value)
     }
 }
