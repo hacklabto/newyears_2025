@@ -11,13 +11,13 @@ use core::marker::PhantomData;
 /// Test Helper
 ///
 #[allow(unused)]
-pub struct TestHelper<T: SoundSample, const PLAY_FREQUENCY: u32> {
+pub struct Top<T: SoundSample, const PLAY_FREQUENCY: u32> {
     creation_id: SoundSourceId,
     _marker: PhantomData<T>,
 }
 
 #[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for TestHelper<T, PLAY_FREQUENCY> {
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for Top<T, PLAY_FREQUENCY> {
     fn default() -> Self {
         let creation_id = SoundSourceId::default();
 
@@ -29,7 +29,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for TestHelper<T, PLAY_F
 }
 
 #[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> TestHelper<T, PLAY_FREQUENCY> {
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> Top<T, PLAY_FREQUENCY> {
     pub fn get_creation_id(self: &Self) -> SoundSourceId {
         self.creation_id
     }
@@ -37,7 +37,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> TestHelper<T, PLAY_FREQUENCY> {
 
 #[allow(unused)]
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
-    for TestHelper<T, PLAY_FREQUENCY>
+    for Top<T, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
         T::min()

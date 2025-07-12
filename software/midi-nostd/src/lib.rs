@@ -12,5 +12,5 @@ mod sound_source_pool;
 mod sound_source_pool_impl;
 pub mod sound_sources;
 pub mod sound_sources_impl;
-pub mod testing_helper;
+pub mod top;
 mod wave_tables;
