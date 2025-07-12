@@ -29,5 +29,5 @@ pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
 
     /// Handle a message
-    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg);
+    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs);
 }

@@ -141,7 +141,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
         }
     }
 
-    fn handle_msg(&mut self, msg: &SoundSourceMsg) {
+    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         if msg.key == SoundSourceKey::InitAdsr {
             let init_vals = msg.value.get_adsr_init();
 
@@ -152,6 +152,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
             self.sustain_volume = init_vals.sustain_volume;
             self.r = init_vals.r;
             self.time_since_state_start = 0;
+
+            let creation_msg = SoundSourceMsg::new(
+                Some(msg.src_id.clone()),
+                msg.dest_id.clone().expect(""),
+                SoundSourceKey::SoundSourceCreated,
+                SoundSourceValue::default(),
+            );
+            new_msgs.append(creation_msg);
         }
         if msg.key == SoundSourceKey::ReleaseAdsr {
             // TODO, What if we aren't in sustain?  Probably I should take
@@ -162,36 +170,36 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
     }
 }
 
-pub fn set_adsr_properties(
+pub fn create_adsr(
     all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
-    adsr_id: SoundSourceId,
-    init_values: SoundSourceAdsrInit,
-) {
+    adsr_properties: SoundSourceAdsrInit,
+) -> SoundSourceId {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
-        Some(adsr_id),
+        None,
         all_pools.get_top_id(),
         SoundSourceKey::InitAdsr,
-        SoundSourceValue::new_adsr_init(init_values),
+        SoundSourceValue::new_adsr_init(adsr_properties),
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
+
+    all_pools
+        .get_last_created_sound_source()
+        .expect("Id should have been recorded")
+        .clone()
 }
 
 #[cfg(test)]
 mod tests {
     use crate::adsr::*;
-    use crate::sound_source_id::SoundSourceType;
     use crate::sound_sources::SoundSources;
     use crate::sound_sources_impl::SoundSourcesImpl;
 
     #[test]
     fn basic_adsr_test() {
         let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
-        let adsr_id = all_pools.alloc(SoundSourceType::Adsr);
-
-        set_adsr_properties(
+        let adsr_id = create_adsr(
             &mut all_pools,
-            adsr_id,
             SoundSourceAdsrInit::new(
                 SoundScale::new_percent(100),
                 SoundScale::new_percent(50),

@@ -19,7 +19,7 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
         element: usize,
         all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>,
     ) -> SAMPLE;
-    fn pool_handle_msg(self: &mut Self, msg: &SoundSourceMsg);
+    fn pool_handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs);
     fn get_type_id(self: &Self) -> usize;
 
     fn pool_alloc(self: &mut Self) -> SoundSourceId {
@@ -52,11 +52,11 @@ pub trait SoundSourcePool<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32>: F
 
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
 
-    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg) {
+    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         assert_eq!(
             self.get_type_id(),
             msg.dest_id.expect("").source_type() as usize
         );
-        self.pool_handle_msg(msg);
+        self.pool_handle_msg(msg, new_msgs);
     }
 }

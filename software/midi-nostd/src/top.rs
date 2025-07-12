@@ -47,7 +47,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
 
     fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {}
 
-    fn handle_msg(&mut self, msg: &SoundSourceMsg) {
+    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         if msg.key == SoundSourceKey::SoundSourceCreated {
             self.creation_id = Some(msg.src_id.clone());
         }

@@ -6,7 +6,6 @@ use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
@@ -109,23 +108,34 @@ impl<
         }
     }
 
-    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg) {
+    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         return self
             .get_pool(msg.dest_id.expect("").source_type())
-            .handle_msg(msg);
+            .handle_msg(msg, new_msgs);
     }
 
     fn process_meta_message(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         if msg.key == SoundSourceKey::InitOscillator {
             let oscillator_id = self.alloc(SoundSourceType::Oscillator);
 
-            let creation_msg = SoundSourceMsg::new(
-                Some(msg.src_id.clone()),
-                oscillator_id,
-                SoundSourceKey::SoundSourceCreated,
-                SoundSourceValue::default(),
+            let oscilator_init_msg = SoundSourceMsg::new(
+                Some(oscillator_id),
+                self.get_top_id(),
+                msg.key.clone(),
+                msg.value.clone(),
             );
-            new_msgs.append(creation_msg);
+            new_msgs.append(oscilator_init_msg);
+        }
+        if msg.key == SoundSourceKey::InitAdsr {
+            let adsr_id = self.alloc(SoundSourceType::Adsr);
+
+            let adsr_init_msg = SoundSourceMsg::new(
+                Some(adsr_id),
+                self.get_top_id(),
+                msg.key.clone(),
+                msg.value.clone(),
+            );
+            new_msgs.append(adsr_init_msg);
         }
     }
 
@@ -138,7 +148,7 @@ impl<
             if msg.dest_id.is_none() {
                 self.process_meta_message(&msg, new_msgs);
             } else {
-                self.handle_msg(&msg)
+                self.handle_msg(&msg, new_msgs)
             }
         }
         msgs.clear();
@@ -191,6 +201,9 @@ impl<
     fn get_top_id(self: &Self) -> SoundSourceId {
         return SoundSourceId::new(SoundSourceType::Top, 0);
     }
+    fn get_last_created_sound_source(self: &Self) -> Option<SoundSourceId> {
+        return self.top_pool.get_pool_entry(0).get_creation_id();
+    }
 }
 impl<
         SAMPLE: SoundSample,
@@ -199,7 +212,4 @@ impl<
         const NUM_ADSRS: usize,
     > SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS>
 {
-    pub fn get_last_created_sound_source(self: &Self) -> Option<SoundSourceId> {
-        return self.top_pool.get_pool_entry(0).get_creation_id();
-    }
 }
