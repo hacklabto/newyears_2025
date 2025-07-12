@@ -176,7 +176,7 @@ pub fn create_adsr(
 ) -> SoundSourceId {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
-        None,
+        Some(all_pools.get_top_id()),
         all_pools.get_top_id(),
         SoundSourceKey::InitAdsr,
         SoundSourceValue::new_adsr_init(adsr_properties),

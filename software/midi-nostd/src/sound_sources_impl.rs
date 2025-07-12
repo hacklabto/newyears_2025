@@ -40,6 +40,7 @@ pub struct SoundSourcesImpl<
         1,
         { SoundSourceType::Top as usize },
     >,
+    top_id: SoundSourceId,
 }
 
 impl<
@@ -71,10 +72,13 @@ impl<
             1,
             { SoundSourceType::Top as usize },
         >::new();
+        let top_id = Self::create_top_id();
+
         Self {
             oscillator_pool,
             adsr_pool,
             top_pool,
+            top_id,
         }
     }
 }
@@ -114,7 +118,11 @@ impl<
             .handle_msg(msg, new_msgs);
     }
 
-    fn process_meta_message(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
+    fn process_meta_message(
+        self: &mut Self,
+        msg: &SoundSourceMsg,
+        new_msgs: &mut SoundSourceMsgs,
+    ) -> bool {
         if msg.key == SoundSourceKey::InitOscillator {
             let oscillator_id = self.alloc(SoundSourceType::Oscillator);
 
@@ -125,8 +133,8 @@ impl<
                 msg.value.clone(),
             );
             new_msgs.append(oscilator_init_msg);
-        }
-        if msg.key == SoundSourceKey::InitAdsr {
+            true
+        } else if msg.key == SoundSourceKey::InitAdsr {
             let adsr_id = self.alloc(SoundSourceType::Adsr);
 
             let adsr_init_msg = SoundSourceMsg::new(
@@ -136,6 +144,9 @@ impl<
                 msg.value.clone(),
             );
             new_msgs.append(adsr_init_msg);
+            true
+        } else {
+            false
         }
     }
 
@@ -145,9 +156,12 @@ impl<
         new_msgs: &mut SoundSourceMsgs,
     ) {
         for msg in msgs.get_msgs() {
-            if msg.dest_id.is_none() {
-                self.process_meta_message(&msg, new_msgs);
-            } else {
+            let mut handled: bool = false;
+
+            if msg.dest_id.is_none() || self.top_id == msg.dest_id.expect("") {
+                handled = self.process_meta_message(&msg, new_msgs);
+            }
+            if !handled {
                 self.handle_msg(&msg, new_msgs)
             }
         }
@@ -198,11 +212,11 @@ impl<
             self.process_and_clear_msgs_single_iter(&mut new_msgs, msgs);
         }
     }
-    fn get_top_id(self: &Self) -> SoundSourceId {
-        return SoundSourceId::new(SoundSourceType::Top, 0);
-    }
     fn get_last_created_sound_source(self: &Self) -> Option<SoundSourceId> {
         return self.top_pool.get_pool_entry(0).get_creation_id();
+    }
+    fn get_top_id(self: &Self) -> SoundSourceId {
+        return self.top_id.clone();
     }
 }
 impl<
@@ -212,4 +226,7 @@ impl<
         const NUM_ADSRS: usize,
     > SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS>
 {
+    fn create_top_id() -> SoundSourceId {
+        return SoundSourceId::new(SoundSourceType::Top, 0);
+    }
 }
