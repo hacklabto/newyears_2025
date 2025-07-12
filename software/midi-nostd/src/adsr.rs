@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn basic_adsr_test() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
         let adsr_id = create_adsr(
             &mut all_pools,
             SoundSourceAdsrInit::new(

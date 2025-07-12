@@ -1,4 +1,5 @@
 use crate::adsr::GenericAdsr;
+use crate::amp_mixer::AmpMixer;
 use crate::oscillator::GenericOscillator;
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
@@ -18,6 +19,7 @@ pub struct SoundSourcesImpl<
     const PLAY_FREQUENCY: u32,
     const NUM_OSCILATORS: usize,
     const NUM_ADSRS: usize,
+    const NUM_AMP_MIXERS: usize,
 > {
     oscillator_pool: GenericSoundPool<
         SAMPLE,
@@ -40,6 +42,13 @@ pub struct SoundSourcesImpl<
         1,
         { SoundSourceType::Top as usize },
     >,
+    amp_mixer_pool: GenericSoundPool<
+        SAMPLE,
+        PLAY_FREQUENCY,
+        AmpMixer<SAMPLE, PLAY_FREQUENCY>,
+        NUM_AMP_MIXERS,
+        { SoundSourceType::AmpMixer as usize },
+    >,
     top_id: SoundSourceId,
 }
 
@@ -48,7 +57,9 @@ impl<
         const PLAY_FREQUENCY: u32,
         const NUM_OSCILATORS: usize,
         const NUM_ADSRS: usize,
-    > Default for SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS>
+        const NUM_AMP_MIXERS: usize,
+    > Default
+    for SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS, NUM_AMP_MIXERS>
 {
     fn default() -> Self {
         let oscillator_pool = GenericSoundPool::<
@@ -72,12 +83,20 @@ impl<
             1,
             { SoundSourceType::Top as usize },
         >::new();
+        let amp_mixer_pool = GenericSoundPool::<
+            SAMPLE,
+            PLAY_FREQUENCY,
+            AmpMixer<SAMPLE, PLAY_FREQUENCY>,
+            NUM_AMP_MIXERS,
+            { SoundSourceType::AmpMixer as usize },
+        >::new();
         let top_id = Self::create_top_id();
 
         Self {
             oscillator_pool,
             adsr_pool,
             top_pool,
+            amp_mixer_pool,
             top_id,
         }
     }
@@ -88,7 +107,8 @@ impl<
         const PLAY_FREQUENCY: u32,
         const NUM_OSCILATORS: usize,
         const NUM_ADSRS: usize,
-    > SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS>
+        const NUM_AMP_MIXERS: usize,
+    > SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS, NUM_AMP_MIXERS>
 {
     pub fn get_pool<'a>(
         self: &'a mut Self,
@@ -98,6 +118,7 @@ impl<
             SoundSourceType::Oscillator => &mut self.oscillator_pool,
             SoundSourceType::Adsr => &mut self.adsr_pool,
             SoundSourceType::Top => &mut self.top_pool,
+            SoundSourceType::AmpMixer => &mut self.amp_mixer_pool,
         }
     }
 
@@ -109,6 +130,7 @@ impl<
             SoundSourceType::Oscillator => &self.oscillator_pool,
             SoundSourceType::Adsr => &self.adsr_pool,
             SoundSourceType::Top => &self.top_pool,
+            SoundSourceType::AmpMixer => &self.amp_mixer_pool,
         }
     }
 
@@ -145,6 +167,17 @@ impl<
             );
             new_msgs.append(adsr_init_msg);
             true
+        } else if msg.key == SoundSourceKey::InitAmpMixer {
+            let amp_mixer_id = self.alloc(SoundSourceType::AmpMixer);
+
+            let amp_mixer_init_msg = SoundSourceMsg::new(
+                amp_mixer_id,
+                self.get_top_id(),
+                msg.key.clone(),
+                msg.value.clone(),
+            );
+            new_msgs.append(amp_mixer_init_msg);
+            true
         } else {
             false
         }
@@ -174,8 +207,9 @@ impl<
         const PLAY_FREQUENCY: u32,
         const NUM_OSCILATORS: usize,
         const NUM_ADSRS: usize,
+        const NUM_AMP_MIXERS: usize,
     > SoundSources<'_, SAMPLE, PLAY_FREQUENCY>
-    for SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS>
+    for SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS, NUM_AMP_MIXERS>
 {
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
         self.oscillator_pool.update(new_msgs);
@@ -224,7 +258,8 @@ impl<
         const PLAY_FREQUENCY: u32,
         const NUM_OSCILATORS: usize,
         const NUM_ADSRS: usize,
-    > SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS>
+        const NUM_AMP_MIXERS: usize,
+    > SoundSourcesImpl<SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS, NUM_AMP_MIXERS>
 {
     fn create_top_id() -> SoundSourceId {
         return SoundSourceId::new(SoundSourceType::Top, 0);

@@ -6,6 +6,7 @@ pub enum SoundSourceType {
     Oscillator = 0,
     Adsr = 1,
     Top = 2,
+    AmpMixer = 3,
 }
 
 impl SoundSourceType {
@@ -14,6 +15,7 @@ impl SoundSourceType {
             0 => Some(SoundSourceType::Oscillator),
             1 => Some(SoundSourceType::Adsr),
             2 => Some(SoundSourceType::Top),
+            3 => Some(SoundSourceType::AmpMixer),
             _ => None,
         };
         optional_enum_value.expect("bad usize to SoundSourceType")
@@ -23,6 +25,7 @@ impl SoundSourceType {
             SoundSourceType::Oscillator,
             SoundSourceType::Adsr,
             SoundSourceType::Top,
+            SoundSourceType::AmpMixer,
         ]
     }
     pub const fn max_variant_id() -> usize {

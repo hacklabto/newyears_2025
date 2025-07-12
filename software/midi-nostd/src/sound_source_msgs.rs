@@ -6,6 +6,7 @@ use crate::sound_source_id::SoundSourceId;
 pub enum SoundSourceKey {
     InitOscillator,
     InitAdsr,
+    InitAmpMixer,
     ReleaseAdsr,
     SoundSourceCreated,
 }
@@ -89,6 +90,18 @@ impl SoundSourceAdsrInit {
 }
 
 #[derive(Clone, PartialEq, Debug)]
+pub struct SoundSourceAmpMixerInit {
+    pub source_0: SoundSourceId,
+    pub source_1: SoundSourceId,
+}
+
+impl SoundSourceAmpMixerInit {
+    pub fn new(source_0: SoundSourceId, source_1: SoundSourceId) -> Self {
+        return Self { source_0, source_1 };
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
     U32Type {
@@ -102,6 +115,9 @@ pub enum SoundSourceValue {
     },
     AdsrInit {
         init_values: SoundSourceAdsrInit,
+    },
+    AmpMixerInit {
+        init_values: SoundSourceAmpMixerInit,
     },
     CreatedId {
         created_id: SoundSourceId,
@@ -120,6 +136,9 @@ impl SoundSourceValue {
     }
     pub fn new_adsr_init(init_values: SoundSourceAdsrInit) -> Self {
         SoundSourceValue::AdsrInit { init_values }
+    }
+    pub fn new_amp_mixer_init(init_values: SoundSourceAmpMixerInit) -> Self {
+        SoundSourceValue::AmpMixerInit { init_values }
     }
     pub fn new_created_id(created_id: SoundSourceId) -> Self {
         SoundSourceValue::CreatedId { created_id }
@@ -147,6 +166,12 @@ impl SoundSourceValue {
         match self {
             SoundSourceValue::AdsrInit { init_values } => init_values,
             _ => panic!("This isn't a wave type"),
+        }
+    }
+    pub fn get_amp_mixer_init(self: &Self) -> &SoundSourceAmpMixerInit {
+        match self {
+            SoundSourceValue::AmpMixerInit { init_values } => init_values,
+            _ => panic!("This isn't an amp mixer type"),
         }
     }
     pub fn get_created_id(self: &Self) -> &SoundSourceId {

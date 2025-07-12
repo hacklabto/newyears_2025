@@ -251,7 +251,7 @@ mod tests {
     }
     #[test]
     fn test_pulse_50_from_pool() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
         let oscillator_id = create_oscillator(
             &mut all_pools,
             SoundSourceOscillatorInit::new(
@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_pulse_50_vol_50_from_pool() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
         let oscillator_id = create_oscillator(
             &mut all_pools,
             SoundSourceOscillatorInit::new(
@@ -293,7 +293,7 @@ mod tests {
 
     #[test]
     fn test_pulse_25_from_pool() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
 
         let oscillator_id = create_oscillator(
             &mut all_pools,
@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn test_triangle_from_pool() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
         let oscillator_id = create_oscillator(
             &mut all_pools,
             SoundSourceOscillatorInit::new(
@@ -335,7 +335,7 @@ mod tests {
 
     #[test]
     fn test_triangle_from_pool_vol_50percent() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
         let oscillator_id = create_oscillator(
             &mut all_pools,
             SoundSourceOscillatorInit::new(
