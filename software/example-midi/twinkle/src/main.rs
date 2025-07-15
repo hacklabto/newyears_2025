@@ -27,7 +27,7 @@ const FRAMES_PER_BUFFER: u32 = 64;
 const TABLE_SIZE: usize = 200;
 
 fn midly_exploration() {
-    let smf = Smf::parse(include_bytes!("../assets/MIDI_sample.mid")).unwrap();
+    let smf = Smf::parse(include_bytes!("../assets/twinkle.mid")).unwrap();
 
     for (i, track) in smf.tracks.iter().enumerate() {
         println!("track {} has {} events", i, track.len());
@@ -121,7 +121,7 @@ fn run() -> Result<(), pa::Error> {
             }
             idx += 2;
             sent_count = sent_count + 1;
-            if sent_count == 14000 {
+            if sent_count == 3000 {
                 let mut msgs = SoundSourceMsgs::default();
                 msgs.append(SoundSourceMsg::new(
                     adsr_id.clone(),
