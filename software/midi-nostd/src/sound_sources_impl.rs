@@ -1,6 +1,6 @@
 use crate::adsr::GenericAdsr;
 use crate::amp_mixer::AmpMixer;
-//use crate::midi::Midi;
+use crate::midi::Midi;
 use crate::oscillator::GenericOscillator;
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
@@ -59,8 +59,7 @@ pub struct SoundSourcesImpl<
         'a,
         SAMPLE,
         PLAY_FREQUENCY,
-        //Midi<'a, SAMPLE, PLAY_FREQUENCY>,
-        Top<SAMPLE, PLAY_FREQUENCY>,
+        Midi<'a, SAMPLE, PLAY_FREQUENCY>,
         1,
         { SoundSourceType::Midi as usize },
     >,
@@ -79,6 +78,7 @@ impl<
 {
     fn default() -> Self {
         let oscillator_pool = GenericSoundPool::<
+            'a,
             SAMPLE,
             PLAY_FREQUENCY,
             GenericOscillator<SAMPLE, PLAY_FREQUENCY>,
@@ -86,6 +86,7 @@ impl<
             { SoundSourceType::Oscillator as usize },
         >::new();
         let adsr_pool = GenericSoundPool::<
+            'a,
             SAMPLE,
             PLAY_FREQUENCY,
             GenericAdsr<SAMPLE, PLAY_FREQUENCY>,
@@ -93,6 +94,7 @@ impl<
             { SoundSourceType::Adsr as usize },
         >::new();
         let top_pool = GenericSoundPool::<
+            'a,
             SAMPLE,
             PLAY_FREQUENCY,
             Top<SAMPLE, PLAY_FREQUENCY>,
@@ -100,6 +102,7 @@ impl<
             { SoundSourceType::Top as usize },
         >::new();
         let amp_mixer_pool = GenericSoundPool::<
+            'a,
             SAMPLE,
             PLAY_FREQUENCY,
             AmpMixer<SAMPLE, PLAY_FREQUENCY>,
@@ -107,9 +110,10 @@ impl<
             { SoundSourceType::AmpMixer as usize },
         >::new();
         let midi = GenericSoundPool::<
+            'a,
             SAMPLE,
             PLAY_FREQUENCY,
-            Top<SAMPLE, PLAY_FREQUENCY>,
+            Midi<'a, SAMPLE, PLAY_FREQUENCY>,
             1,
             { SoundSourceType::Midi as usize },
         >::new();
