@@ -8,14 +8,14 @@ use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 //use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
-use midly::Smf;
 use core::marker::PhantomData;
+use midly::Smf;
 
 ///
 /// Midi Playback
 //
 pub struct Midi<'a, T: SoundSample, const PLAY_FREQUENCY: u32> {
-    smf: Option<Smf<'a>>, 
+    smf: Option<Smf<'a>>,
     _marker: PhantomData<T>,
 }
 
@@ -30,16 +30,19 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for Midi<'_, T, PLAY_FRE
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Midi<'_, T, PLAY_FREQUENCY> {
     pub fn new(midi_bytes: &'static [u8]) -> Self {
-        let smf = Some(midly::Smf::parse( midi_bytes ).expect("It's inlined data, so it better work, gosh darn it"));
-        Self{
+        let smf = Some(
+            midly::Smf::parse(midi_bytes)
+                .expect("It's inlined data, so it better work, gosh darn it"),
+        );
+        Self {
             smf,
             _marker: PhantomData {},
         }
     }
-}   
+}
 
 #[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENCY>
     for Midi<'static, T, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
@@ -52,8 +55,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
 
     fn update(&mut self, _new_msgs: &mut SoundSourceMsgs) {}
 
-    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-    }
+    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {}
 }
 
 /*
@@ -83,15 +85,15 @@ pub fn create_amp_mixer(
 
 #[cfg(test)]
 mod tests {
-    use crate::sound_sources_impl::SoundSourcesImpl;
-    use crate::sound_sample::SoundSampleI32;
     use crate::midi::Midi;
+    use crate::sound_sample::SoundSampleI32;
+    use crate::sound_sources_impl::SoundSourcesImpl;
 
     #[test]
     fn basic_midi_test() {
         let mut _all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
 
-        let mut _test_idi = Midi::<SoundSampleI32, 24000>::new( include_bytes!("../assets/twinkle.mid") );
+        let mut _test_idi =
+            Midi::<SoundSampleI32, 24000>::new(include_bytes!("../assets/twinkle.mid"));
     }
 }
-

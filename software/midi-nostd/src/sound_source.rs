@@ -16,7 +16,7 @@ use crate::sound_sources::SoundSources;
 /// a note might be created by  taking a waveform at the note's frequency and modifying
 /// it using an ADSR amplitude envelope.
 ///
-pub trait SoundSource<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
+pub trait SoundSource<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     /// Returns false if the sound source is done playing
     ///
     fn has_next(self: &Self, all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>) -> bool;

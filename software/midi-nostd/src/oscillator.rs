@@ -140,7 +140,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericOscillator<T, PLAY_FREQUE
     }
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENCY>
     for GenericOscillator<T, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
@@ -186,7 +186,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
 }
 
 type Oscillator = GenericOscillator<SoundSampleI32, 24000>;
-pub type WavePool = GenericSoundPool<
+pub type WavePool<'a> = GenericSoundPool<
+    'a,
     SoundSampleI32,
     24000,
     Oscillator,

@@ -34,7 +34,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Top<T, PLAY_FREQUENCY> {
 }
 
 #[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENCY>
     for Top<T, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {

@@ -9,24 +9,27 @@ use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
 
 pub struct GenericSoundPool<
+    'a,
     SAMPLE: SoundSample,
     const PLAY_FREQUENCY: u32,
-    MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
+    MySoundSource: SoundSource<'a, SAMPLE, PLAY_FREQUENCY> + Default,
     const N: usize,
     const TYPE_ID: usize,
 > {
     sound_source: [MySoundSource; N],
     free_list: FreeListImpl<N>,
     _marker: PhantomData<SAMPLE>,
+    _lifetime_marker: PhantomData<&'a ()>,
 }
 
 impl<
+        'a,
         SAMPLE: SoundSample,
         const PLAY_FREQUENCY: u32,
-        MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
+        MySoundSource: SoundSource<'a, SAMPLE, PLAY_FREQUENCY> + Default,
         const N: usize,
         const TYPE_ID: usize,
-    > GenericSoundPool<SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
+    > GenericSoundPool<'a, SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
 {
     pub fn new() -> Self {
         let sound_source: [MySoundSource; N] = core::array::from_fn(|_i| MySoundSource::default());
@@ -35,6 +38,7 @@ impl<
             sound_source,
             free_list,
             _marker: PhantomData {},
+            _lifetime_marker: PhantomData {},
         }
     }
     pub fn get_pool_entry(self: &Self, id: usize) -> &MySoundSource {
@@ -43,12 +47,13 @@ impl<
 }
 
 impl<
+        'a,
         SAMPLE: SoundSample,
         const PLAY_FREQUENCY: u32,
-        MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
+        MySoundSource: SoundSource<'a, SAMPLE, PLAY_FREQUENCY> + Default,
         const N: usize,
         const TYPE_ID: usize,
-    > FreeList for GenericSoundPool<SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
+    > FreeList for GenericSoundPool<'a, SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
 {
     fn alloc(self: &mut Self) -> usize {
         self.free_list.alloc()
@@ -62,13 +67,14 @@ impl<
 }
 
 impl<
+        'a,
         SAMPLE: SoundSample,
         const PLAY_FREQUENCY: u32,
-        MySoundSource: SoundSource<SAMPLE, PLAY_FREQUENCY> + Default,
+        MySoundSource: SoundSource<'a, SAMPLE, PLAY_FREQUENCY> + Default,
         const N: usize,
         const TYPE_ID: usize,
-    > SoundSourcePool<'_, SAMPLE, PLAY_FREQUENCY>
-    for GenericSoundPool<SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
+    > SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY>
+    for GenericSoundPool<'a, SAMPLE, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
 {
     fn pool_has_next(
         self: &Self,

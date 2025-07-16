@@ -36,7 +36,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for AmpMixer<T, PLAY_FRE
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> AmpMixer<T, PLAY_FREQUENCY> {}
 
 #[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<T, PLAY_FREQUENCY>
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENCY>
     for AmpMixer<T, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
