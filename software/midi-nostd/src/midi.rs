@@ -9,11 +9,43 @@ use crate::sound_source_msgs::SoundSourceMsgs;
 //use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
+use core::slice;
 use midly::Smf;
+
+#[allow(unused)]
+pub struct MidiTrack<'a, T: SoundSample, const PLAY_FREQUENCY: u32> {
+    time: u32,
+    next_event: u32,
+    track_iter: slice::Iter<'a, midly::TrackEvent<'a>>,
+    current_event: Option<&'a midly::TrackEvent<'a>>,
+    _marker: PhantomData<T>,
+}
+
+impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<'a, T, PLAY_FREQUENCY> {
+    pub fn new(track: &'a midly::Track<'a>) -> Self {
+        let time: u32 = 0;
+        let mut track_iter = track.iter();
+        let current_event = track_iter.next();
+        let next_event: u32 = if current_event.is_some() {
+            let delta_u32: u32 = current_event.unwrap().delta.into();
+            time + delta_u32
+        } else {
+            0
+        };
+        Self {
+            time,
+            next_event,
+            track_iter,
+            current_event,
+            _marker: PhantomData {},
+        }
+    }
+}
 
 ///
 /// Midi Playback
-//
+///
+#[allow(unused)]
 pub struct Midi<'a, T: SoundSample, const PLAY_FREQUENCY: u32> {
     smf: Option<Smf<'a>>,
     _marker: PhantomData<T>,
