@@ -128,4 +128,7 @@ impl SoundSourceId {
     pub fn get_top_id() -> Self {
         Self::new(SoundSourceType::Top, 0)
     }
+    pub fn get_midi_id() -> Self {
+        Self::new(SoundSourceType::Midi, 0)
+    }
 }

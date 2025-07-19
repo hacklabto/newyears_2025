@@ -2,7 +2,6 @@ use crate::midi_notes::midi_note_to_freq;
 use crate::sound_sample::SoundSample;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::OscillatorType;
 use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
@@ -66,7 +65,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
                     SoundSourceOscillatorInit::new(OscillatorType::Sine, frequency, 100, 100);
                 new_msgs.append(SoundSourceMsg::new(
                     SoundSourceId::get_top_id(),
-                    SoundSourceId::new(SoundSourceType::Midi, 0),
+                    SoundSourceId::get_midi_id(),
                     SoundSourceKey::InitOscillator,
                     SoundSourceValue::new_oscillator_init(oscilator_properties),
                 ));
@@ -151,7 +150,11 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
         self.track.update(&self.smf.tracks[0], new_msgs)
     }
 
-    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {}
+    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
+        if msg.key == SoundSourceKey::SoundSourceCreated {
+            self.note_0 = Some(msg.src_id.clone());
+        }
+    }
 }
 
 ///
@@ -164,7 +167,10 @@ pub struct Midi<'a, T: SoundSample, const PLAY_FREQUENCY: u32> {
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for Midi<'_, T, PLAY_FREQUENCY> {
     fn default() -> Self {
-        Self { midi_maybe: None }
+        let midi = MidiReal::<T, PLAY_FREQUENCY>::new(include_bytes!("../assets/twinkle.mid"));
+        Self {
+            midi_maybe: Some(midi),
+        }
     }
 }
 
@@ -197,42 +203,28 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
     }
 }
 
-/*
- * This is kind of top level, does it make sense to create via message?
- */
-
-/*
-pub fn create_amp_mixer(
-    all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
-    amp_mixer_properties: SoundSourceAmpMixerInit,
-) -> SoundSourceId {
-    let mut msgs = SoundSourceMsgs::default();
-    msgs.append(SoundSourceMsg::new(
-        all_pools.get_top_id(),
-        all_pools.get_top_id(),
-        SoundSourceKey::InitAmpMixer,
-        SoundSourceValue::new_amp_mixer_init(amp_mixer_properties),
-    ));
-    all_pools.process_and_clear_msgs(&mut msgs);
-
-    all_pools
-        .get_last_created_sound_source()
-        .expect("Id should have been recorded")
-        .clone()
-}
-*/
-
 #[cfg(test)]
 mod tests {
-    use crate::midi::Midi;
+    use crate::sound_sample::SoundSample;
     use crate::sound_sample::SoundSampleI32;
+    use crate::sound_source_id::SoundSourceId;
+    use crate::sound_source_msgs::SoundSourceMsgs;
+    use crate::sound_sources::SoundSources;
     use crate::sound_sources_impl::SoundSourcesImpl;
 
     #[test]
     fn basic_midi_test() {
-        let mut _all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
+        let mut new_msgs = SoundSourceMsgs::default();
+        let midi_id = SoundSourceId::get_midi_id();
 
-        let mut _test_idi =
-            Midi::<SoundSampleI32, 24000>::new(include_bytes!("../assets/twinkle.mid"));
+        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
+        all_pools.update(&mut new_msgs);
+        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
+        all_pools.update(&mut new_msgs);
     }
 }
