@@ -93,7 +93,7 @@ impl<
             NUM_ADSRS,
             { SoundSourceType::Adsr as usize },
         >::new();
-        let top_pool = GenericSoundPool::<
+        let mut top_pool = GenericSoundPool::<
             'a,
             SAMPLE,
             PLAY_FREQUENCY,
@@ -109,7 +109,7 @@ impl<
             NUM_AMP_MIXERS,
             { SoundSourceType::AmpMixer as usize },
         >::new();
-        let midi = GenericSoundPool::<
+        let mut midi = GenericSoundPool::<
             'a,
             SAMPLE,
             PLAY_FREQUENCY,
@@ -117,6 +117,10 @@ impl<
             1,
             { SoundSourceType::Midi as usize },
         >::new();
+
+        midi.pool_alloc();
+        top_pool.pool_alloc();
+
         let top_id = SoundSourceId::get_top_id();
 
         Self {
@@ -246,6 +250,7 @@ impl<
         self.oscillator_pool.update(new_msgs);
         self.adsr_pool.update(new_msgs);
         self.midi.update(new_msgs);
+        self.process_and_clear_msgs(new_msgs);
     }
 
     fn alloc(self: &mut Self, sound_source_type: SoundSourceType) -> SoundSourceId {

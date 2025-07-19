@@ -71,7 +71,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
                 ));
             }
             midly::MidiMessage::NoteOff { key: _, vel: _ } => {}
-            _ => todo!(),
+            _ => {}
         }
     }
 
@@ -81,7 +81,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
                 message,
                 channel: _,
             } => Self::handle_midi_event(&message, new_msgs),
-            _ => todo!(),
+            _ => {}
         }
     }
 
@@ -152,6 +152,7 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         if msg.key == SoundSourceKey::SoundSourceCreated {
+            panic!("TODO - This message needs to go off and isn't");
             self.note_0 = Some(msg.src_id.clone());
         }
     }

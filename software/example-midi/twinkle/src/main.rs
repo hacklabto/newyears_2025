@@ -8,6 +8,7 @@ use midi_nostd::adsr::create_adsr;
 use midi_nostd::amp_mixer::create_amp_mixer;
 use midi_nostd::sound_sample::SoundSample;
 use midi_nostd::sound_sample::SoundScale;
+use midi_nostd::sound_source_id::SoundSourceId;
 use midi_nostd::sound_source_msgs::SoundSourceAdsrInit;
 use midi_nostd::sound_source_msgs::SoundSourceAmpMixerInit;
 use midi_nostd::sound_source_msgs::SoundSourceKey;
@@ -107,7 +108,7 @@ fn run() -> Result<(), pa::Error> {
         let mut new_msgs = midi_nostd::sound_source_msgs::SoundSourceMsgs::default();
         for _ in 0..frames {
             all_pools.update(&mut new_msgs);
-            let current = all_pools.get_next(&amp_id);
+            let current = all_pools.get_next(&SoundSourceId::get_midi_id());
             let converted: f32 = (((current.to_u16() as i32) - 32768) as f32) / 32768.0;
             buffer[idx] = converted; //sine[left_phase];
             buffer[idx + 1] = converted; // = sine[right_phase];
@@ -125,7 +126,7 @@ fn run() -> Result<(), pa::Error> {
                 let mut msgs = SoundSourceMsgs::default();
                 msgs.append(SoundSourceMsg::new(
                     adsr_id.clone(),
-                    all_pools.get_top_id(),
+                    SoundSourceId::get_top_id(),
                     SoundSourceKey::ReleaseAdsr,
                     SoundSourceValue::default(),
                 ));
