@@ -125,4 +125,7 @@ impl SoundSourceId {
             _ => panic!("ID only exists if the enum is real"),
         }
     }
+    pub fn get_top_id() -> Self {
+        Self::new(SoundSourceType::Top, 0)
+    }
 }

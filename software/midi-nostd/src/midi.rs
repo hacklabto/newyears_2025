@@ -1,12 +1,14 @@
+use crate::midi_notes::midi_note_to_freq;
 use crate::sound_sample::SoundSample;
-//use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
-//use crate::sound_source_msgs::SoundSourceAmpMixerInit;
-//use crate::sound_source_msgs::SoundSourceKey;
+use crate::sound_source_id::SoundSourceType;
+use crate::sound_source_msgs::OscillatorType;
+use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
-//use crate::sound_source_msgs::SoundSourceValue;
+use crate::sound_source_msgs::SoundSourceOscillatorInit;
+use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
 //use core::slice;
@@ -55,9 +57,20 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
         self.current_event_idx += 1;
     }
 
-    pub fn handle_midi_event(midi_event: &midly::MidiMessage, _new_msgs: &mut SoundSourceMsgs) {
+    pub fn handle_midi_event(midi_event: &midly::MidiMessage, new_msgs: &mut SoundSourceMsgs) {
         match midi_event {
-            midly::MidiMessage::NoteOn { key: _, vel: _ } => {}
+            midly::MidiMessage::NoteOn { key, vel: _ } => {
+                let frequency = midi_note_to_freq((*key).into());
+
+                let oscilator_properties =
+                    SoundSourceOscillatorInit::new(OscillatorType::Sine, frequency, 100, 100);
+                new_msgs.append(SoundSourceMsg::new(
+                    SoundSourceId::get_top_id(),
+                    SoundSourceId::new(SoundSourceType::Midi, 0),
+                    SoundSourceKey::InitOscillator,
+                    SoundSourceValue::new_oscillator_init(oscilator_properties),
+                ));
+            }
             midly::MidiMessage::NoteOff { key: _, vel: _ } => {}
             _ => todo!(),
         }

@@ -245,6 +245,7 @@ impl<
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
         self.oscillator_pool.update(new_msgs);
         self.adsr_pool.update(new_msgs);
+        self.midi.update(new_msgs);
     }
 
     fn alloc(self: &mut Self, sound_source_type: SoundSourceType) -> SoundSourceId {
