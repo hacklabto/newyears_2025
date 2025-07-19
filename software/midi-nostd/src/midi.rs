@@ -14,6 +14,7 @@ use midly::Smf;
 
 #[allow(unused)]
 pub struct MidiTrack<T: SoundSample, const PLAY_FREQUENCY: u32> {
+    active: bool,
     time: u32,
     next_event: u32,
     next_idx: usize,
@@ -23,15 +24,32 @@ pub struct MidiTrack<T: SoundSample, const PLAY_FREQUENCY: u32> {
 }
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
-    pub fn new() -> Self {
+    pub fn new<'a>(events: &'a midly::Track<'a>) -> Self {
+        let active = true;
         let time: u32 = 0;
         let next_event: u32 = 0;
         let next_idx: usize = 0;
-        Self {
+        let mut return_value = Self {
+            active,
             time,
             next_event,
             next_idx,
             _marker: PhantomData {},
+        };
+        return_value.ready_next_event(events);
+        return_value
+    }
+    fn has_next(self: &Self) -> bool {
+        self.active
+    }
+
+    pub fn ready_next_event<'a>(self: &mut Self, events: &'a midly::Track<'a>) {
+        if !self.active {
+            return;
+        }
+        if self.next_idx >= events.len() {
+            self.active = false;
+            return;
         }
     }
 
@@ -40,28 +58,11 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
         events: &'a midly::Track<'a>,
         _new_msgs: &mut SoundSourceMsgs,
     ) {
+        if !self.active {
+            return;
+        }
         let _current_event = events[self.next_idx];
     }
-
-    /*
-    pub fn new(track: midly::Track) -> Self {
-        let time: u32 = 0;
-        let mut track_iter = track.iter();
-        let current_event = track_iter.next();
-        let next_event: u32 = if current_event.is_some() {
-            let delta_u32: u32 = current_event.unwrap().delta.into();
-            time + delta_u32
-        } else {
-            0
-        };
-        Self {
-            time,
-            next_event,
-            track_iter,
-            current_event,
-            _marker: PhantomData {},
-        }
-    }*/
 }
 
 pub struct MidiReal<'a, T: SoundSample, const PLAY_FREQUENCY: u32> {
@@ -74,7 +75,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiReal<'_, T, PLAY_FREQUENCY> 
     pub fn new(midi_bytes: &'static [u8]) -> Self {
         let smf = midly::Smf::parse(midi_bytes)
             .expect("It's inlined data, so it better work, gosh darn it");
-        let track = MidiTrack::new();
+        let track = MidiTrack::new(&smf.tracks[0]);
         Self {
             smf,
             track,
@@ -91,8 +92,8 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
         T::max()
     }
 
-    fn has_next(self: &Self, all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
-        true
+    fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
+        self.track.has_next()
     }
 
     fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {
