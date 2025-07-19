@@ -1,7 +1,7 @@
 use crate::sound_sample::SoundSample;
 //use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
-//use crate::sound_source_id::SoundSourceId;
+use crate::sound_source_id::SoundSourceId;
 //use crate::sound_source_msgs::SoundSourceAmpMixerInit;
 //use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
@@ -15,59 +15,89 @@ use midly::Smf;
 #[allow(unused)]
 pub struct MidiTrack<T: SoundSample, const PLAY_FREQUENCY: u32> {
     active: bool,
-    time: u32,
-    next_event: u32,
-    next_idx: usize,
-    //track_iter: slice::Iter<'a, midly::TrackEvent<'a>>,
-    //current_event: Option<&'a midly::TrackEvent<'a>>,
+    current_event_idx: usize,
+    current_time: u32,
+    next_event_time: u32,
     _marker: PhantomData<T>,
 }
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
     pub fn new<'a>(events: &'a midly::Track<'a>) -> Self {
-        let active = true;
-        let time: u32 = 0;
-        let next_event: u32 = 0;
-        let next_idx: usize = 0;
-        let mut return_value = Self {
-            active,
-            time,
-            next_event,
-            next_idx,
-            _marker: PhantomData {},
+        let active = events.len() != 0;
+        let current_event_idx: usize = 0;
+        let current_time: u32 = 0;
+        let next_event_time: u32 = if active {
+            events[current_event_idx].delta.into()
+        } else {
+            0
         };
-        return_value.ready_next_event(events);
-        return_value
+
+        Self {
+            active,
+            current_event_idx,
+            current_time,
+            next_event_time,
+            _marker: PhantomData {},
+        }
     }
     fn has_next(self: &Self) -> bool {
         self.active
     }
 
-    pub fn ready_next_event<'a>(self: &mut Self, events: &'a midly::Track<'a>) {
+    pub fn go_to_next_event<'a>(self: &mut Self, events: &'a midly::Track<'a>) {
         if !self.active {
             return;
         }
-        if self.next_idx >= events.len() {
+        if self.current_event_idx >= events.len() {
             self.active = false;
             return;
+        }
+        self.current_event_idx += 1;
+    }
+
+    pub fn handle_midi_event(midi_event: &midly::MidiMessage, _new_msgs: &mut SoundSourceMsgs) {
+        match midi_event {
+            midly::MidiMessage::NoteOn { key: _, vel: _ } => {}
+            midly::MidiMessage::NoteOff { key: _, vel: _ } => {}
+            _ => todo!(),
+        }
+    }
+
+    pub fn handle_track_event(track_event: &midly::TrackEventKind, new_msgs: &mut SoundSourceMsgs) {
+        match track_event {
+            midly::TrackEventKind::Midi {
+                message,
+                channel: _,
+            } => Self::handle_midi_event(&message, new_msgs),
+            _ => todo!(),
         }
     }
 
     pub fn update<'a>(
         self: &mut Self,
         events: &'a midly::Track<'a>,
-        _new_msgs: &mut SoundSourceMsgs,
+        new_msgs: &mut SoundSourceMsgs,
     ) {
         if !self.active {
             return;
         }
-        let _current_event = events[self.next_idx];
+        while self.current_time == self.next_event_time {
+            Self::handle_track_event(&(events[self.current_event_idx]).kind, new_msgs);
+            self.go_to_next_event(events);
+            if !self.active {
+                return;
+            }
+            let delta: u32 = events[self.current_event_idx].delta.into();
+            self.next_event_time = self.current_time + delta;
+        }
     }
 }
 
 pub struct MidiReal<'a, T: SoundSample, const PLAY_FREQUENCY: u32> {
     smf: Smf<'a>,
     track: MidiTrack<T, PLAY_FREQUENCY>,
+    note_0: Option<SoundSourceId>,
+    note_1: Option<SoundSourceId>,
     _marker: PhantomData<T>,
 }
 
@@ -79,6 +109,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiReal<'_, T, PLAY_FREQUENCY> 
         Self {
             smf,
             track,
+            note_0: None,
+            note_1: None,
             _marker: PhantomData {},
         }
     }
@@ -89,7 +121,13 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
     for MidiReal<'a, T, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
-        T::max()
+        if self.note_0.is_some() {
+            all_sources.get_next(&self.note_0.unwrap())
+        } else if self.note_1.is_some() {
+            all_sources.get_next(&self.note_1.unwrap())
+        } else {
+            T::new(0x8000)
+        }
     }
 
     fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
