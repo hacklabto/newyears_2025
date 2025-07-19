@@ -117,7 +117,7 @@ impl<
             1,
             { SoundSourceType::Midi as usize },
         >::new();
-        let top_id = Self::create_top_id();
+        let top_id = SoundSourceId::get_top_id();
 
         Self {
             oscillator_pool,
@@ -181,7 +181,7 @@ impl<
 
             let oscilator_init_msg = SoundSourceMsg::new(
                 oscillator_id,
-                self.get_top_id(),
+                SoundSourceId::get_top_id(),
                 msg.key.clone(),
                 msg.value.clone(),
             );
@@ -192,7 +192,7 @@ impl<
 
             let adsr_init_msg = SoundSourceMsg::new(
                 adsr_id,
-                self.get_top_id(),
+                SoundSourceId::get_top_id(),
                 msg.key.clone(),
                 msg.value.clone(),
             );
@@ -203,7 +203,7 @@ impl<
 
             let amp_mixer_init_msg = SoundSourceMsg::new(
                 amp_mixer_id,
-                self.get_top_id(),
+                SoundSourceId::get_top_id(),
                 msg.key.clone(),
                 msg.value.clone(),
             );
@@ -280,20 +280,5 @@ impl<
     }
     fn get_last_created_sound_source(self: &Self) -> Option<SoundSourceId> {
         return self.top_pool.get_pool_entry(0).get_creation_id();
-    }
-    fn get_top_id(self: &Self) -> SoundSourceId {
-        return self.top_id.clone();
-    }
-}
-impl<
-        SAMPLE: SoundSample,
-        const PLAY_FREQUENCY: u32,
-        const NUM_OSCILATORS: usize,
-        const NUM_ADSRS: usize,
-        const NUM_AMP_MIXERS: usize,
-    > SoundSourcesImpl<'_, SAMPLE, PLAY_FREQUENCY, NUM_OSCILATORS, NUM_ADSRS, NUM_AMP_MIXERS>
-{
-    fn create_top_id() -> SoundSourceId {
-        return SoundSourceId::new(SoundSourceType::Top, 0);
     }
 }

@@ -10,6 +10,5 @@ pub trait SoundSources<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
     fn has_next(self: &Self, id: &SoundSourceId) -> bool;
     fn get_next(self: &Self, id: &SoundSourceId) -> SAMPLE;
     fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs);
-    fn get_top_id(self: &Self) -> SoundSourceId;
     fn get_last_created_sound_source(self: &Self) -> Option<SoundSourceId>;
 }

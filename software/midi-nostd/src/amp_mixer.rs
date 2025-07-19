@@ -82,8 +82,8 @@ pub fn create_amp_mixer(
 ) -> SoundSourceId {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
-        all_pools.get_top_id(),
-        all_pools.get_top_id(),
+        SoundSourceId::get_top_id(),
+        SoundSourceId::get_top_id(),
         SoundSourceKey::InitAmpMixer,
         SoundSourceValue::new_amp_mixer_init(amp_mixer_properties),
     ));
@@ -170,7 +170,7 @@ mod tests {
         let mut msgs = SoundSourceMsgs::default();
         msgs.append(SoundSourceMsg::new(
             adsr_id.clone(),
-            all_pools.get_top_id(),
+            SoundSourceId::get_top_id(),
             SoundSourceKey::ReleaseAdsr,
             SoundSourceValue::default(),
         ));

@@ -201,8 +201,8 @@ pub fn create_oscillator(
 ) -> SoundSourceId {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
-        all_pools.get_top_id(),
-        all_pools.get_top_id(),
+        SoundSourceId::get_top_id(),
+        SoundSourceId::get_top_id(),
         SoundSourceKey::InitOscillator,
         SoundSourceValue::new_oscillator_init(oscilator_properties),
     ));
