@@ -109,7 +109,7 @@ impl<
             NUM_AMP_MIXERS,
             { SoundSourceType::AmpMixer as usize },
         >::new();
-        let mut midi = GenericSoundPool::<
+        let midi = GenericSoundPool::<
             'a,
             SAMPLE,
             PLAY_FREQUENCY,
@@ -118,7 +118,6 @@ impl<
             { SoundSourceType::Midi as usize },
         >::new();
 
-        midi.pool_alloc();
         top_pool.pool_alloc();
 
         let top_id = SoundSourceId::get_top_id();
@@ -185,7 +184,7 @@ impl<
 
             let oscilator_init_msg = SoundSourceMsg::new(
                 oscillator_id,
-                SoundSourceId::get_top_id(),
+                msg.src_id.clone(),
                 msg.key.clone(),
                 msg.value.clone(),
             );

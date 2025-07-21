@@ -9,6 +9,7 @@ use midi_nostd::amp_mixer::create_amp_mixer;
 use midi_nostd::sound_sample::SoundSample;
 use midi_nostd::sound_sample::SoundScale;
 use midi_nostd::sound_source_id::SoundSourceId;
+use midi_nostd::sound_source_id::SoundSourceType;
 use midi_nostd::sound_source_msgs::SoundSourceAdsrInit;
 use midi_nostd::sound_source_msgs::SoundSourceAmpMixerInit;
 use midi_nostd::sound_source_msgs::SoundSourceKey;
@@ -22,7 +23,7 @@ use midly::Smf;
 use portaudio as pa;
 
 const CHANNELS: i32 = 2;
-const NUM_SECONDS: i32 = 5;
+const NUM_SECONDS: i32 = 13;
 const SAMPLE_RATE: f64 = 24_000.0;
 const FRAMES_PER_BUFFER: u32 = 64;
 const TABLE_SIZE: usize = 200;
@@ -58,7 +59,7 @@ fn run() -> Result<(), pa::Error> {
     let mut all_pools = midi_nostd::sound_sources_impl::SoundSourcesImpl::<
         midi_nostd::sound_sample::SoundSampleI32,
         24000,
-        32,
+        1024,
         32,
         32,
     >::default();
@@ -87,6 +88,7 @@ fn run() -> Result<(), pa::Error> {
         &mut all_pools,
         SoundSourceAmpMixerInit::new(wave_id, adsr_id),
     );
+    let midi_id = all_pools.alloc(SoundSourceType::Midi);
 
     // Initialise sinusoidal wavetable.
     let mut left_phase = 0;
@@ -108,7 +110,7 @@ fn run() -> Result<(), pa::Error> {
         let mut new_msgs = midi_nostd::sound_source_msgs::SoundSourceMsgs::default();
         for _ in 0..frames {
             all_pools.update(&mut new_msgs);
-            let current = all_pools.get_next(&SoundSourceId::get_midi_id());
+            let current = all_pools.get_next(&midi_id);
             let converted: f32 = (((current.to_u16() as i32) - 32768) as f32) / 32768.0;
             buffer[idx] = converted; //sine[left_phase];
             buffer[idx + 1] = converted; // = sine[right_phase];

@@ -18,6 +18,7 @@ pub struct MidiTrack<T: SoundSample, const PLAY_FREQUENCY: u32> {
     active: bool,
     current_event_idx: usize,
     current_time: u32,
+    current_remainder: u32,
     next_event_time: u32,
     _marker: PhantomData<T>,
 }
@@ -27,6 +28,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
         let active = events.len() != 0;
         let current_event_idx: usize = 0;
         let current_time: u32 = 0;
+        let current_remainder: u32 = 0;
         let next_event_time: u32 = if active {
             events[current_event_idx].delta.into()
         } else {
@@ -37,6 +39,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
             active,
             current_event_idx,
             current_time,
+            current_remainder,
             next_event_time,
             _marker: PhantomData {},
         }
@@ -49,11 +52,11 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
         if !self.active {
             return;
         }
+        self.current_event_idx += 1;
         if self.current_event_idx >= events.len() {
             self.active = false;
             return;
         }
-        self.current_event_idx += 1;
     }
 
     pub fn handle_midi_event(midi_event: &midly::MidiMessage, new_msgs: &mut SoundSourceMsgs) {
@@ -101,6 +104,11 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
             }
             let delta: u32 = events[self.current_event_idx].delta.into();
             self.next_event_time = self.current_time + delta;
+        }
+        self.current_remainder = self.current_remainder + 1;
+        // TODO, adjust properly.
+        if (self.current_remainder) & 7 == 0 {
+            self.current_time = self.current_time + 1;
         }
     }
 }
@@ -152,7 +160,7 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         if msg.key == SoundSourceKey::SoundSourceCreated {
-            panic!("TODO - This message needs to go off and isn't");
+            //panic!("TODO - This message needs to go off and isn't");
             self.note_0 = Some(msg.src_id.clone());
         }
     }
@@ -208,7 +216,7 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
 mod tests {
     use crate::sound_sample::SoundSample;
     use crate::sound_sample::SoundSampleI32;
-    use crate::sound_source_id::SoundSourceId;
+    use crate::sound_source_id::SoundSourceType;
     use crate::sound_source_msgs::SoundSourceMsgs;
     use crate::sound_sources::SoundSources;
     use crate::sound_sources_impl::SoundSourcesImpl;
@@ -217,15 +225,15 @@ mod tests {
     fn basic_midi_test() {
         let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
         let mut new_msgs = SoundSourceMsgs::default();
-        let midi_id = SoundSourceId::get_midi_id();
+        let midi_id = all_pools.alloc(SoundSourceType::Midi);
 
         assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
         assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(34977, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(37177, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
     }
 }
