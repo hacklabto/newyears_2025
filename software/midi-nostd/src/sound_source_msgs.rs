@@ -108,9 +108,6 @@ pub struct SoundSourceAmpAdderInit {}
 #[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
-    U32Type {
-        num: u32,
-    },
     U8Type {
         num: u8,
     },
@@ -130,9 +127,6 @@ pub enum SoundSourceValue {
 }
 
 impl SoundSourceValue {
-    pub fn new_u32(num: u32) -> Self {
-        SoundSourceValue::U32Type { num }
-    }
     pub fn new_u8(num: u8) -> Self {
         SoundSourceValue::U8Type { num }
     }
@@ -152,12 +146,6 @@ impl SoundSourceValue {
         SoundSourceValue::CreatedId { created_id }
     }
 
-    pub fn get_u32(self: &Self) -> u32 {
-        match self {
-            SoundSourceValue::U32Type { num } => *num,
-            _ => panic!("This isn't a u32"),
-        }
-    }
     pub fn get_u8(self: &Self) -> u8 {
         match self {
             SoundSourceValue::U8Type { num } => *num,
@@ -282,13 +270,13 @@ mod tests {
             SoundSourceId::new(SoundSourceType::Oscillator, 5),
             SoundSourceId::new(SoundSourceType::Oscillator, 3),
             SoundSourceKey::InitOscillator,
-            SoundSourceValue::new_u32(2600),
+            SoundSourceValue::new_u8(20),
         );
         let m1 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::Adsr, 3),
             SoundSourceId::new(SoundSourceType::Adsr, 5),
             SoundSourceKey::InitOscillator,
-            SoundSourceValue::new_u32(100),
+            SoundSourceValue::new_u8(100),
         );
         messages.append(m0.clone());
         messages.append(m1.clone());
