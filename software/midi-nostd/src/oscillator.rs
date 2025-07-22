@@ -4,13 +4,11 @@ use crate::sound_sample::SoundSampleI32;
 use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::OscillatorType;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceOscillatorInit;
 use crate::sound_source_msgs::SoundSourceValue;
-use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
 use crate::wave_tables::SAWTOOTH_WAVE;
 use crate::wave_tables::SINE_WAVE;
@@ -24,21 +22,18 @@ use core::marker::PhantomData;
 const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
     [&TRIANGLE_WAVE, &SAWTOOTH_WAVE, &SINE_WAVE, &SQUARE_WAVE];
 
-///
-/// Wave source generic for a sample type and frequency
-///
-pub struct GenericOscillator<T: SoundSample, const PLAY_FREQUENCY: u32> {
-    volume: SoundScale,
-    oscillator_type: OscillatorType,
-    pulse_width_cutoff: u32,
-    table_idx: u32,
-    table_remainder: u32,
-    table_idx_inc: u32,
-    table_remainder_inc: u32,
+pub struct CoreOscillator<T: SoundSample, const PLAY_FREQUENCY: u32> {
+    pub volume: SoundScale,
+    pub oscillator_type: OscillatorType,
+    pub pulse_width_cutoff: u32,
+    pub table_idx: u32,
+    pub table_remainder: u32,
+    pub table_idx_inc: u32,
+    pub table_remainder_inc: u32,
     _marker: PhantomData<T>,
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericOscillator<T, PLAY_FREQUENCY> {
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for CoreOscillator<T, PLAY_FREQUENCY> {
     fn default() -> Self {
         let volume = SoundScale::new_percent(100); // full volume
         let oscillator_type = OscillatorType::PulseWidth;
@@ -61,29 +56,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericOscillator<T,
     }
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericOscillator<T, PLAY_FREQUENCY> {
-    pub fn init(self: &mut Self, oscillator_type: OscillatorType, arg_sound_frequency: u32) {
-        let volume = SoundScale::new_percent(100); // full volume
-        let pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 / 2; // 50% duty cycle by default
-                                                               // I want (arg_sound_frequency * WAVE_TABLE_SIZE) / (FREQUNCY_MULTIPLIER * PLAY_FREQUENCY);
-        let inc_numerator: u32 = arg_sound_frequency * WAVE_TABLE_SIZE_U32;
-        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
-        let table_idx_inc: u32 = inc_numerator / inc_denominator;
-        let table_remainder_inc: u32 = inc_numerator % inc_denominator;
-        let table_idx: u32 = 0;
-        let table_remainder: u32 = inc_denominator / 2;
-        *self = Self {
-            volume,
-            oscillator_type,
-            pulse_width_cutoff,
-            table_idx,
-            table_remainder,
-            table_idx_inc,
-            table_remainder_inc,
-            _marker: PhantomData {},
-        }
-    }
-
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> CoreOscillator<T, PLAY_FREQUENCY> {
     // Read sample from table that has the wave's amplitude values
     //
     // The basic idea of this function is that we're going through the table
@@ -105,7 +78,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericOscillator<T, PLAY_FREQUE
     // function exits.
     //
 
-    fn update_table_index(&mut self) {
+    fn update(&mut self) {
         // Update table position and fractional value
         //
         self.table_idx += self.table_idx_inc;
@@ -137,17 +110,64 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericOscillator<T, PLAY_FREQUE
         rval.scale(self.volume);
         rval
     }
+
+    fn get_next(self: &Self) -> T {
+        if self.oscillator_type == OscillatorType::PulseWidth {
+            self.get_next_pulse_entry()
+        } else {
+            self.get_next_table(ALL_WAVE_TABLES[self.oscillator_type as usize])
+        }
+    }
+}
+
+///
+/// Wave source generic for a sample type and frequency
+///
+pub struct GenericOscillator<T: SoundSample, const PLAY_FREQUENCY: u32> {
+    core: CoreOscillator<T, PLAY_FREQUENCY>,
+}
+
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericOscillator<T, PLAY_FREQUENCY> {
+    fn default() -> Self {
+        return Self {
+            core: CoreOscillator::<T, PLAY_FREQUENCY>::default(),
+        };
+    }
+}
+
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericOscillator<T, PLAY_FREQUENCY> {
+    /*
+     * TODO, MOVE THIS
+     *
+    pub fn init(self: &mut Self, oscillator_type: OscillatorType, arg_sound_frequency: u32) {
+        let volume = SoundScale::new_percent(100); // full volume
+        let pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 / 2; // 50% duty cycle by default
+                                                               // I want (arg_sound_frequency * WAVE_TABLE_SIZE) / (FREQUNCY_MULTIPLIER * PLAY_FREQUENCY);
+        let inc_numerator: u32 = arg_sound_frequency * WAVE_TABLE_SIZE_U32;
+        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
+        let table_idx_inc: u32 = inc_numerator / inc_denominator;
+        let table_remainder_inc: u32 = inc_numerator % inc_denominator;
+        let table_idx: u32 = 0;
+        let table_remainder: u32 = inc_denominator / 2;
+        *self = Self {
+            volume,
+            oscillator_type,
+            pulse_width_cutoff,
+            table_idx,
+            table_remainder,
+            table_idx_inc,
+            table_remainder_inc,
+            _marker: PhantomData {},
+        }
+    }
+    */
 }
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENCY>
     for GenericOscillator<T, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
-        if self.oscillator_type == OscillatorType::PulseWidth {
-            self.get_next_pulse_entry()
-        } else {
-            self.get_next_table(ALL_WAVE_TABLES[self.oscillator_type as usize])
-        }
+        self.core.get_next()
     }
 
     fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
@@ -155,7 +175,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
     }
 
     fn update(&mut self, _new_msgs: &mut SoundSourceMsgs) {
-        self.update_table_index();
+        self.core.update();
     }
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
@@ -167,11 +187,11 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
                     WAVE_TABLE_SIZE_U32 * (init_values.pulse_width as u32) / 100;
                 let volume = SoundScale::new_percent(init_values.volume);
 
-                self.table_idx_inc = inc_numerator / inc_denominator;
-                self.table_remainder_inc = inc_numerator % inc_denominator;
-                self.oscillator_type = init_values.oscillator_type;
-                self.pulse_width_cutoff = new_pulse_width_cutoff;
-                self.volume = volume;
+                self.core.table_idx_inc = inc_numerator / inc_denominator;
+                self.core.table_remainder_inc = inc_numerator % inc_denominator;
+                self.core.oscillator_type = init_values.oscillator_type;
+                self.core.pulse_width_cutoff = new_pulse_width_cutoff;
+                self.core.volume = volume;
 
                 let creation_msg = SoundSourceMsg::new(
                     msg.src_id.clone(),
@@ -184,16 +204,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
         }
     }
 }
-
-type Oscillator = GenericOscillator<SoundSampleI32, 24000>;
-pub type WavePool<'a> = GenericSoundPool<
-    'a,
-    SoundSampleI32,
-    24000,
-    Oscillator,
-    3,
-    { SoundSourceType::Oscillator as usize },
->;
 
 pub fn create_oscillator(
     all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
