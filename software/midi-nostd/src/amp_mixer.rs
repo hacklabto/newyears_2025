@@ -1,3 +1,5 @@
+use crate::adsr::CoreAdsr;
+use crate::oscillator::CoreOscillator;
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
@@ -73,8 +75,16 @@ impl<
     }
 }
 
+type OscilatorAdsrCore<'a, T, const PLAY_FREQUENCY: u32> = AmpMixerCore<
+    'a,
+    T,
+    PLAY_FREQUENCY,
+    CoreOscillator<T, PLAY_FREQUENCY>,
+    CoreAdsr<T, PLAY_FREQUENCY>,
+>;
+
 ///
-/// Amp Mixer
+/// Amp Mixer.  Now sort of a proof of concept.
 ///
 pub struct AmpMixer<T: SoundSample, const PLAY_FREQUENCY: u32> {
     source_0: SoundSourceId,
