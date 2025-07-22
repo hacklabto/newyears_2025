@@ -1,9 +1,9 @@
 use crate::sound_sample::SoundSample;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
+use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
 
@@ -48,8 +48,11 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
     fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {}
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        if msg.key == SoundSourceKey::SoundSourceCreated {
-            self.creation_id = Some(msg.src_id.clone());
+        match &msg.value {
+            SoundSourceValue::SoundSourceCreated {} => {
+                self.creation_id = Some(msg.src_id.clone());
+            }
+            _ => todo!(),
         }
     }
 }

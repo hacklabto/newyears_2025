@@ -5,7 +5,6 @@ use crate::sound_source_id::SoundSourceId;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SoundSourceKey {
     Refactored,
-    SoundSourceCreated,
 }
 
 /// Different Wave Types
@@ -118,6 +117,7 @@ pub enum SoundSourceValue {
     },
     AmpAdderInit {},
     ReleaseAdsr,
+    SoundSourceCreated,
     CreatedId {
         created_id: SoundSourceId,
     },

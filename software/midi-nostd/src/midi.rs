@@ -160,9 +160,11 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
     }
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        if msg.key == SoundSourceKey::SoundSourceCreated {
-            //panic!("TODO - This message needs to go off and isn't");
-            self.note_0 = Some(msg.src_id.clone());
+        match &msg.value {
+            SoundSourceValue::SoundSourceCreated => {
+                self.note_0 = Some(msg.src_id.clone());
+            }
+            _ => todo!(),
         }
     }
 }

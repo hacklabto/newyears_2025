@@ -67,8 +67,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
                 let creation_msg = SoundSourceMsg::new(
                     msg.src_id.clone(),
                     msg.dest_id.clone(),
-                    SoundSourceKey::SoundSourceCreated,
-                    SoundSourceValue::default(),
+                    SoundSourceKey::Refactored,
+                    SoundSourceValue::SoundSourceCreated,
                 );
                 new_msgs.append(creation_msg);
             }
