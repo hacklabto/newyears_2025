@@ -1,6 +1,7 @@
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
+use crate::sound_source_core::SoundSourceCore;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::SoundSourceAmpMixerInit;
 use crate::sound_source_msgs::SoundSourceMsg;
@@ -8,6 +9,69 @@ use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
+
+pub struct AmpMixerCore<
+    'a,
+    T: SoundSample,
+    const PLAY_FREQUENCY: u32,
+    MixSource0: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
+    MixSource1: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
+> {
+    pub source_0: MixSource0,
+    pub source_1: MixSource1,
+    _marker: PhantomData<T>,
+    _lifetime_marker: PhantomData<&'a ()>,
+}
+
+impl<
+        'a,
+        T: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        MixSource0: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
+        MixSource1: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
+    > Default for AmpMixerCore<'a, T, PLAY_FREQUENCY, MixSource0, MixSource1>
+{
+    fn default() -> Self {
+        return Self {
+            source_0: MixSource0::default(),
+            source_1: MixSource1::default(),
+            _marker: PhantomData {},
+            _lifetime_marker: PhantomData {},
+        };
+    }
+}
+
+impl<
+        'a,
+        T: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        MixSource0: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
+        MixSource1: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
+    > SoundSourceCore<'a, T, PLAY_FREQUENCY>
+    for AmpMixerCore<'a, T, PLAY_FREQUENCY, MixSource0, MixSource1>
+{
+    fn get_next(self: &Self) -> T {
+        let sample_0 = self.source_0.get_next();
+        let sample_1 = self.source_1.get_next();
+
+        let sample_0i = (sample_0.to_u16() as i32) - 0x8000;
+        let sample_1i = (sample_1.to_u16() as i32) - 0x8000;
+
+        let out_i = ((sample_0i >> 1) * (sample_1i >> 1)) >> 14;
+        let out: u16 = (out_i + 0x8000) as u16;
+
+        T::new(out)
+    }
+
+    fn has_next(self: &Self) -> bool {
+        self.source_0.has_next() && self.source_1.has_next()
+    }
+
+    fn update(&mut self) {
+        self.source_0.update();
+        self.source_1.update();
+    }
+}
 
 ///
 /// Amp Mixer

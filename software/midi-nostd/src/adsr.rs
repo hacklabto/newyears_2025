@@ -2,8 +2,8 @@ use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
-use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_core::SoundSourceCore;
+use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::SoundSourceAdsrInit;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
@@ -20,8 +20,6 @@ pub enum AdsrState {
     Release,
     Ended,
 }
-
-
 
 ///
 /// ADSR envelope
@@ -115,9 +113,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSourceCore<'_, T, PLAY_FREQ
     }
 }
 
-
 pub struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
-    core: CoreAdsr<T, PLAY_FREQUENCY>
+    core: CoreAdsr<T, PLAY_FREQUENCY>,
 }
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for CoreAdsr<T, PLAY_FREQUENCY> {
@@ -145,7 +142,9 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for CoreAdsr<T, PLAY_FRE
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericAdsr<T, PLAY_FREQUENCY> {
     fn default() -> Self {
-        return Self{ core: CoreAdsr::default() }
+        return Self {
+            core: CoreAdsr::default(),
+        };
     }
 }
 
