@@ -205,7 +205,7 @@ pub fn create_oscillator(
     msgs.append(SoundSourceMsg::new(
         SoundSourceId::get_top_id(),
         SoundSourceId::get_top_id(),
-        SoundSourceKey::InitOscillator,
+        SoundSourceKey::Refactored,
         SoundSourceValue::OscillatorInit { init_values },
     ));
     all_pools.process_and_clear_msgs(&mut msgs);

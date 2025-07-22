@@ -179,7 +179,7 @@ pub fn create_adsr(
     msgs.append(SoundSourceMsg::new(
         SoundSourceId::get_top_id(),
         SoundSourceId::get_top_id(),
-        SoundSourceKey::InitAdsr,
+        SoundSourceKey::Refactored,
         SoundSourceValue::AdsrInit { init_values },
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
@@ -241,7 +241,7 @@ mod tests {
         msgs.append(SoundSourceMsg::new(
             adsr_id.clone(),
             SoundSourceId::get_top_id(),
-            SoundSourceKey::ReleaseAdsr,
+            SoundSourceKey::Refactored,
             SoundSourceValue::ReleaseAdsr,
         ));
         all_pools.process_and_clear_msgs(&mut msgs);

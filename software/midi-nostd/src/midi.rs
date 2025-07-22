@@ -70,7 +70,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
                 new_msgs.append(SoundSourceMsg::new(
                     SoundSourceId::get_top_id(),
                     SoundSourceId::get_midi_id(),
-                    SoundSourceKey::InitOscillator,
+                    SoundSourceKey::Refactored,
                     SoundSourceValue::OscillatorInit { init_values },
                 ));
             }

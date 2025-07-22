@@ -5,9 +5,6 @@ use crate::sound_source_id::SoundSourceId;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SoundSourceKey {
     Refactored,
-    InitOscillator,
-    InitAdsr,
-    ReleaseAdsr,
     SoundSourceCreated,
 }
 
@@ -172,7 +169,7 @@ impl Default for SoundSourceMsg {
     fn default() -> Self {
         let dest_id = SoundSourceId::default();
         let src_id = SoundSourceId::default();
-        let key = SoundSourceKey::InitOscillator;
+        let key = SoundSourceKey::Refactored;
         let value = SoundSourceValue::default();
         Self {
             src_id,
@@ -245,13 +242,13 @@ mod tests {
         let m0 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::Oscillator, 5),
             SoundSourceId::new(SoundSourceType::Oscillator, 3),
-            SoundSourceKey::InitOscillator,
+            SoundSourceKey::Refactored,
             SoundSourceValue::new_u8(20),
         );
         let m1 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::Adsr, 3),
             SoundSourceId::new(SoundSourceType::Adsr, 5),
-            SoundSourceKey::InitOscillator,
+            SoundSourceKey::Refactored,
             SoundSourceValue::new_u8(100),
         );
         messages.append(m0.clone());
