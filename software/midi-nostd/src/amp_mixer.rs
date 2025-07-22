@@ -77,13 +77,13 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
 
 pub fn create_amp_mixer(
     all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
-    amp_mixer_properties: SoundSourceAmpMixerInit,
+    init_values: SoundSourceAmpMixerInit,
 ) -> SoundSourceId {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
         SoundSourceId::get_top_id(),
         SoundSourceId::get_top_id(),
-        SoundSourceValue::new_amp_mixer_init(amp_mixer_properties),
+        SoundSourceValue::AmpMixerInit { init_values },
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
 

@@ -91,15 +91,9 @@ impl SoundSourceAmpMixerInit {
     }
 }
 
-#[derive(Clone, PartialEq, Debug, Default)]
-pub struct SoundSourceAmpAdderInit {}
-
 #[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
-    U8Type {
-        num: u8,
-    },
     OscillatorInit {
         init_values: SoundSourceOscillatorInit,
     },
@@ -109,40 +103,12 @@ pub enum SoundSourceValue {
     AmpMixerInit {
         init_values: SoundSourceAmpMixerInit,
     },
-    AmpAdderInit {},
+    AmpAdderInit,
     ReleaseAdsr,
     SoundSourceCreated,
     CreatedId {
         created_id: SoundSourceId,
     },
-}
-
-impl SoundSourceValue {
-    pub fn new_u8(num: u8) -> Self {
-        SoundSourceValue::U8Type { num }
-    }
-    pub fn new_amp_mixer_init(init_values: SoundSourceAmpMixerInit) -> Self {
-        SoundSourceValue::AmpMixerInit { init_values }
-    }
-    pub fn new_amp_adder_init() -> Self {
-        SoundSourceValue::AmpAdderInit {}
-    }
-    pub fn new_created_id(created_id: SoundSourceId) -> Self {
-        SoundSourceValue::CreatedId { created_id }
-    }
-
-    pub fn get_u8(self: &Self) -> u8 {
-        match self {
-            SoundSourceValue::U8Type { num } => *num,
-            _ => panic!("This isn't a u8"),
-        }
-    }
-    pub fn get_created_id(self: &Self) -> &SoundSourceId {
-        match self {
-            SoundSourceValue::CreatedId { created_id } => created_id,
-            _ => panic!("This isn't a wave type"),
-        }
-    }
 }
 
 impl Default for SoundSourceValue {
@@ -226,12 +192,12 @@ mod tests {
         let m0 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::Oscillator, 5),
             SoundSourceId::new(SoundSourceType::Oscillator, 3),
-            SoundSourceValue::new_u8(20),
+            SoundSourceValue::ReleaseAdsr,
         );
         let m1 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::Adsr, 3),
             SoundSourceId::new(SoundSourceType::Adsr, 5),
-            SoundSourceValue::new_u8(100),
+            SoundSourceValue::ReleaseAdsr,
         );
         messages.append(m0.clone());
         messages.append(m1.clone());
