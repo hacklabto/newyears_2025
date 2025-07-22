@@ -4,10 +4,9 @@ use crate::sound_source_id::SoundSourceId;
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SoundSourceKey {
+    Refactored,
     InitOscillator,
     InitAdsr,
-    InitAmpMixer,
-    InitAmpAdder,
     ReleaseAdsr,
     SoundSourceCreated,
 }
@@ -145,12 +144,6 @@ impl SoundSourceValue {
         match self {
             SoundSourceValue::U8Type { num } => *num,
             _ => panic!("This isn't a u8"),
-        }
-    }
-    pub fn get_amp_mixer_init(self: &Self) -> &SoundSourceAmpMixerInit {
-        match self {
-            SoundSourceValue::AmpMixerInit { init_values } => init_values,
-            _ => panic!("This isn't an amp mixer type"),
         }
     }
     pub fn get_created_id(self: &Self) -> &SoundSourceId {

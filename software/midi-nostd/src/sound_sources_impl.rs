@@ -5,9 +5,9 @@ use crate::oscillator::GenericOscillator;
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
-use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
+use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
@@ -179,41 +179,44 @@ impl<
         msg: &SoundSourceMsg,
         new_msgs: &mut SoundSourceMsgs,
     ) -> bool {
-        if msg.key == SoundSourceKey::InitOscillator {
-            let oscillator_id = self.alloc(SoundSourceType::Oscillator);
+        match &msg.value {
+            SoundSourceValue::OscillatorInit { init_values: _ } => {
+                let oscillator_id = self.alloc(SoundSourceType::Oscillator);
 
-            let oscilator_init_msg = SoundSourceMsg::new(
-                oscillator_id,
-                msg.src_id.clone(),
-                msg.key.clone(),
-                msg.value.clone(),
-            );
-            new_msgs.append(oscilator_init_msg);
-            true
-        } else if msg.key == SoundSourceKey::InitAdsr {
-            let adsr_id = self.alloc(SoundSourceType::Adsr);
+                let oscilator_init_msg = SoundSourceMsg::new(
+                    oscillator_id,
+                    msg.src_id.clone(),
+                    msg.key.clone(),
+                    msg.value.clone(),
+                );
+                new_msgs.append(oscilator_init_msg);
+                true
+            }
+            SoundSourceValue::AdsrInit { init_values: _ } => {
+                let adsr_id = self.alloc(SoundSourceType::Adsr);
 
-            let adsr_init_msg = SoundSourceMsg::new(
-                adsr_id,
-                SoundSourceId::get_top_id(),
-                msg.key.clone(),
-                msg.value.clone(),
-            );
-            new_msgs.append(adsr_init_msg);
-            true
-        } else if msg.key == SoundSourceKey::InitAmpMixer {
-            let amp_mixer_id = self.alloc(SoundSourceType::AmpMixer);
+                let adsr_init_msg = SoundSourceMsg::new(
+                    adsr_id,
+                    SoundSourceId::get_top_id(),
+                    msg.key.clone(),
+                    msg.value.clone(),
+                );
+                new_msgs.append(adsr_init_msg);
+                true
+            }
+            SoundSourceValue::AmpMixerInit { init_values: _ } => {
+                let amp_mixer_id = self.alloc(SoundSourceType::AmpMixer);
 
-            let amp_mixer_init_msg = SoundSourceMsg::new(
-                amp_mixer_id,
-                SoundSourceId::get_top_id(),
-                msg.key.clone(),
-                msg.value.clone(),
-            );
-            new_msgs.append(amp_mixer_init_msg);
-            true
-        } else {
-            false
+                let amp_mixer_init_msg = SoundSourceMsg::new(
+                    amp_mixer_id,
+                    SoundSourceId::get_top_id(),
+                    msg.key.clone(),
+                    msg.value.clone(),
+                );
+                new_msgs.append(amp_mixer_init_msg);
+                true
+            }
+            _ => false,
         }
     }
 

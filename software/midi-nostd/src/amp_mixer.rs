@@ -59,19 +59,20 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
     fn update(&mut self, _new_msgs: &mut SoundSourceMsgs) {}
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        if msg.key == SoundSourceKey::InitAmpMixer {
-            let init_vals = msg.value.get_amp_mixer_init();
+        match &msg.value {
+            SoundSourceValue::AmpMixerInit { init_values } => {
+                self.source_0 = init_values.source_0;
+                self.source_1 = init_values.source_1;
 
-            self.source_0 = init_vals.source_0;
-            self.source_1 = init_vals.source_1;
-
-            let creation_msg = SoundSourceMsg::new(
-                msg.src_id.clone(),
-                msg.dest_id.clone(),
-                SoundSourceKey::SoundSourceCreated,
-                SoundSourceValue::default(),
-            );
-            new_msgs.append(creation_msg);
+                let creation_msg = SoundSourceMsg::new(
+                    msg.src_id.clone(),
+                    msg.dest_id.clone(),
+                    SoundSourceKey::SoundSourceCreated,
+                    SoundSourceValue::default(),
+                );
+                new_msgs.append(creation_msg);
+            }
+            _ => todo!(),
         }
     }
 }
@@ -84,7 +85,7 @@ pub fn create_amp_mixer(
     msgs.append(SoundSourceMsg::new(
         SoundSourceId::get_top_id(),
         SoundSourceId::get_top_id(),
-        SoundSourceKey::InitAmpMixer,
+        SoundSourceKey::Refactored,
         SoundSourceValue::new_amp_mixer_init(amp_mixer_properties),
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
