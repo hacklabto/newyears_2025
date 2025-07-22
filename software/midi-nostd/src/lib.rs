@@ -1,6 +1,7 @@
 #![cfg_attr(not(test), no_std)]
 
 pub mod adsr;
+pub mod amp_adder;
 pub mod amp_mixer;
 mod free_list;
 pub mod midi;

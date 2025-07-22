@@ -38,7 +38,9 @@ impl SoundScale {
 /// easy choice to represent this information... except a lot of micro-controllers don't
 /// have hardware floating point support.
 ///
-pub trait SoundSample: Clone + Eq + PartialOrd + Add + Copy + Sub + Default {
+pub trait SoundSample:
+    Clone + Eq + PartialOrd + Add<Output = Self> + Copy + Sub<Output = Self> + Default
+{
     /// Maximum playable sound sample
     ///
     fn max() -> Self;

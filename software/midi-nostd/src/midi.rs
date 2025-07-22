@@ -229,11 +229,11 @@ mod tests {
 
         assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(1, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(34977, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(1408, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(37177, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(2816, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
     }
 }

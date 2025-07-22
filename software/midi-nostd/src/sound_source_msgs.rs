@@ -7,6 +7,7 @@ pub enum SoundSourceKey {
     InitOscillator,
     InitAdsr,
     InitAmpMixer,
+    InitAmpAdder,
     ReleaseAdsr,
     SoundSourceCreated,
 }
@@ -101,6 +102,9 @@ impl SoundSourceAmpMixerInit {
     }
 }
 
+#[derive(Clone, PartialEq, Debug, Default)]
+pub struct SoundSourceAmpAdderInit {}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
@@ -119,6 +123,7 @@ pub enum SoundSourceValue {
     AmpMixerInit {
         init_values: SoundSourceAmpMixerInit,
     },
+    AmpAdderInit {},
     CreatedId {
         created_id: SoundSourceId,
     },
@@ -139,6 +144,9 @@ impl SoundSourceValue {
     }
     pub fn new_amp_mixer_init(init_values: SoundSourceAmpMixerInit) -> Self {
         SoundSourceValue::AmpMixerInit { init_values }
+    }
+    pub fn new_amp_adder_init() -> Self {
+        SoundSourceValue::AmpAdderInit {}
     }
     pub fn new_created_id(created_id: SoundSourceId) -> Self {
         SoundSourceValue::CreatedId { created_id }
