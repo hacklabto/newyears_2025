@@ -152,12 +152,6 @@ impl SoundSourceValue {
             _ => panic!("This isn't a u8"),
         }
     }
-    pub fn get_oscillator_init(self: &Self) -> &SoundSourceOscillatorInit {
-        match self {
-            SoundSourceValue::OscillatorInit { init_values } => init_values,
-            _ => panic!("This isn't a wave type"),
-        }
-    }
     pub fn get_adsr_init(self: &Self) -> &SoundSourceAdsrInit {
         match self {
             SoundSourceValue::AdsrInit { init_values } => init_values,

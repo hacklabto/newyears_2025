@@ -160,27 +160,29 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
     }
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        if msg.key == SoundSourceKey::InitOscillator {
-            let init_vals = msg.value.get_oscillator_init();
-            let inc_numerator: u32 = init_vals.frequency * WAVE_TABLE_SIZE_U32;
-            let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
-            let new_pulse_width_cutoff: u32 =
-                WAVE_TABLE_SIZE_U32 * (init_vals.pulse_width as u32) / 100;
-            let volume = SoundScale::new_percent(init_vals.volume);
+        match &msg.value {
+            SoundSourceValue::OscillatorInit { init_values } => {
+                let inc_numerator: u32 = init_values.frequency * WAVE_TABLE_SIZE_U32;
+                let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
+                let new_pulse_width_cutoff: u32 =
+                    WAVE_TABLE_SIZE_U32 * (init_values.pulse_width as u32) / 100;
+                let volume = SoundScale::new_percent(init_values.volume);
 
-            self.table_idx_inc = inc_numerator / inc_denominator;
-            self.table_remainder_inc = inc_numerator % inc_denominator;
-            self.oscillator_type = init_vals.oscillator_type;
-            self.pulse_width_cutoff = new_pulse_width_cutoff;
-            self.volume = volume;
+                self.table_idx_inc = inc_numerator / inc_denominator;
+                self.table_remainder_inc = inc_numerator % inc_denominator;
+                self.oscillator_type = init_values.oscillator_type;
+                self.pulse_width_cutoff = new_pulse_width_cutoff;
+                self.volume = volume;
 
-            let creation_msg = SoundSourceMsg::new(
-                msg.src_id.clone(),
-                msg.dest_id.clone(),
-                SoundSourceKey::SoundSourceCreated,
-                SoundSourceValue::default(),
-            );
-            new_msgs.append(creation_msg);
+                let creation_msg = SoundSourceMsg::new(
+                    msg.src_id.clone(),
+                    msg.dest_id.clone(),
+                    SoundSourceKey::SoundSourceCreated,
+                    SoundSourceValue::default(),
+                );
+                new_msgs.append(creation_msg);
+            }
+            _ => todo!(),
         }
     }
 }
