@@ -81,13 +81,16 @@ impl SoundSourceAdsrInit {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SoundSourceAmpMixerInit {
-    pub source_0: SoundSourceId,
-    pub source_1: SoundSourceId,
+    pub oscilator_init: SoundSourceOscillatorInit,
+    pub adsr_init: SoundSourceAdsrInit,
 }
 
 impl SoundSourceAmpMixerInit {
-    pub fn new(source_0: SoundSourceId, source_1: SoundSourceId) -> Self {
-        return Self { source_0, source_1 };
+    pub fn new(oscilator_init: SoundSourceOscillatorInit, adsr_init: SoundSourceAdsrInit) -> Self {
+        return Self {
+            oscilator_init,
+            adsr_init,
+        };
     }
 }
 

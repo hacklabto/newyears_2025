@@ -113,6 +113,18 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSourceCore<'_, T, PLAY_FREQ
     }
 }
 
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> CoreAdsr<T, PLAY_FREQUENCY> {
+    pub fn init(self: &mut Self, init_values: &SoundSourceAdsrInit) {
+        self.state = AdsrState::Attack;
+        self.attack_max_volume = init_values.attack_max_volume;
+        self.a = init_values.a;
+        self.d = init_values.d;
+        self.sustain_volume = init_values.sustain_volume;
+        self.r = init_values.r;
+        self.time_since_state_start = 0;
+    }
+}
+
 pub struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
     core: CoreAdsr<T, PLAY_FREQUENCY>,
 }
@@ -167,13 +179,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         match &msg.value {
             SoundSourceValue::AdsrInit { init_values } => {
-                self.core.state = AdsrState::Attack;
-                self.core.attack_max_volume = init_values.attack_max_volume;
-                self.core.a = init_values.a;
-                self.core.d = init_values.d;
-                self.core.sustain_volume = init_values.sustain_volume;
-                self.core.r = init_values.r;
-                self.core.time_since_state_start = 0;
+                self.core.init(&init_values);
 
                 let creation_msg = SoundSourceMsg::new(
                     msg.src_id.clone(),

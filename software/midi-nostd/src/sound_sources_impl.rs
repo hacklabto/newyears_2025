@@ -51,7 +51,7 @@ pub struct SoundSourcesImpl<
         'a,
         SAMPLE,
         PLAY_FREQUENCY,
-        AmpMixer<SAMPLE, PLAY_FREQUENCY>,
+        AmpMixer<'a, SAMPLE, PLAY_FREQUENCY>,
         NUM_AMP_MIXERS,
         { SoundSourceType::AmpMixer as usize },
     >,
@@ -242,6 +242,7 @@ impl<
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
         self.oscillator_pool.update(new_msgs);
         self.adsr_pool.update(new_msgs);
+        self.amp_mixer_pool.update(new_msgs);
         self.midi.update(new_msgs);
         self.process_and_clear_msgs(new_msgs);
     }

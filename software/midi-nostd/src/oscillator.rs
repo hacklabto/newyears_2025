@@ -58,7 +58,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for CoreOscillator<T, PL
 }
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> CoreOscillator<T, PLAY_FREQUENCY> {
-    fn init(self: &mut Self, init_values: &SoundSourceOscillatorInit) {
+    pub fn init(self: &mut Self, init_values: &SoundSourceOscillatorInit) {
         let inc_numerator: u32 = init_values.frequency * WAVE_TABLE_SIZE_U32;
         let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
         let new_pulse_width_cutoff: u32 =
