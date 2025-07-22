@@ -62,31 +62,7 @@ fn run() -> Result<(), pa::Error> {
         32,
         32,
     >::default();
-    let wave_id = midi_nostd::oscillator::create_oscillator(
-        &mut all_pools,
-        SoundSourceOscillatorInit::new(
-            midi_nostd::sound_source_msgs::OscillatorType::PulseWidth,
-            30000,
-            50,
-            50,
-        ),
-    );
 
-    let adsr_id = create_adsr(
-        &mut all_pools,
-        SoundSourceAdsrInit::new(
-            SoundScale::new_percent(100),
-            SoundScale::new_percent(100),
-            6 * 24,
-            33 * 24,
-            30 * 24,
-        ),
-    );
-
-    let amp_id = create_amp_mixer(
-        &mut all_pools,
-        SoundSourceAmpMixerInit::new(wave_id, adsr_id),
-    );
     let midi_id = all_pools.alloc(SoundSourceType::Midi);
 
     // Initialise sinusoidal wavetable.

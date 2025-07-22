@@ -128,6 +128,11 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
                 );
                 new_msgs.append(creation_msg);
             }
+            SoundSourceValue::ReleaseAdsr => {
+                // TODO, What if we aren't in sustain?  Probably I should take
+                // the current volume and run the release on that.
+                self.core.source_1.trigger_release();
+            }
             _ => todo!(),
         }
     }
@@ -215,10 +220,9 @@ mod tests {
         all_pools.update(&mut new_msgs);
         assert_eq!(0x8000 + 0x0fff, all_pools.get_next(&amp_id).to_u16());
 
-        /*
         let mut msgs = SoundSourceMsgs::default();
         msgs.append(SoundSourceMsg::new(
-            adsr_id.clone(),
+            amp_id.clone(),
             SoundSourceId::get_top_id(),
             SoundSourceValue::ReleaseAdsr,
         ));
@@ -240,9 +244,6 @@ mod tests {
         assert_eq!(0x8000, all_pools.get_next(&amp_id).to_u16());
         assert_eq!(false, all_pools.has_next(&amp_id));
 
-        all_pools.free(adsr_id);
-        all_pools.free(oscillator_id);
         all_pools.free(amp_id);
-        */
     }
 }

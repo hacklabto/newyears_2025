@@ -123,6 +123,12 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> CoreAdsr<T, PLAY_FREQUENCY> {
         self.r = init_values.r;
         self.time_since_state_start = 0;
     }
+    pub fn trigger_release(self: &mut Self) {
+        // TODO, What if we aren't in sustain?  Probably I should take
+        // the current volume and run the release on that.
+        self.state = AdsrState::Release;
+        self.time_since_state_start = 0;
+    }
 }
 
 pub struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
