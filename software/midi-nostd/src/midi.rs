@@ -64,13 +64,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
             midly::MidiMessage::NoteOn { key, vel: _ } => {
                 let frequency = midi_note_to_freq((*key).into());
 
-                let oscilator_properties =
+                let init_values =
                     SoundSourceOscillatorInit::new(OscillatorType::Triangle, frequency, 100, 100);
+
                 new_msgs.append(SoundSourceMsg::new(
                     SoundSourceId::get_top_id(),
                     SoundSourceId::get_midi_id(),
                     SoundSourceKey::InitOscillator,
-                    SoundSourceValue::new_oscillator_init(oscilator_properties),
+                    SoundSourceValue::OscillatorInit { init_values },
                 ));
             }
             midly::MidiMessage::NoteOff { key: _, vel: _ } => {}

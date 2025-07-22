@@ -131,9 +131,6 @@ impl SoundSourceValue {
     pub fn new_u8(num: u8) -> Self {
         SoundSourceValue::U8Type { num }
     }
-    pub fn new_oscillator_init(init_values: SoundSourceOscillatorInit) -> Self {
-        SoundSourceValue::OscillatorInit { init_values }
-    }
     pub fn new_amp_mixer_init(init_values: SoundSourceAmpMixerInit) -> Self {
         SoundSourceValue::AmpMixerInit { init_values }
     }

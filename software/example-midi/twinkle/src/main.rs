@@ -124,6 +124,7 @@ fn run() -> Result<(), pa::Error> {
             }
             idx += 2;
             sent_count = sent_count + 1;
+            /*
             if sent_count == 3000 {
                 let mut msgs = SoundSourceMsgs::default();
                 msgs.append(SoundSourceMsg::new(
@@ -134,6 +135,7 @@ fn run() -> Result<(), pa::Error> {
                 ));
                 all_pools.process_and_clear_msgs(&mut msgs);
             }
+                */
         }
         pa::Continue
     };

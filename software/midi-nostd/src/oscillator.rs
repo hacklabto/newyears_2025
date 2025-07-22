@@ -199,14 +199,14 @@ pub type WavePool<'a> = GenericSoundPool<
 
 pub fn create_oscillator(
     all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
-    oscilator_properties: SoundSourceOscillatorInit,
+    init_values: SoundSourceOscillatorInit,
 ) -> SoundSourceId {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
         SoundSourceId::get_top_id(),
         SoundSourceId::get_top_id(),
         SoundSourceKey::InitOscillator,
-        SoundSourceValue::new_oscillator_init(oscilator_properties),
+        SoundSourceValue::OscillatorInit { init_values },
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
 
