@@ -65,7 +65,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
                 let frequency = midi_note_to_freq((*key).into());
 
                 let oscilator_properties =
-                    SoundSourceOscillatorInit::new(OscillatorType::Sine, frequency, 100, 100);
+                    SoundSourceOscillatorInit::new(OscillatorType::Triangle, frequency, 100, 100);
                 new_msgs.append(SoundSourceMsg::new(
                     SoundSourceId::get_top_id(),
                     SoundSourceId::get_midi_id(),
@@ -107,7 +107,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
         }
         self.current_remainder = self.current_remainder + 1;
         // TODO, adjust properly.
-        if (self.current_remainder) & 7 == 0 {
+        if (self.current_remainder) & 15 == 0 {
             self.current_time = self.current_time + 1;
         }
     }
