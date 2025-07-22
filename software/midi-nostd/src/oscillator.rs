@@ -178,7 +178,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
     }
 
     fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
-        true
+        self.core.has_next()
     }
 
     fn update(&mut self, _new_msgs: &mut SoundSourceMsgs) {

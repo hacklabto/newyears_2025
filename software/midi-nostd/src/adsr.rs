@@ -3,6 +3,7 @@ use crate::sound_sample::SoundSampleI32;
 use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
+use crate::sound_source_core::SoundSourceCore;
 use crate::sound_source_msgs::SoundSourceAdsrInit;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
@@ -20,11 +21,12 @@ pub enum AdsrState {
     Ended,
 }
 
+
+
 ///
 /// ADSR envelope
 ///
-#[allow(unused)]
-pub struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
+pub struct CoreAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
     state: AdsrState,              // CurrentState
     attack_max_volume: SoundScale, // Reduction in volume after attack finishes
     sustain_volume: SoundScale,    // Reduction in volume during sustain phase
@@ -35,38 +37,10 @@ pub struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
     _marker: PhantomData<T>,
 }
 
-#[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericAdsr<T, PLAY_FREQUENCY> {
-    fn default() -> Self {
-        let state = AdsrState::Ended;
-        let attack_max_volume = SoundScale::default();
-        let a = PLAY_FREQUENCY / 8;
-        let d = PLAY_FREQUENCY / 3;
-        let sustain_volume = SoundScale::default();
-        let r = PLAY_FREQUENCY / 5;
-        let time_since_state_start = 0;
-
-        Self {
-            state,
-            attack_max_volume,
-            a,
-            d,
-            sustain_volume,
-            r,
-            time_since_state_start,
-            _marker: PhantomData {},
-        }
-    }
-}
-
-#[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> GenericAdsr<T, PLAY_FREQUENCY> {}
-
-#[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENCY>
-    for GenericAdsr<T, PLAY_FREQUENCY>
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSourceCore<'_, T, PLAY_FREQUENCY>
+    for CoreAdsr<T, PLAY_FREQUENCY>
 {
-    fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
+    fn get_next(self: &Self) -> T {
         let scale: T = match self.state {
             AdsrState::Attack => {
                 let mut attack_value =
@@ -106,26 +80,26 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
         scale
     }
 
-    fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
+    fn has_next(self: &Self) -> bool {
         self.state != AdsrState::Ended
     }
 
-    fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {
-        let mut rerun_update = false;
+    fn update(&mut self) {
+        //let mut rerun_update = false;
         self.time_since_state_start = self.time_since_state_start + 1;
         match self.state {
             AdsrState::Attack => {
                 if self.time_since_state_start >= self.a {
                     self.time_since_state_start = 0;
                     self.state = AdsrState::Delay;
-                    rerun_update = true;
+                    //rerun_update = true;
                 }
             }
             AdsrState::Delay => {
                 if self.time_since_state_start >= self.d {
                     self.time_since_state_start = 0;
                     self.state = AdsrState::Sustain;
-                    rerun_update = true;
+                    //rerun_update = true;
                 }
             }
             AdsrState::Sustain => {}
@@ -133,23 +107,74 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
                 if self.time_since_state_start > self.r {
                     self.time_since_state_start = 0;
                     self.state = AdsrState::Ended;
-                    rerun_update = true;
+                    //rerun_update = true;
                 }
             }
             AdsrState::Ended => {}
         }
     }
+}
+
+
+pub struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
+    core: CoreAdsr<T, PLAY_FREQUENCY>
+}
+
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for CoreAdsr<T, PLAY_FREQUENCY> {
+    fn default() -> Self {
+        let state = AdsrState::Ended;
+        let attack_max_volume = SoundScale::default();
+        let a = PLAY_FREQUENCY / 8;
+        let d = PLAY_FREQUENCY / 3;
+        let sustain_volume = SoundScale::default();
+        let r = PLAY_FREQUENCY / 5;
+        let time_since_state_start = 0;
+
+        Self {
+            state,
+            attack_max_volume,
+            a,
+            d,
+            sustain_volume,
+            r,
+            time_since_state_start,
+            _marker: PhantomData {},
+        }
+    }
+}
+
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericAdsr<T, PLAY_FREQUENCY> {
+    fn default() -> Self {
+        return Self{ core: CoreAdsr::default() }
+    }
+}
+
+#[allow(unused)]
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENCY>
+    for GenericAdsr<T, PLAY_FREQUENCY>
+{
+    fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
+        self.core.get_next()
+    }
+
+    fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
+        self.core.has_next()
+    }
+
+    fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {
+        self.core.update()
+    }
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         match &msg.value {
             SoundSourceValue::AdsrInit { init_values } => {
-                self.state = AdsrState::Attack;
-                self.attack_max_volume = init_values.attack_max_volume;
-                self.a = init_values.a;
-                self.d = init_values.d;
-                self.sustain_volume = init_values.sustain_volume;
-                self.r = init_values.r;
-                self.time_since_state_start = 0;
+                self.core.state = AdsrState::Attack;
+                self.core.attack_max_volume = init_values.attack_max_volume;
+                self.core.a = init_values.a;
+                self.core.d = init_values.d;
+                self.core.sustain_volume = init_values.sustain_volume;
+                self.core.r = init_values.r;
+                self.core.time_since_state_start = 0;
 
                 let creation_msg = SoundSourceMsg::new(
                     msg.src_id.clone(),
@@ -161,8 +186,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
             SoundSourceValue::ReleaseAdsr => {
                 // TODO, What if we aren't in sustain?  Probably I should take
                 // the current volume and run the release on that.
-                self.state = AdsrState::Release;
-                self.time_since_state_start = 0;
+                self.core.state = AdsrState::Release;
+                self.core.time_since_state_start = 0;
             }
             _ => todo!(),
         }
