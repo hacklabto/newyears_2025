@@ -3,7 +3,6 @@ use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::SoundSourceAmpMixerInit;
-use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceValue;
@@ -67,7 +66,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
                 let creation_msg = SoundSourceMsg::new(
                     msg.src_id.clone(),
                     msg.dest_id.clone(),
-                    SoundSourceKey::Refactored,
                     SoundSourceValue::SoundSourceCreated,
                 );
                 new_msgs.append(creation_msg);
@@ -85,7 +83,6 @@ pub fn create_amp_mixer(
     msgs.append(SoundSourceMsg::new(
         SoundSourceId::get_top_id(),
         SoundSourceId::get_top_id(),
-        SoundSourceKey::Refactored,
         SoundSourceValue::new_amp_mixer_init(amp_mixer_properties),
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
@@ -172,7 +169,6 @@ mod tests {
         msgs.append(SoundSourceMsg::new(
             adsr_id.clone(),
             SoundSourceId::get_top_id(),
-            SoundSourceKey::Refactored,
             SoundSourceValue::ReleaseAdsr,
         ));
         all_pools.process_and_clear_msgs(&mut msgs);

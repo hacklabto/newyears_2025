@@ -1,12 +1,6 @@
 use crate::sound_sample::SoundScale;
 use crate::sound_source_id::SoundSourceId;
 
-///
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum SoundSourceKey {
-    Refactored,
-}
-
 /// Different Wave Types
 ///
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -161,7 +155,6 @@ impl Default for SoundSourceValue {
 pub struct SoundSourceMsg {
     pub dest_id: SoundSourceId,
     pub src_id: SoundSourceId,
-    pub key: SoundSourceKey,
     pub value: SoundSourceValue,
 }
 
@@ -169,28 +162,20 @@ impl Default for SoundSourceMsg {
     fn default() -> Self {
         let dest_id = SoundSourceId::default();
         let src_id = SoundSourceId::default();
-        let key = SoundSourceKey::Refactored;
         let value = SoundSourceValue::default();
         Self {
             src_id,
             dest_id,
-            key,
             value,
         }
     }
 }
 
 impl SoundSourceMsg {
-    pub fn new(
-        dest_id: SoundSourceId,
-        src_id: SoundSourceId,
-        key: SoundSourceKey,
-        value: SoundSourceValue,
-    ) -> Self {
+    pub fn new(dest_id: SoundSourceId, src_id: SoundSourceId, value: SoundSourceValue) -> Self {
         return Self {
             src_id: src_id,
             dest_id: dest_id,
-            key,
             value,
         };
     }
@@ -229,7 +214,6 @@ pub type SoundSourceMsgs = SoundSourceMsgPool<100>;
 mod tests {
     use crate::sound_source_id::SoundSourceId;
     use crate::sound_source_id::SoundSourceType;
-    use crate::sound_source_msgs::SoundSourceKey;
     use crate::sound_source_msgs::SoundSourceMsg;
     use crate::sound_source_msgs::SoundSourceMsgs;
     use crate::sound_source_msgs::SoundSourceValue;
@@ -242,13 +226,11 @@ mod tests {
         let m0 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::Oscillator, 5),
             SoundSourceId::new(SoundSourceType::Oscillator, 3),
-            SoundSourceKey::Refactored,
             SoundSourceValue::new_u8(20),
         );
         let m1 = SoundSourceMsg::new(
             SoundSourceId::new(SoundSourceType::Adsr, 3),
             SoundSourceId::new(SoundSourceType::Adsr, 5),
-            SoundSourceKey::Refactored,
             SoundSourceValue::new_u8(100),
         );
         messages.append(m0.clone());

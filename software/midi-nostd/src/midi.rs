@@ -3,7 +3,6 @@ use crate::sound_sample::SoundSample;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::OscillatorType;
-use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceOscillatorInit;
@@ -70,7 +69,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
                 new_msgs.append(SoundSourceMsg::new(
                     SoundSourceId::get_top_id(),
                     SoundSourceId::get_midi_id(),
-                    SoundSourceKey::Refactored,
                     SoundSourceValue::OscillatorInit { init_values },
                 ));
             }

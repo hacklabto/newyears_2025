@@ -183,24 +183,16 @@ impl<
             SoundSourceValue::OscillatorInit { init_values: _ } => {
                 let oscillator_id = self.alloc(SoundSourceType::Oscillator);
 
-                let oscilator_init_msg = SoundSourceMsg::new(
-                    oscillator_id,
-                    msg.src_id.clone(),
-                    msg.key.clone(),
-                    msg.value.clone(),
-                );
+                let oscilator_init_msg =
+                    SoundSourceMsg::new(oscillator_id, msg.src_id.clone(), msg.value.clone());
                 new_msgs.append(oscilator_init_msg);
                 true
             }
             SoundSourceValue::AdsrInit { init_values: _ } => {
                 let adsr_id = self.alloc(SoundSourceType::Adsr);
 
-                let adsr_init_msg = SoundSourceMsg::new(
-                    adsr_id,
-                    SoundSourceId::get_top_id(),
-                    msg.key.clone(),
-                    msg.value.clone(),
-                );
+                let adsr_init_msg =
+                    SoundSourceMsg::new(adsr_id, SoundSourceId::get_top_id(), msg.value.clone());
                 new_msgs.append(adsr_init_msg);
                 true
             }
@@ -210,7 +202,6 @@ impl<
                 let amp_mixer_init_msg = SoundSourceMsg::new(
                     amp_mixer_id,
                     SoundSourceId::get_top_id(),
-                    msg.key.clone(),
                     msg.value.clone(),
                 );
                 new_msgs.append(amp_mixer_init_msg);

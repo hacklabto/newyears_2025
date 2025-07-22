@@ -6,7 +6,6 @@ use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::OscillatorType;
-use crate::sound_source_msgs::SoundSourceKey;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceOscillatorInit;
@@ -177,7 +176,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
                 let creation_msg = SoundSourceMsg::new(
                     msg.src_id.clone(),
                     msg.dest_id.clone(),
-                    SoundSourceKey::Refactored,
                     SoundSourceValue::SoundSourceCreated,
                 );
                 new_msgs.append(creation_msg);
@@ -205,7 +203,6 @@ pub fn create_oscillator(
     msgs.append(SoundSourceMsg::new(
         SoundSourceId::get_top_id(),
         SoundSourceId::get_top_id(),
-        SoundSourceKey::Refactored,
         SoundSourceValue::OscillatorInit { init_values },
     ));
     all_pools.process_and_clear_msgs(&mut msgs);

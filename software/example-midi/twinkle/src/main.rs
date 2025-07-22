@@ -12,7 +12,6 @@ use midi_nostd::sound_source_id::SoundSourceId;
 use midi_nostd::sound_source_id::SoundSourceType;
 use midi_nostd::sound_source_msgs::SoundSourceAdsrInit;
 use midi_nostd::sound_source_msgs::SoundSourceAmpMixerInit;
-use midi_nostd::sound_source_msgs::SoundSourceKey;
 use midi_nostd::sound_source_msgs::SoundSourceMsg;
 use midi_nostd::sound_source_msgs::SoundSourceMsgs;
 use midi_nostd::sound_source_msgs::SoundSourceOscillatorInit;
