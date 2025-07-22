@@ -121,6 +121,7 @@ pub enum SoundSourceValue {
         init_values: SoundSourceAmpMixerInit,
     },
     AmpAdderInit {},
+    ReleaseAdsr,
     CreatedId {
         created_id: SoundSourceId,
     },
@@ -132,9 +133,6 @@ impl SoundSourceValue {
     }
     pub fn new_oscillator_init(init_values: SoundSourceOscillatorInit) -> Self {
         SoundSourceValue::OscillatorInit { init_values }
-    }
-    pub fn new_adsr_init(init_values: SoundSourceAdsrInit) -> Self {
-        SoundSourceValue::AdsrInit { init_values }
     }
     pub fn new_amp_mixer_init(init_values: SoundSourceAmpMixerInit) -> Self {
         SoundSourceValue::AmpMixerInit { init_values }
@@ -150,12 +148,6 @@ impl SoundSourceValue {
         match self {
             SoundSourceValue::U8Type { num } => *num,
             _ => panic!("This isn't a u8"),
-        }
-    }
-    pub fn get_adsr_init(self: &Self) -> &SoundSourceAdsrInit {
-        match self {
-            SoundSourceValue::AdsrInit { init_values } => init_values,
-            _ => panic!("This isn't a wave type"),
         }
     }
     pub fn get_amp_mixer_init(self: &Self) -> &SoundSourceAmpMixerInit {

@@ -142,44 +142,45 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
     }
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        if msg.key == SoundSourceKey::InitAdsr {
-            let init_vals = msg.value.get_adsr_init();
+        match &msg.value {
+            SoundSourceValue::AdsrInit { init_values } => {
+                self.state = AdsrState::Attack;
+                self.attack_max_volume = init_values.attack_max_volume;
+                self.a = init_values.a;
+                self.d = init_values.d;
+                self.sustain_volume = init_values.sustain_volume;
+                self.r = init_values.r;
+                self.time_since_state_start = 0;
 
-            self.state = AdsrState::Attack;
-            self.attack_max_volume = init_vals.attack_max_volume;
-            self.a = init_vals.a;
-            self.d = init_vals.d;
-            self.sustain_volume = init_vals.sustain_volume;
-            self.r = init_vals.r;
-            self.time_since_state_start = 0;
-
-            let creation_msg = SoundSourceMsg::new(
-                msg.src_id.clone(),
-                msg.dest_id.clone(),
-                SoundSourceKey::SoundSourceCreated,
-                SoundSourceValue::default(),
-            );
-            new_msgs.append(creation_msg);
-        }
-        if msg.key == SoundSourceKey::ReleaseAdsr {
-            // TODO, What if we aren't in sustain?  Probably I should take
-            // the current volume and run the release on that.
-            self.state = AdsrState::Release;
-            self.time_since_state_start = 0;
+                let creation_msg = SoundSourceMsg::new(
+                    msg.src_id.clone(),
+                    msg.dest_id.clone(),
+                    SoundSourceKey::SoundSourceCreated,
+                    SoundSourceValue::default(),
+                );
+                new_msgs.append(creation_msg);
+            }
+            SoundSourceValue::ReleaseAdsr => {
+                // TODO, What if we aren't in sustain?  Probably I should take
+                // the current volume and run the release on that.
+                self.state = AdsrState::Release;
+                self.time_since_state_start = 0;
+            }
+            _ => todo!(),
         }
     }
 }
 
 pub fn create_adsr(
     all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
-    adsr_properties: SoundSourceAdsrInit,
+    init_values: SoundSourceAdsrInit,
 ) -> SoundSourceId {
     let mut msgs = SoundSourceMsgs::default();
     msgs.append(SoundSourceMsg::new(
         SoundSourceId::get_top_id(),
         SoundSourceId::get_top_id(),
         SoundSourceKey::InitAdsr,
-        SoundSourceValue::new_adsr_init(adsr_properties),
+        SoundSourceValue::AdsrInit { init_values },
     ));
     all_pools.process_and_clear_msgs(&mut msgs);
 
@@ -241,7 +242,7 @@ mod tests {
             adsr_id.clone(),
             SoundSourceId::get_top_id(),
             SoundSourceKey::ReleaseAdsr,
-            SoundSourceValue::default(),
+            SoundSourceValue::ReleaseAdsr,
         ));
         all_pools.process_and_clear_msgs(&mut msgs);
 

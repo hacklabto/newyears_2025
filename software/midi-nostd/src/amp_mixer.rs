@@ -172,7 +172,7 @@ mod tests {
             adsr_id.clone(),
             SoundSourceId::get_top_id(),
             SoundSourceKey::ReleaseAdsr,
-            SoundSourceValue::default(),
+            SoundSourceValue::ReleaseAdsr,
         ));
         all_pools.process_and_clear_msgs(&mut msgs);
 
