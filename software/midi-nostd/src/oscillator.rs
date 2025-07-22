@@ -3,6 +3,7 @@ use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
+use crate::sound_source_core::SoundSourceCore;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::OscillatorType;
 use crate::sound_source_msgs::SoundSourceMsg;
@@ -78,23 +79,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> CoreOscillator<T, PLAY_FREQUENCY
     // function exits.
     //
 
-    fn update(&mut self) {
-        // Update table position and fractional value
-        //
-        self.table_idx += self.table_idx_inc;
-        self.table_remainder += self.table_remainder_inc;
-        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
-
-        // If the fractional value represents a number greater than 1, increment
-        // the table index and decease the fractional value so it's [0..1).
-        //
-        if self.table_remainder > inc_denominator {
-            self.table_remainder -= inc_denominator;
-            self.table_idx += 1;
-        }
-        self.table_idx = self.table_idx & (WAVE_TABLE_SIZE_U32 - 1);
-    }
-
     fn get_next_table(&self, table: &[u16; WAVE_TABLE_SIZE]) -> T {
         let mut rval = T::new(table[self.table_idx as usize]);
         rval.scale(self.volume);
@@ -110,14 +94,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> CoreOscillator<T, PLAY_FREQUENCY
         rval.scale(self.volume);
         rval
     }
-
-    fn get_next(self: &Self) -> T {
-        if self.oscillator_type == OscillatorType::PulseWidth {
-            self.get_next_pulse_entry()
-        } else {
-            self.get_next_table(ALL_WAVE_TABLES[self.oscillator_type as usize])
-        }
-    }
 }
 
 ///
@@ -132,6 +108,37 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericOscillator<T,
         return Self {
             core: CoreOscillator::<T, PLAY_FREQUENCY>::default(),
         };
+    }
+}
+
+impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSourceCore<'_, T, PLAY_FREQUENCY>
+    for CoreOscillator<T, PLAY_FREQUENCY>
+{
+    fn has_next(self: &Self) -> bool {
+        true
+    }
+    fn get_next(self: &Self) -> T {
+        if self.oscillator_type == OscillatorType::PulseWidth {
+            self.get_next_pulse_entry()
+        } else {
+            self.get_next_table(ALL_WAVE_TABLES[self.oscillator_type as usize])
+        }
+    }
+    fn update(&mut self) {
+        // Update table position and fractional value
+        //
+        self.table_idx += self.table_idx_inc;
+        self.table_remainder += self.table_remainder_inc;
+        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
+
+        // If the fractional value represents a number greater than 1, increment
+        // the table index and decease the fractional value so it's [0..1).
+        //
+        if self.table_remainder > inc_denominator {
+            self.table_remainder -= inc_denominator;
+            self.table_idx += 1;
+        }
+        self.table_idx = self.table_idx & (WAVE_TABLE_SIZE_U32 - 1);
     }
 }
 

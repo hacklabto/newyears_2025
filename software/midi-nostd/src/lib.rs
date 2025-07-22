@@ -9,6 +9,7 @@ pub mod midi_notes;
 pub mod oscillator;
 pub mod sound_sample;
 pub mod sound_source;
+pub mod sound_source_core;
 pub mod sound_source_id;
 pub mod sound_source_msgs;
 mod sound_source_pool;
