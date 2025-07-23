@@ -192,18 +192,15 @@ impl<
                 let adsr_id = self.alloc(SoundSourceType::Adsr);
 
                 let adsr_init_msg =
-                    SoundSourceMsg::new(adsr_id, SoundSourceId::get_top_id(), msg.value.clone());
+                    SoundSourceMsg::new(adsr_id, msg.src_id.clone(), msg.value.clone());
                 new_msgs.append(adsr_init_msg);
                 true
             }
             SoundSourceValue::AmpMixerInit { init_values: _ } => {
                 let amp_mixer_id = self.alloc(SoundSourceType::AmpMixer);
 
-                let amp_mixer_init_msg = SoundSourceMsg::new(
-                    amp_mixer_id,
-                    SoundSourceId::get_top_id(),
-                    msg.value.clone(),
-                );
+                let amp_mixer_init_msg =
+                    SoundSourceMsg::new(amp_mixer_id, msg.src_id.clone(), msg.value.clone());
                 new_msgs.append(amp_mixer_init_msg);
                 true
             }

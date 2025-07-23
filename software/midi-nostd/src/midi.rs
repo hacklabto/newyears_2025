@@ -1,8 +1,11 @@
 use crate::midi_notes::midi_note_to_freq;
 use crate::sound_sample::SoundSample;
+use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::OscillatorType;
+use crate::sound_source_msgs::SoundSourceAdsrInit;
+use crate::sound_source_msgs::SoundSourceAmpMixerInit;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceOscillatorInit;
@@ -63,13 +66,25 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
             midly::MidiMessage::NoteOn { key, vel: _ } => {
                 let frequency = midi_note_to_freq((*key).into());
 
-                let init_values =
-                    SoundSourceOscillatorInit::new(OscillatorType::Triangle, frequency, 100, 100);
+                let oscilator_init =
+                    SoundSourceOscillatorInit::new(OscillatorType::Sine, frequency, 100, 100);
+                let adsr_init = SoundSourceAdsrInit::new(
+                    SoundScale::new_percent(100),
+                    SoundScale::new_percent(50),
+                    2400,
+                    2400,
+                    2400,
+                );
+
+                let amp_mixer_init = SoundSourceAmpMixerInit::new(oscilator_init, adsr_init);
+                let amp_mixer_value = SoundSourceValue::AmpMixerInit {
+                    init_values: amp_mixer_init,
+                };
 
                 new_msgs.append(SoundSourceMsg::new(
                     SoundSourceId::get_top_id(),
                     SoundSourceId::get_midi_id(),
-                    SoundSourceValue::OscillatorInit { init_values },
+                    amp_mixer_value,
                 ));
             }
             midly::MidiMessage::NoteOff { key: _, vel: _ } => {}
@@ -160,6 +175,7 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         match &msg.value {
             SoundSourceValue::SoundSourceCreated => {
+                self.note_1 = self.note_0;
                 self.note_0 = Some(msg.src_id.clone());
             }
             _ => todo!(),
@@ -230,11 +246,11 @@ mod tests {
 
         assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(1, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(1408, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(2816, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
     }
 }
