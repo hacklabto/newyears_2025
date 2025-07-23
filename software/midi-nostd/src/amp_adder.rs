@@ -10,7 +10,7 @@ use core::marker::PhantomData;
 /// Amp Adder
 ///
 pub struct AmpAdder<T: SoundSample, const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> {
-    channels: [Option<SoundSourceId>; NUM_CHANNELS],
+    pub channels: [Option<SoundSourceId>; NUM_CHANNELS],
     _marker: PhantomData<T>,
 }
 
