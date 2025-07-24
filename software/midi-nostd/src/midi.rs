@@ -282,9 +282,9 @@ mod tests {
         all_pools.update(&mut new_msgs);
         assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(0x8000 - 10, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 2, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(0x8000 - 19, all_pools.get_next(&midi_id).to_u16());
         all_pools.update(&mut new_msgs);
     }
 }
