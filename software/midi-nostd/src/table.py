@@ -7,7 +7,7 @@ def do_sine( wave_range ):
     return math.sin(wave_range * math.pi * 2.0) 
 
 def do_sawtooth( wave_range ):
-    return wave_range
+    return wave_range * 2 - 1
 
 def do_triangle( wave_range ):
     return wave_range * 4.0 -1 if wave_range < .5 else (1.0-wave_range) * 4.0 - 1
@@ -15,7 +15,7 @@ def do_triangle( wave_range ):
 def do_table_entry( wave_function, idx ):
     wave_range = idx / 1024.0
     wave_domain = wave_function( wave_range )
-    return str(int( wave_domain * 32767 + 32768))
+    return str(int( wave_domain * 32767))
 
 def do_table_row( wave_function, big_idx ):
     row_numbers = [do_table_entry( wave_function, big_idx + i) for i in range( 8 ) ]
@@ -23,14 +23,13 @@ def do_table_row( wave_function, big_idx ):
 
 def output_table( function_name, wave_function ): 
     row_lines = [do_table_row( wave_function, i) for i in range( 0, 1024, 8 ) ]
-    print( "#[allow(unused)]" )
-    print( "pub const", function_name, ": [u16; WAVE_TABLE_SIZE] = [" )
+    print( "pub const", function_name, ": [i32; WAVE_TABLE_SIZE] = [" )
     print( ",\n".join( row_lines ))
     print( "];" )
     print( "" )
 
-print( "#[allow(unused)]" )
 print("pub const WAVE_TABLE_SIZE: usize=1024;\n");
+print("pub const WAVE_TABLE_SIZE_U32: u32 =1024;\n");
 
 output_table( "TRIANGLE_WAVE",  do_triangle     )
 output_table( "SINE_WAVE",      do_sine         )

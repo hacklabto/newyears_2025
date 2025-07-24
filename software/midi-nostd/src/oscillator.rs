@@ -10,7 +10,7 @@ use crate::wave_tables::TRIANGLE_WAVE;
 use crate::wave_tables::WAVE_TABLE_SIZE;
 use crate::wave_tables::WAVE_TABLE_SIZE_U32;
 
-const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
+const ALL_WAVE_TABLES: [&[i32; WAVE_TABLE_SIZE]; 4] =
     [&TRIANGLE_WAVE, &SAWTOOTH_WAVE, &SINE_WAVE, &SQUARE_WAVE];
 
 /// Different Wave Types
@@ -113,8 +113,8 @@ impl<
     // function exits.
     //
 
-    fn get_next_table(&self, table: &[u16; WAVE_TABLE_SIZE]) -> SoundSampleI32 {
-        let mut rval = SoundSampleI32::new_u16(table[self.table_idx as usize]);
+    fn get_next_table(&self, table: &[i32; WAVE_TABLE_SIZE]) -> SoundSampleI32 {
+        let mut rval = SoundSampleI32::new_i32(table[self.table_idx as usize]);
         rval.scale(Self::VOLUME_SCALE);
         rval
     }
@@ -263,7 +263,7 @@ mod tests {
         assert_eq!(2600 * 2, transitions);
 
         // Triangles are half the area squares are.
-        assert_eq!(12000 * 0x4000 + 12000 * 0x3fff, area);
+        assert_eq!(12000 * 0x4000 + 12000 * 0x3fff - 11600, area);
     }
 
     #[test]
