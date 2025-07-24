@@ -4,7 +4,8 @@
 //! Bencina.
 
 extern crate portaudio;
-use midi_nostd::sound_sources::SoundSources;
+use midi_nostd::midi::Midi;
+use midi_nostd::sound_source::SoundSource;
 use midly::Smf;
 
 use portaudio as pa;
@@ -43,7 +44,7 @@ fn run() -> Result<(), pa::Error> {
         SAMPLE_RATE, FRAMES_PER_BUFFER
     );
 
-    let mut all_pools = midi_nostd::sound_sources_impl::SoundSourcesImpl::<24000, 512>::default();
+    let mut all_pools = Midi::<24000>::default();
 
     // Initialise sinusoidal wavetable.
     let mut left_phase = 0;
