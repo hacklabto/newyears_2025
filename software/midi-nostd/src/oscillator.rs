@@ -149,14 +149,13 @@ impl<
     fn has_next(self: &Self) -> bool {
         true
     }
-    fn get_next(self: &Self) -> SoundSampleI32 {
-        if Self::OSCILATOR_TYPE_ENUM == OscillatorType::PulseWidth {
+    fn get_next(self: &mut Self) -> SoundSampleI32 {
+        let rval = if Self::OSCILATOR_TYPE_ENUM == OscillatorType::PulseWidth {
             self.get_next_pulse_entry()
         } else {
             self.get_next_table(ALL_WAVE_TABLES[Self::OSCILATOR_TYPE_ENUM as usize])
-        }
-    }
-    fn update(&mut self) {
+        };
+
         // Update table position and fractional value
         //
         self.table_idx += self.table_idx_inc;
@@ -170,6 +169,8 @@ impl<
             self.table_idx += 1;
         }
         self.table_idx = self.table_idx & (WAVE_TABLE_SIZE_U32 - 1);
+
+        rval
     }
     fn trigger_note_off(self: &mut Self) {
         // does nothing.
@@ -193,12 +194,10 @@ mod tests {
         T: SoundSourceCore<24000>,
     {
         let mut last = oscilator.get_next();
-        oscilator.update();
         let mut transitions: u32 = 0;
         let mut area: u32 = abs_sample(last.to_i32());
         for _ in 1..24000 {
             let current = oscilator.get_next();
-            oscilator.update();
             let last_above_0 = last.to_i32() > 0;
             let current_above_0 = current.to_i32() > 0;
             if last_above_0 != current_above_0 {

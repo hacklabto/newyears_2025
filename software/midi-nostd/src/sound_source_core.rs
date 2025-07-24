@@ -20,11 +20,7 @@ pub trait SoundSourceCore<const PLAY_FREQUENCY: u32> {
 
     /// Draw a sample from a source
     ///
-    fn get_next(self: &Self) -> SoundSampleI32;
-
-    /// Update the state one tick
-    ///
-    fn update(self: &mut Self);
+    fn get_next(self: &mut Self) -> SoundSampleI32;
 
     /// Effective tells the source source to wind down gracefully :)
     /// Note off is the midi term.

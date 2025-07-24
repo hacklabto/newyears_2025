@@ -37,17 +37,12 @@ impl<
         self.source_1.init(&(init_values.1));
     }
 
-    fn get_next(self: &Self) -> SoundSampleI32 {
+    fn get_next(self: &mut Self) -> SoundSampleI32 {
         self.source_0.get_next() * self.source_1.get_next()
     }
 
     fn has_next(self: &Self) -> bool {
         self.source_0.has_next() && self.source_1.has_next()
-    }
-
-    fn update(self: &mut Self) {
-        self.source_0.update();
-        self.source_1.update();
     }
 
     fn trigger_note_off(self: &mut Self) {
@@ -86,49 +81,33 @@ mod tests {
         // volume.
 
         assert_eq!(0x0000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(0x2000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(0x4000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
 
         // Delay state, 4 ticks to get to Sustain Volume (50%) from attack volume
         assert_eq!(0x3800, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(0x3000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(0x2800, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(0x2000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
 
         // Sustain state
         assert_eq!(0x2000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(0x2000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(0x2000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         amp_mixer.trigger_note_off();
         // Release doesn't start until update.
         assert_eq!(0x2000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
 
         // Release state, 4 ticks to get to quiet from Sustain Volume
         assert_eq!(0x1800, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(0x1000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(0x0800, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(true, amp_mixer.has_next());
         assert_eq!(0x0000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
 
         // End state.  Report silence and no more data
         assert_eq!(false, amp_mixer.has_next());
         assert_eq!(0x0000, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
         assert_eq!(false, amp_mixer.has_next());
     }
 }

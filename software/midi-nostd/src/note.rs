@@ -35,16 +35,12 @@ impl<const PLAY_FREQUENCY: u32> Default for Note<PLAY_FREQUENCY> {
 impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FREQUENCY> {
     type InitValuesType = SoundSourceNoteInit;
 
-    fn get_next(self: &Self) -> SoundSampleI32 {
+    fn get_next(self: &mut Self) -> SoundSampleI32 {
         self.core.get_next()
     }
 
     fn has_next(self: &Self) -> bool {
         self.core.has_next()
-    }
-
-    fn update(&mut self) {
-        self.core.update()
     }
 
     fn init(&mut self, init_values: &Self::InitValuesType) {

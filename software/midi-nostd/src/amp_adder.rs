@@ -30,10 +30,10 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
 
     fn trigger_note_off(self: &mut Self) {}
 
-    fn get_next(self: &Self) -> SoundSampleI32 {
+    fn get_next(self: &mut Self) -> SoundSampleI32 {
         let mut output: SoundSampleI32 = SoundSampleI32::ZERO;
 
-        for entry in &self.channels {
+        for entry in &mut self.channels {
             let this_source: SoundSampleI32 = entry.get_next();
             output = output + this_source;
         }
@@ -42,12 +42,6 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
 
     fn has_next(self: &Self) -> bool {
         true
-    }
-
-    fn update(&mut self) {
-        for entry_ref in self.channels.iter_mut() {
-            entry_ref.update()
-        }
     }
 }
 
@@ -60,12 +54,7 @@ mod tests {
         let mut amp_adder = AmpAdder::<24000, 2>::default();
 
         assert_eq!(0, amp_adder.get_next().to_i32());
-        amp_adder.update();
-
         assert_eq!(0, amp_adder.get_next().to_i32());
-        amp_adder.update();
-
         assert_eq!(0, amp_adder.get_next().to_i32());
-        amp_adder.update();
     }
 }
