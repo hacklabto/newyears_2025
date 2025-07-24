@@ -15,7 +15,7 @@ def do_triangle( wave_range ):
 def do_table_entry( wave_function, idx ):
     wave_range = idx / 1024.0
     wave_domain = wave_function( wave_range )
-    return str(int( wave_domain * 32767))
+    return str(int( wave_domain * 32768))
 
 def do_table_row( wave_function, big_idx ):
     row_numbers = [do_table_entry( wave_function, big_idx + i) for i in range( 8 ) ]

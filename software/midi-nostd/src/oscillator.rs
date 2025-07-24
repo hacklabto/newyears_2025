@@ -263,7 +263,7 @@ mod tests {
         assert_eq!(2600 * 2, transitions);
 
         // Triangles are half the area squares are.
-        assert_eq!(12000 * 0x4000 + 12000 * 0x3fff - 11600, area);
+        assert_eq!(24000 * 0x4000, area);
     }
 
     #[test]
@@ -276,7 +276,7 @@ mod tests {
         let (transitions, area) = sample_core_wave(&mut oscilator);
         assert_eq!(transitions, 2600 * 2);
 
-        // Triangles are half the area squares are.  200 is rounding error or a bug.
-        assert_eq!(12000 * 0x2000 + 12000 * 0x1fff + 200, area);
+        // Triangles are half the area squares are.
+        assert_eq!(24000 * 0x2000, area);
     }
 }
