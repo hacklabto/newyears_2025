@@ -49,7 +49,7 @@ impl SoundSourceOscillatorInit {
 }
 
 pub struct CoreOscillator<
-    T: SoundSample,
+    VALUE: SoundSample,
     const PLAY_FREQUENCY: u32,
     const PULSE_WIDTH: u8,
     const VOLUME_U8: u8,
@@ -59,16 +59,16 @@ pub struct CoreOscillator<
     pub table_remainder: u32,
     pub table_idx_inc: u32,
     pub table_remainder_inc: u32,
-    _marker: PhantomData<T>,
+    _marker: PhantomData<VALUE>,
 }
 
 impl<
-        T: SoundSample,
+        VALUE: SoundSample,
         const PLAY_FREQUENCY: u32,
         const PULSE_WIDTH: u8,
         const VOLUME: u8,
         const OSCILATOR_TYPE: usize,
-    > Default for CoreOscillator<T, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
+    > Default for CoreOscillator<VALUE, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     fn default() -> Self {
         let table_idx_inc: u32 = 0;
@@ -86,12 +86,12 @@ impl<
 }
 
 impl<
-        T: SoundSample,
+        VALUE: SoundSample,
         const PLAY_FREQUENCY: u32,
         const PULSE_WIDTH: u8,
         const VOLUME: u8,
         const OSCILATOR_TYPE: usize,
-    > CoreOscillator<T, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
+    > CoreOscillator<VALUE, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     const PULSE_WIDTH_CUTOFF: u32 = WAVE_TABLE_SIZE_U32 * (PULSE_WIDTH as u32) / 100;
     const VOLUME_SCALE: SoundScale = SoundScale::new_percent(VOLUME);
@@ -119,17 +119,17 @@ impl<
     // function exits.
     //
 
-    fn get_next_table(&self, table: &[u16; WAVE_TABLE_SIZE]) -> T {
-        let mut rval = T::new(table[self.table_idx as usize]);
+    fn get_next_table(&self, table: &[u16; WAVE_TABLE_SIZE]) -> VALUE {
+        let mut rval = VALUE::new(table[self.table_idx as usize]);
         rval.scale(Self::VOLUME_SCALE);
         rval
     }
 
-    fn get_next_pulse_entry(&self) -> T {
+    fn get_next_pulse_entry(&self) -> VALUE {
         let mut rval = if self.table_idx < Self::PULSE_WIDTH_CUTOFF {
-            T::MAX
+            VALUE::MAX
         } else {
-            T::MIN
+            VALUE::MIN
         };
         rval.scale(Self::VOLUME_SCALE);
         rval
@@ -137,13 +137,13 @@ impl<
 }
 
 impl<
-        T: SoundSample,
+        VALUE: SoundSample,
         const PLAY_FREQUENCY: u32,
         const PULSE_WIDTH: u8,
         const VOLUME: u8,
         const OSCILATOR_TYPE: usize,
-    > SoundSourceCore<'_, T, PLAY_FREQUENCY>
-    for CoreOscillator<T, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
+    > SoundSourceCore<'_, VALUE, PLAY_FREQUENCY>
+    for CoreOscillator<VALUE, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     type InitValuesType = SoundSourceOscillatorInit;
 
@@ -159,7 +159,7 @@ impl<
     fn has_next(self: &Self) -> bool {
         true
     }
-    fn get_next(self: &Self) -> T {
+    fn get_next(self: &Self) -> VALUE {
         if Self::OSCILATOR_TYPE_ENUM == OscillatorType::PulseWidth {
             self.get_next_pulse_entry()
         } else {
