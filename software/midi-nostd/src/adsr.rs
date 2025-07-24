@@ -54,7 +54,7 @@ impl<
         const R: i32,
         const ATTACK_VOLUME: u8,
         const SUSTAIN_VOLUME: u8,
-    > SoundSourceCore<'_, PLAY_FREQUENCY>
+    > SoundSourceCore<PLAY_FREQUENCY>
     for CoreAdsr<PLAY_FREQUENCY, A, D, R, ATTACK_VOLUME, SUSTAIN_VOLUME>
 {
     type InitValuesType = SoundSourceAdsrInit;

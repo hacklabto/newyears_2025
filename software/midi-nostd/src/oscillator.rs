@@ -132,7 +132,7 @@ impl<
         const PULSE_WIDTH: u8,
         const VOLUME: u8,
         const OSCILATOR_TYPE: usize,
-    > SoundSourceCore<'_, PLAY_FREQUENCY>
+    > SoundSourceCore<PLAY_FREQUENCY>
     for CoreOscillator<PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     type InitValuesType = SoundSourceOscillatorInit;
@@ -190,7 +190,7 @@ mod tests {
 
     fn sample_core_wave<'a, T>(oscilator: &mut T) -> (u32, u32)
     where
-        T: SoundSourceCore<'a, 24000>,
+        T: SoundSourceCore<24000>,
     {
         let mut last = oscilator.get_next();
         oscilator.update();

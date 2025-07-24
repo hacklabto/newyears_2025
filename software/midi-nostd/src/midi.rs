@@ -1,11 +1,10 @@
 use crate::amp_adder::AmpAdder;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
-use crate::sound_source_id::SoundSourceId;
+use crate::sound_source_core::SoundSourceCore;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceNoteInit;
-use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
 use midly::Smf;
 
@@ -59,11 +58,11 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
         }
     }
 
-    pub fn handle_midi_event(
+    pub fn handle_midi_event<const NUM_CHANNELS: usize>(
         self: &mut Self,
         midi_event: &midly::MidiMessage,
-        new_msgs: &mut SoundSourceMsgs,
-        sound_id_playing: Option<SoundSourceId>,
+        notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
+        dest_note: &mut usize,
     ) {
         match midi_event {
             midly::MidiMessage::NoteOn { key, vel: _ } => {
@@ -72,61 +71,44 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
                     self.ignore_hack = key_as_u32;
 
                     let note_init = SoundSourceNoteInit::new((*key).into(), 0);
-                    let note_value = SoundSourceValue::NoteInit {
-                        init_values: note_init,
-                    };
-
-                    new_msgs.append(SoundSourceMsg::new(
-                        SoundSourceId::get_top_id(),
-                        SoundSourceId::get_midi_id(),
-                        note_value,
-                    ));
+                    notes.channels[*dest_note].init(&note_init);
+                    *dest_note = 1 - *dest_note;
                 }
             }
             midly::MidiMessage::NoteOff { key: _, vel: _ } => {
                 self.ignore_hack = 0;
-                if let Some(old_sound_id) = sound_id_playing {
-                    new_msgs.append(SoundSourceMsg::new(
-                        old_sound_id,
-                        SoundSourceId::get_top_id(),
-                        SoundSourceValue::ReleaseAdsr,
-                    ));
-                }
+                notes.channels[1 - *dest_note].trigger_note_off();
             }
             _ => {}
         }
     }
 
-    pub fn handle_track_event(
+    pub fn handle_track_event<'a, const NUM_CHANNELS: usize>(
         self: &mut Self,
         track_event: &midly::TrackEventKind,
-        new_msgs: &mut SoundSourceMsgs,
-        sound_id_playing: Option<SoundSourceId>,
+        notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
+        dest_note: &mut usize,
     ) {
         match track_event {
             midly::TrackEventKind::Midi {
                 message,
                 channel: _,
-            } => self.handle_midi_event(&message, new_msgs, sound_id_playing),
+            } => self.handle_midi_event(&message, notes, dest_note),
             _ => {}
         }
     }
 
-    pub fn update<'a>(
+    pub fn update<'a, const NUM_CHANNELS: usize>(
         self: &mut Self,
         events: &'a midly::Track<'a>,
-        new_msgs: &mut SoundSourceMsgs,
-        sound_id_playing: Option<SoundSourceId>,
+        notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
+        dest_note: &mut usize,
     ) {
         if !self.active {
             return;
         }
         while self.current_time == self.next_event_time {
-            self.handle_track_event(
-                &(events[self.current_event_idx]).kind,
-                new_msgs,
-                sound_id_playing,
-            );
+            self.handle_track_event(&(events[self.current_event_idx]).kind, notes, dest_note);
             self.go_to_next_event(events);
             if !self.active {
                 return;
@@ -147,18 +129,21 @@ pub struct MidiReal<'a, const PLAY_FREQUENCY: u32> {
     smf: Smf<'a>,
     track: MidiTrack<PLAY_FREQUENCY>,
     amp_adder: AmpAdder<PLAY_FREQUENCY, 5>,
+    dest_note: usize,
 }
 
-impl<const PLAY_FREQUENCY: u32> MidiReal<'_, PLAY_FREQUENCY> {
+impl<'a, const PLAY_FREQUENCY: u32> MidiReal<'a, PLAY_FREQUENCY> {
     pub fn new(midi_bytes: &'static [u8]) -> Self {
         let smf = midly::Smf::parse(midi_bytes)
             .expect("It's inlined data, so it better work, gosh darn it");
         let track = MidiTrack::new(&smf.tracks[0]);
         let amp_adder = AmpAdder::<PLAY_FREQUENCY, 5>::default();
+        let dest_note = 0;
         Self {
             smf,
             track,
             amp_adder,
+            dest_note,
         }
     }
 }
@@ -168,26 +153,24 @@ impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY>
     for MidiReal<'a, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32 {
-        self.amp_adder.get_next(all_sources)
+        self.amp_adder.get_next()
     }
 
     fn has_next(self: &Self, _all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> bool {
         self.track.has_next()
     }
 
-    fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {
-        self.track
-            .update(&self.smf.tracks[0], new_msgs, self.amp_adder.channels[0])
+    fn update(&mut self, _new_msgs: &mut SoundSourceMsgs) {
+        self.amp_adder.update();
+        self.track.update::<5>(
+            &self.smf.tracks[0],
+            &mut self.amp_adder,
+            &mut self.dest_note,
+        )
     }
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         match &msg.value {
-            SoundSourceValue::SoundSourceCreated => {
-                for idx in (0..(self.amp_adder.channels.len() - 1)).rev() {
-                    self.amp_adder.channels[idx + 1] = self.amp_adder.channels[idx];
-                }
-                self.amp_adder.channels[0] = Some(msg.src_id.clone());
-            }
             _ => todo!(),
         }
     }

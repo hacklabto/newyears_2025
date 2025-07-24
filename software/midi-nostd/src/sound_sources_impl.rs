@@ -1,11 +1,9 @@
 use crate::midi::Midi;
-use crate::note::Note;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
@@ -20,13 +18,6 @@ pub struct SoundSourcesImpl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usiz
         Top<PLAY_FREQUENCY>,
         1,
         { SoundSourceType::Top as usize },
-    >,
-    note_pool: GenericSoundPool<
-        'a,
-        PLAY_FREQUENCY,
-        Note<'a, PLAY_FREQUENCY>,
-        NUM_NOTES,
-        { SoundSourceType::Note as usize },
     >,
     midi: GenericSoundPool<
         'a,
@@ -49,13 +40,6 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
             1,
             { SoundSourceType::Top as usize },
         >::new();
-        let note_pool = GenericSoundPool::<
-            'a,
-            PLAY_FREQUENCY,
-            Note<PLAY_FREQUENCY>,
-            NUM_NOTES,
-            { SoundSourceType::Note as usize },
-        >::new();
         let midi = GenericSoundPool::<
             'a,
             PLAY_FREQUENCY,
@@ -70,7 +54,6 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
 
         Self {
             top_pool,
-            note_pool,
             midi,
             top_id,
         }
@@ -86,7 +69,6 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
     ) -> &mut dyn SoundSourcePool<'a, PLAY_FREQUENCY> {
         match sound_source_type {
             SoundSourceType::Top => &mut self.top_pool,
-            SoundSourceType::Note => &mut self.note_pool,
             SoundSourceType::Midi => &mut self.midi,
         }
     }
@@ -97,7 +79,6 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
     ) -> &dyn SoundSourcePool<'a, PLAY_FREQUENCY> {
         match sound_source_type {
             SoundSourceType::Top => &self.top_pool,
-            SoundSourceType::Note => &self.note_pool,
             SoundSourceType::Midi => &self.midi,
         }
     }
@@ -111,17 +92,9 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
     fn process_meta_message(
         self: &mut Self,
         msg: &SoundSourceMsg,
-        new_msgs: &mut SoundSourceMsgs,
+        _new_msgs: &mut SoundSourceMsgs,
     ) -> bool {
         match &msg.value {
-            SoundSourceValue::NoteInit { init_values: _ } => {
-                let note_id = self.alloc(SoundSourceType::Note);
-
-                let note_init_msg =
-                    SoundSourceMsg::new(note_id, msg.src_id.clone(), msg.value.clone());
-                new_msgs.append(note_init_msg);
-                true
-            }
             _ => false,
         }
     }
@@ -149,7 +122,6 @@ impl<const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> SoundSources<'_, PLAY_FR
     for SoundSourcesImpl<'_, PLAY_FREQUENCY, NUM_NOTES>
 {
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
-        self.note_pool.update(new_msgs);
         self.midi.update(new_msgs);
         self.process_and_clear_msgs(new_msgs);
     }

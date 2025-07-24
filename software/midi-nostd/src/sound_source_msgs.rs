@@ -15,7 +15,6 @@ impl SoundSourceNoteInit {
 #[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
-    NoteInit { init_values: SoundSourceNoteInit },
     AmpAdderInit,
     ReleaseAdsr,
     SoundSourceCreated,
