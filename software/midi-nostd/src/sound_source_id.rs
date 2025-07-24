@@ -4,7 +4,7 @@
 #[repr(usize)]
 pub enum SoundSourceType {
     Top = 0,
-    AmpMixer = 1,
+    Note = 1,
     Midi = 2,
 }
 
@@ -12,7 +12,7 @@ impl SoundSourceType {
     pub fn from_usize(usize_value: usize) -> Self {
         let optional_enum_value: Option<Self> = match usize_value {
             0 => Some(SoundSourceType::Top),
-            1 => Some(SoundSourceType::AmpMixer),
+            1 => Some(SoundSourceType::Note),
             2 => Some(SoundSourceType::Midi),
             _ => None,
         };
@@ -21,7 +21,7 @@ impl SoundSourceType {
     pub const fn all_variants() -> &'static [SoundSourceType] {
         &[
             SoundSourceType::Top,
-            SoundSourceType::AmpMixer,
+            SoundSourceType::Note,
             SoundSourceType::Midi,
         ]
     }

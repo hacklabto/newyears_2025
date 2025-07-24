@@ -1,5 +1,5 @@
-use crate::amp_mixer::AmpMixer;
 use crate::midi::Midi;
+use crate::note::Note;
 use crate::sound_sample::SoundSample;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
@@ -17,7 +17,7 @@ pub struct SoundSourcesImpl<
     'a,
     SAMPLE: SoundSample,
     const PLAY_FREQUENCY: u32,
-    const NUM_AMP_MIXERS: usize,
+    const NUM_NOTES: usize,
 > {
     top_pool: GenericSoundPool<
         'a,
@@ -27,13 +27,13 @@ pub struct SoundSourcesImpl<
         1,
         { SoundSourceType::Top as usize },
     >,
-    amp_mixer_pool: GenericSoundPool<
+    note_pool: GenericSoundPool<
         'a,
         SAMPLE,
         PLAY_FREQUENCY,
-        AmpMixer<'a, SAMPLE, PLAY_FREQUENCY>,
-        NUM_AMP_MIXERS,
-        { SoundSourceType::AmpMixer as usize },
+        Note<'a, SAMPLE, PLAY_FREQUENCY>,
+        NUM_NOTES,
+        { SoundSourceType::Note as usize },
     >,
     midi: GenericSoundPool<
         'a,
@@ -46,8 +46,8 @@ pub struct SoundSourcesImpl<
     top_id: SoundSourceId,
 }
 
-impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: usize> Default
-    for SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY, NUM_AMP_MIXERS>
+impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
+    for SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY, NUM_NOTES>
 {
     fn default() -> Self {
         let mut top_pool = GenericSoundPool::<
@@ -58,13 +58,13 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: u
             1,
             { SoundSourceType::Top as usize },
         >::new();
-        let amp_mixer_pool = GenericSoundPool::<
+        let note_pool = GenericSoundPool::<
             'a,
             SAMPLE,
             PLAY_FREQUENCY,
-            AmpMixer<SAMPLE, PLAY_FREQUENCY>,
-            NUM_AMP_MIXERS,
-            { SoundSourceType::AmpMixer as usize },
+            Note<SAMPLE, PLAY_FREQUENCY>,
+            NUM_NOTES,
+            { SoundSourceType::Note as usize },
         >::new();
         let midi = GenericSoundPool::<
             'a,
@@ -81,15 +81,15 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: u
 
         Self {
             top_pool,
-            amp_mixer_pool,
+            note_pool,
             midi,
             top_id,
         }
     }
 }
 
-impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: usize>
-    SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY, NUM_AMP_MIXERS>
+impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
+    SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY, NUM_NOTES>
 {
     pub fn get_pool(
         self: &mut Self,
@@ -97,7 +97,7 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: u
     ) -> &mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> {
         match sound_source_type {
             SoundSourceType::Top => &mut self.top_pool,
-            SoundSourceType::AmpMixer => &mut self.amp_mixer_pool,
+            SoundSourceType::Note => &mut self.note_pool,
             SoundSourceType::Midi => &mut self.midi,
         }
     }
@@ -108,7 +108,7 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: u
     ) -> &dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> {
         match sound_source_type {
             SoundSourceType::Top => &self.top_pool,
-            SoundSourceType::AmpMixer => &self.amp_mixer_pool,
+            SoundSourceType::Note => &self.note_pool,
             SoundSourceType::Midi => &self.midi,
         }
     }
@@ -125,12 +125,12 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: u
         new_msgs: &mut SoundSourceMsgs,
     ) -> bool {
         match &msg.value {
-            SoundSourceValue::AmpMixerInit { init_values: _ } => {
-                let amp_mixer_id = self.alloc(SoundSourceType::AmpMixer);
+            SoundSourceValue::NoteInit { init_values: _ } => {
+                let note_id = self.alloc(SoundSourceType::Note);
 
-                let amp_mixer_init_msg =
-                    SoundSourceMsg::new(amp_mixer_id, msg.src_id.clone(), msg.value.clone());
-                new_msgs.append(amp_mixer_init_msg);
+                let note_init_msg =
+                    SoundSourceMsg::new(note_id, msg.src_id.clone(), msg.value.clone());
+                new_msgs.append(note_init_msg);
                 true
             }
             _ => false,
@@ -156,12 +156,12 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: u
     }
 }
 
-impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: usize>
+impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
     SoundSources<'_, SAMPLE, PLAY_FREQUENCY>
-    for SoundSourcesImpl<'_, SAMPLE, PLAY_FREQUENCY, NUM_AMP_MIXERS>
+    for SoundSourcesImpl<'_, SAMPLE, PLAY_FREQUENCY, NUM_NOTES>
 {
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
-        self.amp_mixer_pool.update(new_msgs);
+        self.note_pool.update(new_msgs);
         self.midi.update(new_msgs);
         self.process_and_clear_msgs(new_msgs);
     }

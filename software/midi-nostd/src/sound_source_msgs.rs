@@ -18,10 +18,25 @@ impl SoundSourceAmpMixerInit {
 }
 
 #[derive(Clone, PartialEq, Debug)]
+pub struct SoundSourceNoteInit {
+    pub key: u8,
+    pub instrument: u8,
+}
+
+impl SoundSourceNoteInit {
+    pub fn new(key: u8, instrument: u8) -> Self {
+        return Self { key, instrument };
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
     AmpMixerInit {
         init_values: SoundSourceAmpMixerInit,
+    },
+    NoteInit {
+        init_values: SoundSourceNoteInit,
     },
     AmpAdderInit,
     ReleaseAdsr,

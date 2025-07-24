@@ -1,15 +1,15 @@
-use crate::adsr::SoundSourceAdsrInit;
+//use crate::adsr::SoundSourceAdsrInit;
 use crate::amp_adder::AmpAdder;
-use crate::midi_notes::midi_note_to_freq;
-use crate::oscillator::OscillatorType;
-use crate::oscillator::SoundSourceOscillatorInit;
+//use crate::midi_notes::midi_note_to_freq;
+//use crate::oscillator::OscillatorType;
+//use crate::oscillator::SoundSourceOscillatorInit;
 use crate::sound_sample::SoundSample;
-use crate::sound_sample::SoundScale;
+//use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_msgs::SoundSourceAmpMixerInit;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
+use crate::sound_source_msgs::SoundSourceNoteInit;
 use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
@@ -79,31 +79,16 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
                 let key_as_u32: u8 = (*key).into();
                 if key_as_u32 != self.ignore_hack || self.last_delta != 0 {
                     self.ignore_hack = key_as_u32;
-                    let frequency = midi_note_to_freq((*key).into());
 
-                    let oscilator_init = SoundSourceOscillatorInit::new(
-                        OscillatorType::Triangle,
-                        frequency,
-                        100,
-                        100,
-                    );
-                    let adsr_init = SoundSourceAdsrInit::new(
-                        SoundScale::new_percent(75),
-                        SoundScale::new_percent(50),
-                        1200,
-                        2400,
-                        2400,
-                    );
-
-                    let amp_mixer_init = SoundSourceAmpMixerInit::new(oscilator_init, adsr_init);
-                    let amp_mixer_value = SoundSourceValue::AmpMixerInit {
-                        init_values: amp_mixer_init,
+                    let note_init = SoundSourceNoteInit::new((*key).into(), 0);
+                    let note_value = SoundSourceValue::NoteInit {
+                        init_values: note_init,
                     };
 
                     new_msgs.append(SoundSourceMsg::new(
                         SoundSourceId::get_top_id(),
                         SoundSourceId::get_midi_id(),
-                        amp_mixer_value,
+                        note_value,
                     ));
                 }
             }

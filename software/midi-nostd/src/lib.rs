@@ -6,6 +6,7 @@ pub mod amp_mixer;
 mod free_list;
 pub mod midi;
 pub mod midi_notes;
+pub mod note;
 pub mod oscillator;
 pub mod sound_sample;
 pub mod sound_source;
