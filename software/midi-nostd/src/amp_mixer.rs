@@ -160,10 +160,10 @@ pub fn create_amp_mixer(
 mod tests {
     use crate::amp_mixer::*;
     //use crate::sound_sources::SoundSources;
+    use crate::adsr::SoundSourceAdsrInit;
     use crate::midi_notes::FREQUENCY_MULTIPLIER;
     use crate::sound_sample::SoundScale;
     use crate::sound_source_msgs::OscillatorType;
-    use crate::sound_source_msgs::SoundSourceAdsrInit;
     use crate::sound_source_msgs::SoundSourceOscillatorInit;
     use crate::sound_sources_impl::SoundSourcesImpl;
 

@@ -1,4 +1,4 @@
-use crate::sound_sample::SoundScale;
+use crate::adsr::SoundSourceAdsrInit;
 use crate::sound_source_id::SoundSourceId;
 
 /// Different Wave Types
@@ -48,33 +48,6 @@ impl SoundSourceOscillatorInit {
             frequency,
             pulse_width,
             volume,
-        };
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct SoundSourceAdsrInit {
-    pub attack_max_volume: SoundScale,
-    pub sustain_volume: SoundScale,
-    pub a: u32,
-    pub d: u32,
-    pub r: u32,
-}
-
-impl SoundSourceAdsrInit {
-    pub fn new(
-        attack_max_volume: SoundScale,
-        sustain_volume: SoundScale,
-        a: u32,
-        d: u32,
-        r: u32,
-    ) -> Self {
-        return Self {
-            attack_max_volume,
-            sustain_volume,
-            a,
-            d,
-            r,
         };
     }
 }
