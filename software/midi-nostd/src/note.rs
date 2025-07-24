@@ -24,7 +24,7 @@ type OscilatorAdsrCore<'a, T, const PLAY_FREQUENCY: u32> = AmpMixerCore<
     T,
     PLAY_FREQUENCY,
     CoreOscillator<T, PLAY_FREQUENCY>,
-    CoreAdsr<T, PLAY_FREQUENCY>,
+    CoreAdsr<T, PLAY_FREQUENCY, 1200, 2400, 2400>,
 >;
 
 ///
@@ -68,9 +68,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
                 let adsr_init = SoundSourceAdsrInit::new(
                     SoundScale::new_percent(75),
                     SoundScale::new_percent(50),
-                    1200,
-                    2400,
-                    2400,
                 );
 
                 self.core.source_0.init(&oscilator_init);

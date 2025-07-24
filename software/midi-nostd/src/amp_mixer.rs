@@ -100,7 +100,7 @@ mod tests {
         T,
         PLAY_FREQUENCY,
         CoreOscillator<T, PLAY_FREQUENCY>,
-        CoreAdsr<T, PLAY_FREQUENCY>,
+        CoreAdsr<T, PLAY_FREQUENCY, 2, 4, 4>,
     >;
 
     #[test]
@@ -112,13 +112,8 @@ mod tests {
             50,
         );
 
-        let adsr_init = SoundSourceAdsrInit::new(
-            SoundScale::new_percent(100),
-            SoundScale::new_percent(50),
-            2,
-            4,
-            4,
-        );
+        let adsr_init =
+            SoundSourceAdsrInit::new(SoundScale::new_percent(100), SoundScale::new_percent(50));
 
         let mut amp_mixer = OscilatorAdsrCore::<'_, SoundSampleI32, 240000>::default();
         amp_mixer.source_0.init(&oscilator_init);
