@@ -2,8 +2,6 @@ use crate::midi::Midi;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
-use crate::sound_source_msgs::SoundSourceMsg;
-use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
@@ -26,7 +24,6 @@ pub struct SoundSourcesImpl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usiz
         1,
         { SoundSourceType::Midi as usize },
     >,
-    top_id: SoundSourceId,
 }
 
 impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
@@ -50,13 +47,7 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
 
         top_pool.pool_alloc();
 
-        let top_id = SoundSourceId::get_top_id();
-
-        Self {
-            top_pool,
-            midi,
-            top_id,
-        }
+        Self { top_pool, midi }
     }
 }
 
@@ -82,40 +73,6 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
             SoundSourceType::Midi => &self.midi,
         }
     }
-
-    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        return self
-            .get_pool(msg.dest_id.source_type())
-            .handle_msg(msg, new_msgs);
-    }
-
-    fn process_meta_message(
-        self: &mut Self,
-        msg: &SoundSourceMsg,
-        _new_msgs: &mut SoundSourceMsgs,
-    ) -> bool {
-        match &msg.value {
-            _ => false,
-        }
-    }
-
-    fn process_and_clear_msgs_single_iter(
-        self: &mut Self,
-        msgs: &mut SoundSourceMsgs,
-        new_msgs: &mut SoundSourceMsgs,
-    ) {
-        for msg in msgs.get_msgs() {
-            let mut handled: bool = false;
-
-            if self.top_id == msg.dest_id {
-                handled = self.process_meta_message(&msg, new_msgs);
-            }
-            if !handled {
-                self.handle_msg(&msg, new_msgs)
-            }
-        }
-        msgs.clear();
-    }
 }
 
 impl<const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> SoundSources<'_, PLAY_FREQUENCY>
@@ -135,24 +92,5 @@ impl<const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> SoundSources<'_, PLAY_FR
     fn get_next(self: &mut Self, id: &SoundSourceId) -> SoundSampleI32 {
         let result = self.get_pool(id.source_type()).get_next(id);
         result
-    }
-    fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs) {
-        // Hopefully not a performance problem WRT to clearing on init
-        let mut new_msgs = SoundSourceMsgs::default();
-
-        loop {
-            if msgs.get_msgs().len() == 0 {
-                break;
-            }
-            self.process_and_clear_msgs_single_iter(msgs, &mut new_msgs);
-
-            if new_msgs.get_msgs().len() == 0 {
-                break;
-            }
-            self.process_and_clear_msgs_single_iter(&mut new_msgs, msgs);
-        }
-    }
-    fn get_last_created_sound_source(self: &Self) -> Option<SoundSourceId> {
-        return self.top_pool.get_pool_entry(0).get_creation_id();
     }
 }
