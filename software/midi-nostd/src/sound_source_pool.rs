@@ -33,8 +33,6 @@ pub trait SoundSourcePool<'a, const PLAY_FREQUENCY: u32>: FreeList {
         self.pool_get_next(id.id())
     }
 
-    fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
-
     fn handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         assert_eq!(self.get_type_id(), msg.dest_id.source_type() as usize);
         self.pool_handle_msg(msg, new_msgs);

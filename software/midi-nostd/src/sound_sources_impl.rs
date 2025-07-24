@@ -121,11 +121,6 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
 impl<const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> SoundSources<'_, PLAY_FREQUENCY>
     for SoundSourcesImpl<'_, PLAY_FREQUENCY, NUM_NOTES>
 {
-    fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
-        self.midi.update(new_msgs);
-        self.process_and_clear_msgs(new_msgs);
-    }
-
     fn alloc(self: &mut Self, sound_source_type: SoundSourceType) -> SoundSourceId {
         self.get_pool(sound_source_type).pool_alloc()
     }
@@ -138,7 +133,8 @@ impl<const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> SoundSources<'_, PLAY_FR
         self.get_const_pool(id.source_type()).has_next(id)
     }
     fn get_next(self: &mut Self, id: &SoundSourceId) -> SoundSampleI32 {
-        self.get_pool(id.source_type()).get_next(id)
+        let result = self.get_pool(id.source_type()).get_next(id);
+        result
     }
     fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs) {
         // Hopefully not a performance problem WRT to clearing on init

@@ -67,7 +67,6 @@ fn run() -> Result<(), pa::Error> {
         let mut idx = 0;
         let mut new_msgs = midi_nostd::sound_source_msgs::SoundSourceMsgs::default();
         for _ in 0..frames {
-            all_pools.update(&mut new_msgs);
             let current = all_pools.get_next(&midi_id);
             let converted: f32 = (current.to_i32() as f32) / 32768.0;
             buffer[idx] = converted; //sine[left_phase];

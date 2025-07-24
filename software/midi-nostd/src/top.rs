@@ -37,8 +37,6 @@ impl<const PLAY_FREQUENCY: u32> SoundSource<'_, PLAY_FREQUENCY> for Top<PLAY_FRE
         true
     }
 
-    fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {}
-
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         match &msg.value {
             SoundSourceValue::SoundSourceCreated {} => {

@@ -152,19 +152,17 @@ impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY>
     for MidiReal<'a, PLAY_FREQUENCY>
 {
     fn get_next(self: &mut Self) -> SoundSampleI32 {
-        self.amp_adder.get_next()
-    }
-
-    fn has_next(self: &Self) -> bool {
-        self.track.has_next()
-    }
-
-    fn update(&mut self, _new_msgs: &mut SoundSourceMsgs) {
+        let result = self.amp_adder.get_next();
         self.track.update::<5>(
             &self.smf.tracks[0],
             &mut self.amp_adder,
             &mut self.dest_note,
-        )
+        );
+        result
+    }
+
+    fn has_next(self: &Self) -> bool {
+        self.track.has_next()
     }
 
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
@@ -209,10 +207,6 @@ impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY> for Midi<'a,
         self.midi_maybe.as_ref().unwrap().has_next()
     }
 
-    fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {
-        self.midi_maybe.as_mut().unwrap().update(new_msgs)
-    }
-
     fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         self.midi_maybe.as_mut().unwrap().handle_msg(msg, new_msgs);
     }
@@ -221,22 +215,18 @@ impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY> for Midi<'a,
 #[cfg(test)]
 mod tests {
     use crate::sound_source_id::SoundSourceType;
-    use crate::sound_source_msgs::SoundSourceMsgs;
     use crate::sound_sources::SoundSources;
     use crate::sound_sources_impl::SoundSourcesImpl;
 
     #[test]
     fn basic_midi_test() {
         let mut all_pools = SoundSourcesImpl::<24000, 3>::default();
-        let mut new_msgs = SoundSourceMsgs::default();
         let midi_id = all_pools.alloc(SoundSourceType::Midi);
 
-        all_pools.update(&mut new_msgs);
         assert_eq!(0, all_pools.get_next(&midi_id).to_i32());
-        all_pools.update(&mut new_msgs);
+        assert_eq!(0, all_pools.get_next(&midi_id).to_i32());
         assert_eq!(-20, all_pools.get_next(&midi_id).to_i32());
-        all_pools.update(&mut new_msgs);
         assert_eq!(-37, all_pools.get_next(&midi_id).to_i32());
-        all_pools.update(&mut new_msgs);
+        assert_eq!(-54, all_pools.get_next(&midi_id).to_i32());
     }
 }

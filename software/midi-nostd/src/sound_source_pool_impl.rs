@@ -75,13 +75,6 @@ impl<
     fn pool_get_next(self: &mut Self, element: usize) -> SoundSampleI32 {
         self.sound_source[element].get_next()
     }
-    fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
-        for idx in 0..N {
-            if self.free_list.is_active(idx) {
-                self.sound_source[idx].update(new_msgs);
-            }
-        }
-    }
 
     fn pool_handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
         self.sound_source[msg.dest_id.id()].handle_msg(msg, new_msgs)
