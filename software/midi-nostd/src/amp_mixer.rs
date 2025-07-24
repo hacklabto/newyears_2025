@@ -93,7 +93,7 @@ mod tests {
         'a,
         T,
         PLAY_FREQUENCY,
-        CoreOscillator<T, PLAY_FREQUENCY>,
+        CoreOscillator<T, PLAY_FREQUENCY, 50>,
         CoreAdsr<T, PLAY_FREQUENCY, 2, 4, 4>,
     >;
 
@@ -102,7 +102,6 @@ mod tests {
         let oscilator_init = SoundSourceOscillatorInit::new(
             OscillatorType::PulseWidth,
             260 * FREQUENCY_MULTIPLIER,
-            50,
             50,
         );
 
