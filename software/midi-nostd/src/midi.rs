@@ -202,19 +202,17 @@ impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY> for Midi<'a,
 
 #[cfg(test)]
 mod tests {
-    use crate::sound_source_id::SoundSourceType;
     use crate::sound_sources::SoundSources;
     use crate::sound_sources_impl::SoundSourcesImpl;
 
     #[test]
     fn basic_midi_test() {
         let mut all_pools = SoundSourcesImpl::<24000, 3>::default();
-        let midi_id = all_pools.alloc(SoundSourceType::Midi);
 
-        assert_eq!(0, all_pools.get_next(&midi_id).to_i32());
-        assert_eq!(0, all_pools.get_next(&midi_id).to_i32());
-        assert_eq!(-20, all_pools.get_next(&midi_id).to_i32());
-        assert_eq!(-37, all_pools.get_next(&midi_id).to_i32());
-        assert_eq!(-54, all_pools.get_next(&midi_id).to_i32());
+        assert_eq!(0, all_pools.get_next().to_i32());
+        assert_eq!(0, all_pools.get_next().to_i32());
+        assert_eq!(-20, all_pools.get_next().to_i32());
+        assert_eq!(-37, all_pools.get_next().to_i32());
+        assert_eq!(-54, all_pools.get_next().to_i32());
     }
 }

@@ -1,35 +1,17 @@
 use crate::midi::Midi;
 use crate::sound_sample::SoundSampleI32;
-use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_id::SoundSourceType;
-use crate::sound_source_pool::SoundSourcePool;
-use crate::sound_source_pool_impl::GenericSoundPool;
+use crate::sound_source::SoundSource;
 use crate::sound_sources::SoundSources;
 
-//const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
-
 pub struct SoundSourcesImpl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> {
-    midi: GenericSoundPool<
-        'a,
-        PLAY_FREQUENCY,
-        Midi<'a, PLAY_FREQUENCY>,
-        1,
-        { SoundSourceType::Midi as usize },
-    >,
+    midi: Midi<'a, PLAY_FREQUENCY>,
 }
 
 impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
     for SoundSourcesImpl<'a, PLAY_FREQUENCY, NUM_NOTES>
 {
     fn default() -> Self {
-        let midi = GenericSoundPool::<
-            'a,
-            PLAY_FREQUENCY,
-            Midi<'a, PLAY_FREQUENCY>,
-            1,
-            { SoundSourceType::Midi as usize },
-        >::new();
-
+        let midi = Midi::<'a, PLAY_FREQUENCY>::default();
         Self { midi }
     }
 }
@@ -37,41 +19,15 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
 impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
     SoundSourcesImpl<'a, PLAY_FREQUENCY, NUM_NOTES>
 {
-    pub fn get_pool(
-        self: &mut Self,
-        sound_source_type: SoundSourceType,
-    ) -> &mut dyn SoundSourcePool<'a, PLAY_FREQUENCY> {
-        match sound_source_type {
-            SoundSourceType::Midi => &mut self.midi,
-        }
-    }
-
-    pub fn get_const_pool(
-        self: &Self,
-        sound_source_type: SoundSourceType,
-    ) -> &dyn SoundSourcePool<'a, PLAY_FREQUENCY> {
-        match sound_source_type {
-            SoundSourceType::Midi => &self.midi,
-        }
-    }
 }
 
 impl<const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> SoundSources<'_, PLAY_FREQUENCY>
     for SoundSourcesImpl<'_, PLAY_FREQUENCY, NUM_NOTES>
 {
-    fn alloc(self: &mut Self, sound_source_type: SoundSourceType) -> SoundSourceId {
-        self.get_pool(sound_source_type).pool_alloc()
+    fn has_next(self: &Self) -> bool {
+        self.midi.has_next()
     }
-
-    fn free(self: &mut Self, id: SoundSourceId) {
-        self.get_pool(id.source_type()).pool_free(id)
-    }
-
-    fn has_next(self: &Self, id: &SoundSourceId) -> bool {
-        self.get_const_pool(id.source_type()).has_next(id)
-    }
-    fn get_next(self: &mut Self, id: &SoundSourceId) -> SoundSampleI32 {
-        let result = self.get_pool(id.source_type()).get_next(id);
-        result
+    fn get_next(self: &mut Self) -> SoundSampleI32 {
+        self.midi.get_next()
     }
 }
