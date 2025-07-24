@@ -5,7 +5,6 @@
 
 extern crate portaudio;
 use midi_nostd::midi::Midi;
-use midi_nostd::sound_source::SoundSource;
 use midly::Smf;
 
 use portaudio as pa;

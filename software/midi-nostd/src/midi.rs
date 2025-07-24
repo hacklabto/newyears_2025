@@ -1,11 +1,9 @@
 use crate::amp_adder::AmpAdder;
 use crate::note::SoundSourceNoteInit;
 use crate::sound_sample::SoundSampleI32;
-use crate::sound_source::SoundSource;
 use crate::sound_source_core::SoundSourceCore;
 use midly::Smf;
 
-#[allow(unused)]
 pub struct MidiTrack<const PLAY_FREQUENCY: u32> {
     active: bool,
     current_event_idx: usize,
@@ -143,12 +141,6 @@ impl<'a, const PLAY_FREQUENCY: u32> MidiReal<'a, PLAY_FREQUENCY> {
             dest_note,
         }
     }
-}
-
-#[allow(unused)]
-impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY>
-    for MidiReal<'a, PLAY_FREQUENCY>
-{
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
         self.track.update::<5>(
@@ -167,7 +159,6 @@ impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY>
 ///
 /// Midi Playback
 ///
-#[allow(unused)]
 pub struct Midi<'a, const PLAY_FREQUENCY: u32> {
     midi_maybe: Option<MidiReal<'a, PLAY_FREQUENCY>>,
 }
@@ -187,15 +178,11 @@ impl<const PLAY_FREQUENCY: u32> Midi<'_, PLAY_FREQUENCY> {
             midi_maybe: Some(MidiReal::new(midi_bytes)),
         }
     }
-}
-
-#[allow(unused)]
-impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY> for Midi<'a, PLAY_FREQUENCY> {
-    fn get_next(self: &mut Self) -> SoundSampleI32 {
+    pub fn get_next(self: &mut Self) -> SoundSampleI32 {
         self.midi_maybe.as_mut().unwrap().get_next()
     }
 
-    fn has_next(self: &Self) -> bool {
+    pub fn has_next(self: &Self) -> bool {
         self.midi_maybe.as_ref().unwrap().has_next()
     }
 }
@@ -204,7 +191,6 @@ impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY> for Midi<'a,
 mod tests {
 
     use crate::midi::Midi;
-    use crate::sound_source::SoundSource;
 
     #[test]
     fn basic_midi_test() {
