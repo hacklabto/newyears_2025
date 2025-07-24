@@ -165,12 +165,9 @@ mod tests {
     use crate::oscillator::OscillatorType;
     use crate::oscillator::SoundSourceOscillatorInit;
     use crate::sound_sample::SoundScale;
-    use crate::sound_sources_impl::SoundSourcesImpl;
 
     #[test]
     fn basic_amp_mixer_test() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3>::default();
-
         let oscilator_init = SoundSourceOscillatorInit::new(
             OscillatorType::PulseWidth,
             260 * FREQUENCY_MULTIPLIER,
@@ -186,64 +183,53 @@ mod tests {
             4,
         );
 
-        let amp_id = create_amp_mixer(
-            &mut all_pools,
-            SoundSourceAmpMixerInit::new(oscilator_init, adsr_init),
-        );
-
-        let mut new_msgs = SoundSourceMsgs::default();
+        let mut amp_mixer = OscilatorAdsrCore::<'_, SoundSampleI32, 240000>::default();
+        amp_mixer.source_0.init(&oscilator_init);
+        amp_mixer.source_1.init(&adsr_init);
 
         // Should mirror the ADSR test, about about half volume because I set the oscilator to half
         // volume.
 
-        assert_eq!(0x8000 + 0, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0xfff, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x1ffe, all_pools.get_next(&amp_id).to_u16());
+        assert_eq!(0x8000 + 0, amp_mixer.get_next().to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0xfff, amp_mixer.get_next().to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x1ffe, amp_mixer.get_next().to_u16());
 
         // Delay state, 4 ticks to get to Sustain Volume (50%) from attack volume
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x1bfe, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x17fe, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x13fe, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x0fff, all_pools.get_next(&amp_id).to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x1bfe, amp_mixer.get_next().to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x17fe, amp_mixer.get_next().to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x13fe, amp_mixer.get_next().to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
 
         // Sustain state
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x0fff, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x0fff, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x0fff, all_pools.get_next(&amp_id).to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
 
-        let mut msgs = SoundSourceMsgs::default();
-        msgs.append(SoundSourceMsg::new(
-            amp_id.clone(),
-            SoundSourceId::get_top_id(),
-            SoundSourceValue::ReleaseAdsr,
-        ));
-        all_pools.process_and_clear_msgs(&mut msgs);
+        amp_mixer.source_1.trigger_release();
 
         // Release state, 4 ticks to get to quiet from Sustain Volume
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x0bff, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x07ff, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0x03ff, all_pools.get_next(&amp_id).to_u16());
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 + 0, all_pools.get_next(&amp_id).to_u16());
-        assert_eq!(true, all_pools.has_next(&amp_id));
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x0bff, amp_mixer.get_next().to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x07ff, amp_mixer.get_next().to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0x03ff, amp_mixer.get_next().to_u16());
+        amp_mixer.update();
+        assert_eq!(0x8000 + 0, amp_mixer.get_next().to_u16());
+        assert_eq!(true, amp_mixer.has_next());
 
         // End state.  Report silence and no more data
-        all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000, all_pools.get_next(&amp_id).to_u16());
-        assert_eq!(false, all_pools.has_next(&amp_id));
-
-        all_pools.free(amp_id);
+        amp_mixer.update();
+        assert_eq!(0x8000, amp_mixer.get_next().to_u16());
+        assert_eq!(false, amp_mixer.has_next());
     }
 }
