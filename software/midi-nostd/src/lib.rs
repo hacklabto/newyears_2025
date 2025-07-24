@@ -12,7 +12,6 @@ pub mod sound_sample;
 pub mod sound_source;
 pub mod sound_source_core;
 pub mod sound_source_id;
-pub mod sound_source_msgs;
 mod sound_source_pool;
 pub mod sound_source_pool_impl;
 pub mod sound_sources;

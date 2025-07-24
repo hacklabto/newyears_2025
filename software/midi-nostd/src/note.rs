@@ -7,9 +7,18 @@ use crate::oscillator::OscillatorType;
 use crate::oscillator::SoundSourceOscillatorInit;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
-use crate::sound_source_msgs::SoundSourceNoteInit;
 
-//use core::marker::PhantomData;
+#[derive(Clone, PartialEq, Debug)]
+pub struct SoundSourceNoteInit {
+    pub key: u8,
+    pub instrument: u8,
+}
+
+impl SoundSourceNoteInit {
+    pub fn new(key: u8, instrument: u8) -> Self {
+        return Self { key, instrument };
+    }
+}
 
 type OscilatorAdsrCore<const PLAY_FREQUENCY: u32> = AmpMixerCore<
     PLAY_FREQUENCY,

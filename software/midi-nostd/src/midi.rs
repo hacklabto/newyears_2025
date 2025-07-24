@@ -1,8 +1,8 @@
 use crate::amp_adder::AmpAdder;
+use crate::note::SoundSourceNoteInit;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
 use crate::sound_source_core::SoundSourceCore;
-use crate::sound_source_msgs::SoundSourceNoteInit;
 use midly::Smf;
 
 #[allow(unused)]
