@@ -47,6 +47,15 @@ pub struct CoreAdsr<
 impl<T: SoundSample, const PLAY_FREQUENCY: u32, const A: u32, const D: u32, const R: u32>
     SoundSourceCore<'_, T, PLAY_FREQUENCY> for CoreAdsr<T, PLAY_FREQUENCY, A, D, R>
 {
+    type InitValuesType = SoundSourceAdsrInit;
+
+    fn init(self: &mut Self, init_values: &Self::InitValuesType) {
+        self.state = AdsrState::Attack;
+        self.attack_max_volume = init_values.attack_max_volume;
+        self.sustain_volume = init_values.sustain_volume;
+        self.time_since_state_start = 0;
+    }
+
     fn get_next(self: &Self) -> T {
         let scale: T = match self.state {
             AdsrState::Attack => {
@@ -118,18 +127,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const A: u32, const D: u32, cons
             AdsrState::Ended => {}
         }
     }
-}
-
-impl<T: SoundSample, const PLAY_FREQUENCY: u32, const A: u32, const D: u32, const R: u32>
-    CoreAdsr<T, PLAY_FREQUENCY, A, D, R>
-{
-    pub fn init(self: &mut Self, init_values: &SoundSourceAdsrInit) {
-        self.state = AdsrState::Attack;
-        self.attack_max_volume = init_values.attack_max_volume;
-        self.sustain_volume = init_values.sustain_volume;
-        self.time_since_state_start = 0;
-    }
-    pub fn trigger_release(self: &mut Self) {
+    fn trigger_note_off(self: &mut Self) {
         // TODO, What if we aren't in sustain?  Probably I should take
         // the current volume and run the release on that.
         self.state = AdsrState::Release;
@@ -194,7 +192,7 @@ mod tests {
         adsr.update();
         assert_eq!(0xbfff, adsr.get_next().to_u16());
         adsr.update();
-        adsr.trigger_release(); // Release doesn't start until update begins
+        adsr.trigger_note_off(); // Release doesn't start until update begins
         assert_eq!(0xbfff, adsr.get_next().to_u16());
         adsr.update();
 

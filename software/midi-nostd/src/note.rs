@@ -70,8 +70,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
                     SoundScale::new_percent(50),
                 );
 
-                self.core.source_0.init(&oscilator_init);
-                self.core.source_1.init(&adsr_init);
+                self.core.init(&(oscilator_init, adsr_init));
 
                 let creation_msg = SoundSourceMsg::new(
                     msg.src_id.clone(),
@@ -83,7 +82,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
             SoundSourceValue::ReleaseAdsr => {
                 // TODO, What if we aren't in sustain?  Probably I should take
                 // the current volume and run the release on that.
-                self.core.source_1.trigger_release();
+                self.core.trigger_note_off();
             }
             _ => todo!(),
         }

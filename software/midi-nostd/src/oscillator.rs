@@ -100,22 +100,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for CoreOscillator<T, PL
 }
 
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> CoreOscillator<T, PLAY_FREQUENCY> {
-    pub fn init(self: &mut Self, init_values: &SoundSourceOscillatorInit) {
-        let inc_numerator: u32 = init_values.frequency * WAVE_TABLE_SIZE_U32;
-        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
-        let new_pulse_width_cutoff: u32 =
-            WAVE_TABLE_SIZE_U32 * (init_values.pulse_width as u32) / 100;
-        let volume = SoundScale::new_percent(init_values.volume);
-
-        self.volume = volume;
-        self.oscillator_type = init_values.oscillator_type;
-        self.pulse_width_cutoff = new_pulse_width_cutoff;
-        self.table_idx = 0;
-        self.table_remainder = inc_denominator / 2;
-        self.table_idx_inc = inc_numerator / inc_denominator;
-        self.table_remainder_inc = inc_numerator % inc_denominator;
-    }
-
     // Read sample from table that has the wave's amplitude values
     //
     // The basic idea of this function is that we're going through the table
@@ -157,6 +141,24 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> CoreOscillator<T, PLAY_FREQUENCY
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSourceCore<'_, T, PLAY_FREQUENCY>
     for CoreOscillator<T, PLAY_FREQUENCY>
 {
+    type InitValuesType = SoundSourceOscillatorInit;
+
+    fn init(self: &mut Self, init_values: &Self::InitValuesType) {
+        let inc_numerator: u32 = init_values.frequency * WAVE_TABLE_SIZE_U32;
+        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
+        let new_pulse_width_cutoff: u32 =
+            WAVE_TABLE_SIZE_U32 * (init_values.pulse_width as u32) / 100;
+        let volume = SoundScale::new_percent(init_values.volume);
+
+        self.volume = volume;
+        self.oscillator_type = init_values.oscillator_type;
+        self.pulse_width_cutoff = new_pulse_width_cutoff;
+        self.table_idx = 0;
+        self.table_remainder = inc_denominator / 2;
+        self.table_idx_inc = inc_numerator / inc_denominator;
+        self.table_remainder_inc = inc_numerator % inc_denominator;
+    }
+
     fn has_next(self: &Self) -> bool {
         true
     }
@@ -182,6 +184,9 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSourceCore<'_, T, PLAY_FREQ
             self.table_idx += 1;
         }
         self.table_idx = self.table_idx & (WAVE_TABLE_SIZE_U32 - 1);
+    }
+    fn trigger_note_off(self: &mut Self) {
+        // does nothing.
     }
 }
 

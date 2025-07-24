@@ -1,24 +1,6 @@
-use crate::adsr::SoundSourceAdsrInit;
-use crate::oscillator::SoundSourceOscillatorInit;
 use crate::sound_sample::SoundSample;
 use crate::sound_source_core::SoundSourceCore;
 use core::marker::PhantomData;
-
-// for one kind of amp mixer, at least,
-#[derive(Clone, PartialEq, Debug)]
-pub struct SoundSourceAmpMixerInit {
-    pub oscilator_init: SoundSourceOscillatorInit,
-    pub adsr_init: SoundSourceAdsrInit,
-}
-
-impl SoundSourceAmpMixerInit {
-    pub fn new(oscilator_init: SoundSourceOscillatorInit, adsr_init: SoundSourceAdsrInit) -> Self {
-        return Self {
-            oscilator_init,
-            adsr_init,
-        };
-    }
-}
 
 pub struct AmpMixerCore<
     'a,
@@ -27,8 +9,8 @@ pub struct AmpMixerCore<
     MixSource0: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
     MixSource1: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
 > {
-    pub source_0: MixSource0,
-    pub source_1: MixSource1,
+    source_0: MixSource0,
+    source_1: MixSource1,
     _marker: PhantomData<T>,
     _lifetime_marker: PhantomData<&'a ()>,
 }
@@ -60,6 +42,13 @@ impl<
     > SoundSourceCore<'a, T, PLAY_FREQUENCY>
     for AmpMixerCore<'a, T, PLAY_FREQUENCY, MixSource0, MixSource1>
 {
+    type InitValuesType = (MixSource0::InitValuesType, MixSource1::InitValuesType);
+
+    fn init(self: &mut Self, init_values: &Self::InitValuesType) {
+        self.source_0.init(&(init_values.0));
+        self.source_1.init(&(init_values.1));
+    }
+
     fn get_next(self: &Self) -> T {
         let sample_0 = self.source_0.get_next();
         let sample_1 = self.source_1.get_next();
@@ -77,9 +66,14 @@ impl<
         self.source_0.has_next() && self.source_1.has_next()
     }
 
-    fn update(&mut self) {
+    fn update(self: &mut Self) {
         self.source_0.update();
         self.source_1.update();
+    }
+
+    fn trigger_note_off(self: &mut Self) {
+        self.source_0.trigger_note_off();
+        self.source_1.trigger_note_off();
     }
 }
 
@@ -146,7 +140,7 @@ mod tests {
         amp_mixer.update();
         assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
         amp_mixer.update();
-        amp_mixer.source_1.trigger_release();
+        amp_mixer.trigger_note_off();
         // Release doesn't start until update
         assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
         amp_mixer.update();
