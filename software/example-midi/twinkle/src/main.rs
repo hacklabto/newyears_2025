@@ -49,7 +49,6 @@ fn run() -> Result<(), pa::Error> {
         midi_nostd::sound_sample::SoundSampleI32,
         24000,
         512,
-        512,
     >::default();
 
     let midi_id = all_pools.alloc(SoundSourceType::Midi);

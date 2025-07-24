@@ -1,4 +1,3 @@
-use crate::adsr::GenericAdsr;
 use crate::amp_mixer::AmpMixer;
 use crate::midi::Midi;
 use crate::sound_sample::SoundSample;
@@ -18,17 +17,8 @@ pub struct SoundSourcesImpl<
     'a,
     SAMPLE: SoundSample,
     const PLAY_FREQUENCY: u32,
-    const NUM_ADSRS: usize,
     const NUM_AMP_MIXERS: usize,
 > {
-    adsr_pool: GenericSoundPool<
-        'a,
-        SAMPLE,
-        PLAY_FREQUENCY,
-        GenericAdsr<SAMPLE, PLAY_FREQUENCY>,
-        NUM_ADSRS,
-        { SoundSourceType::Adsr as usize },
-    >,
     top_pool: GenericSoundPool<
         'a,
         SAMPLE,
@@ -56,23 +46,10 @@ pub struct SoundSourcesImpl<
     top_id: SoundSourceId,
 }
 
-impl<
-        'a,
-        SAMPLE: SoundSample,
-        const PLAY_FREQUENCY: u32,
-        const NUM_ADSRS: usize,
-        const NUM_AMP_MIXERS: usize,
-    > Default for SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY, NUM_ADSRS, NUM_AMP_MIXERS>
+impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: usize> Default
+    for SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY, NUM_AMP_MIXERS>
 {
     fn default() -> Self {
-        let adsr_pool = GenericSoundPool::<
-            'a,
-            SAMPLE,
-            PLAY_FREQUENCY,
-            GenericAdsr<SAMPLE, PLAY_FREQUENCY>,
-            NUM_ADSRS,
-            { SoundSourceType::Adsr as usize },
-        >::new();
         let mut top_pool = GenericSoundPool::<
             'a,
             SAMPLE,
@@ -103,7 +80,6 @@ impl<
         let top_id = SoundSourceId::get_top_id();
 
         Self {
-            adsr_pool,
             top_pool,
             amp_mixer_pool,
             midi,
@@ -112,20 +88,14 @@ impl<
     }
 }
 
-impl<
-        'a,
-        SAMPLE: SoundSample,
-        const PLAY_FREQUENCY: u32,
-        const NUM_ADSRS: usize,
-        const NUM_AMP_MIXERS: usize,
-    > SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY, NUM_ADSRS, NUM_AMP_MIXERS>
+impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: usize>
+    SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY, NUM_AMP_MIXERS>
 {
     pub fn get_pool(
         self: &mut Self,
         sound_source_type: SoundSourceType,
     ) -> &mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> {
         match sound_source_type {
-            SoundSourceType::Adsr => &mut self.adsr_pool,
             SoundSourceType::Top => &mut self.top_pool,
             SoundSourceType::AmpMixer => &mut self.amp_mixer_pool,
             SoundSourceType::Midi => &mut self.midi,
@@ -137,7 +107,6 @@ impl<
         sound_source_type: SoundSourceType,
     ) -> &dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> {
         match sound_source_type {
-            SoundSourceType::Adsr => &self.adsr_pool,
             SoundSourceType::Top => &self.top_pool,
             SoundSourceType::AmpMixer => &self.amp_mixer_pool,
             SoundSourceType::Midi => &self.midi,
@@ -156,14 +125,6 @@ impl<
         new_msgs: &mut SoundSourceMsgs,
     ) -> bool {
         match &msg.value {
-            SoundSourceValue::AdsrInit { init_values: _ } => {
-                let adsr_id = self.alloc(SoundSourceType::Adsr);
-
-                let adsr_init_msg =
-                    SoundSourceMsg::new(adsr_id, msg.src_id.clone(), msg.value.clone());
-                new_msgs.append(adsr_init_msg);
-                true
-            }
             SoundSourceValue::AmpMixerInit { init_values: _ } => {
                 let amp_mixer_id = self.alloc(SoundSourceType::AmpMixer);
 
@@ -195,16 +156,11 @@ impl<
     }
 }
 
-impl<
-        SAMPLE: SoundSample,
-        const PLAY_FREQUENCY: u32,
-        const NUM_ADSRS: usize,
-        const NUM_AMP_MIXERS: usize,
-    > SoundSources<'_, SAMPLE, PLAY_FREQUENCY>
-    for SoundSourcesImpl<'_, SAMPLE, PLAY_FREQUENCY, NUM_ADSRS, NUM_AMP_MIXERS>
+impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_AMP_MIXERS: usize>
+    SoundSources<'_, SAMPLE, PLAY_FREQUENCY>
+    for SoundSourcesImpl<'_, SAMPLE, PLAY_FREQUENCY, NUM_AMP_MIXERS>
 {
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
-        self.adsr_pool.update(new_msgs);
         self.amp_mixer_pool.update(new_msgs);
         self.midi.update(new_msgs);
         self.process_and_clear_msgs(new_msgs);

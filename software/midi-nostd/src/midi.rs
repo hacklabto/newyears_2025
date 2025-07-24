@@ -274,7 +274,7 @@ mod tests {
 
     #[test]
     fn basic_midi_test() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3>::default();
         let mut new_msgs = SoundSourceMsgs::default();
         let midi_id = all_pools.alloc(SoundSourceType::Midi);
 
