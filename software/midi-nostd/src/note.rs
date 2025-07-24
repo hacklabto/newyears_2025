@@ -5,7 +5,6 @@ use crate::midi_notes::midi_note_to_freq;
 use crate::oscillator::CoreOscillator;
 use crate::oscillator::OscillatorType;
 use crate::oscillator::SoundSourceOscillatorInit;
-use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
 use crate::sound_source_core::SoundSourceCore;
@@ -18,37 +17,34 @@ use crate::sound_sources::SoundSources;
 
 //use core::marker::PhantomData;
 
-type OscilatorAdsrCore<'a, T, const PLAY_FREQUENCY: u32> = AmpMixerCore<
+type OscilatorAdsrCore<'a, const PLAY_FREQUENCY: u32> = AmpMixerCore<
     'a,
-    T,
     PLAY_FREQUENCY,
-    CoreOscillator<T, PLAY_FREQUENCY, 50, 100, { OscillatorType::Triangle as usize }>,
-    CoreAdsr<T, PLAY_FREQUENCY, 1200, 2400, 2400, 75, 50>,
+    CoreOscillator<PLAY_FREQUENCY, 50, 100, { OscillatorType::Triangle as usize }>,
+    CoreAdsr<PLAY_FREQUENCY, 1200, 2400, 2400, 75, 50>,
 >;
 
 ///
 /// Note.  Now sort of a proof of concept.
 ///
-pub struct Note<'a, T: SoundSample, const PLAY_FREQUENCY: u32> {
-    core: OscilatorAdsrCore<'a, T, PLAY_FREQUENCY>,
+pub struct Note<'a, const PLAY_FREQUENCY: u32> {
+    core: OscilatorAdsrCore<'a, PLAY_FREQUENCY>,
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for Note<'_, T, PLAY_FREQUENCY> {
+impl<const PLAY_FREQUENCY: u32> Default for Note<'_, PLAY_FREQUENCY> {
     fn default() -> Self {
         Self {
-            core: OscilatorAdsrCore::<T, PLAY_FREQUENCY>::default(),
+            core: OscilatorAdsrCore::<PLAY_FREQUENCY>::default(),
         }
     }
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENCY>
-    for Note<'_, T, PLAY_FREQUENCY>
-{
-    fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
+impl<const PLAY_FREQUENCY: u32> SoundSource<'_, PLAY_FREQUENCY> for Note<'_, PLAY_FREQUENCY> {
+    fn get_next(self: &Self, _all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32 {
         self.core.get_next()
     }
 
-    fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
+    fn has_next(self: &Self, _all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> bool {
         self.core.has_next()
     }
 
@@ -85,7 +81,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
 }
 
 pub fn create_note(
-    all_pools: &mut dyn SoundSources<SoundSampleI32, 24000>,
+    all_pools: &mut dyn SoundSources<24000>,
     init_values: SoundSourceNoteInit,
 ) -> SoundSourceId {
     let mut msgs = SoundSourceMsgs::default();

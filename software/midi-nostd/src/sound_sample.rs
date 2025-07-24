@@ -22,61 +22,6 @@ impl SoundScale {
     }
 }
 
-/// A short explanation for this file....
-///
-/// I'm abstracting some basic math concepts because I want this library to work
-/// well on embeded devices, and a lot of them won't have some of the things we
-/// take forgranted on desktop computers, like hardware floating point or CPU
-/// speeds in the GHz.  That means I'll be doing a lot of fixed point math.
-///
-
-///
-/// Interface for a sound sample
-///
-/// Fundementally, a value from -1 to 1, where 0 represents no sound, and -1 and 1 are
-/// the maximum amplitudes off the sound waveform...  Floating point would be an obvious and
-/// easy choice to represent this information... except a lot of micro-controllers don't
-/// have hardware floating point support.
-///
-pub trait SoundSample:
-    Clone + Eq + PartialOrd + Add<Output = Self> + Copy + Sub<Output = Self> + Default
-{
-    /// Maximum playable sound sample
-    ///
-    const MAX: Self;
-
-    /// Minimum playabe sound sample
-    ///
-    const MIN: Self;
-
-    /// Convert a playable sound sample to a u16 more suitable for hardware
-    ///
-    /// Sample must be playable.  "zero" maps to 0x8000, min -> 0, max -> ffff
-    ///
-    fn to_u16(&self) -> u16;
-
-    /// Create a sound sample from something more suitable for tables
-    fn new(init_val: u16) -> Self;
-
-    /// scale by some value
-    ///
-    fn scale(&mut self, scale_by: SoundScale);
-
-    /// Guarantee that a sample is playable
-    ///
-    /// out of bounds samples are cliped.
-    ///
-    fn clip(&self) -> Self {
-        if *self > Self::MAX {
-            Self::MAX
-        } else if *self < Self::MIN {
-            Self::MIN
-        } else {
-            self.clone()
-        }
-    }
-}
-
 ///
 /// Concrete implementation of Sound Sample using fixed point
 ///
@@ -92,26 +37,38 @@ impl SoundSampleI32 {
     ///
     /// Constructor
     ///
-    const fn new(val: i32) -> Self {
+    const fn new_i32(val: i32) -> Self {
         Self { val }
     }
-}
 
-impl SoundSample for SoundSampleI32 {
-    const MAX: Self = Self::new(0x7fff);
-    const MIN: Self = Self::new(-0x8000);
+    pub const MAX: Self = Self::new_i32(0x7fff);
+    pub const MIN: Self = Self::new_i32(-0x8000);
 
-    fn new(sample: u16) -> Self {
+    pub fn new_u16(sample: u16) -> Self {
         let int_sample: i32 = (sample as i32) - 0x8000;
-        Self::new(int_sample)
+        Self::new_i32(int_sample)
     }
 
-    fn to_u16(&self) -> u16 {
+    pub fn to_u16(&self) -> u16 {
         (self.val + 0x8000) as u16
     }
 
-    fn scale(&mut self, scale_by: SoundScale) {
+    pub fn scale(&mut self, scale_by: SoundScale) {
         self.val = (self.val * scale_by.get_scale_by_int()) >> 8;
+    }
+
+    /// Guarantee that a sample is playable
+    ///
+    /// out of bounds samples are cliped.
+    ///
+    pub fn clip(&self) -> Self {
+        if *self > Self::MAX {
+            Self::MAX
+        } else if *self < Self::MIN {
+            Self::MIN
+        } else {
+            self.clone()
+        }
     }
 }
 
@@ -158,43 +115,43 @@ mod tests {
 
     #[test]
     fn samplei32_should_less_than_properly() {
-        let v0 = SoundSampleI32::new(0);
-        let v1 = SoundSampleI32::new(1);
+        let v0 = SoundSampleI32::new_u16(0);
+        let v1 = SoundSampleI32::new_u16(1);
         assert!(v0 < v1);
         assert!(!(v1 < v0));
     }
 
     #[test]
     fn samplei32_should_greater_than_properly() {
-        let v0 = SoundSampleI32::new(0);
-        let v1 = SoundSampleI32::new(1);
+        let v0 = SoundSampleI32::new_u16(0);
+        let v1 = SoundSampleI32::new_u16(1);
         assert!(v1 > v0);
         assert!(!(v0 > v1));
     }
 
     #[test]
     fn samplei32_should_equals_properly() {
-        let v0 = SoundSampleI32::new(0);
-        let v1 = SoundSampleI32::new(0);
-        let v2 = SoundSampleI32::new(1);
+        let v0 = SoundSampleI32::new_u16(0);
+        let v1 = SoundSampleI32::new_u16(0);
+        let v2 = SoundSampleI32::new_u16(1);
         assert!(v0 == v1);
         assert!(v0 != v2);
     }
 
     #[test]
     fn samplei32_should_clip_properly() {
-        let v0 = SoundSampleI32::new(0x100000);
+        let v0 = SoundSampleI32::new_i32(0x100000);
         assert_eq!(v0.clip().to_u16(), 0xffff);
-        let v1 = SoundSampleI32::new(-0x100000);
+        let v1 = SoundSampleI32::new_i32(-0x100000);
         assert_eq!(v1.clip().to_u16(), 0);
-        let v2 = SoundSampleI32::new(5);
+        let v2 = SoundSampleI32::new_u16(5);
         assert!(v2 == v2.clip());
     }
 
     #[test]
     fn samplei32_should_add_and_sub_properly() {
-        let v0 = SoundSampleI32::new(10);
-        let v1 = SoundSampleI32::new(5);
+        let v0 = SoundSampleI32::new_i32(10);
+        let v1 = SoundSampleI32::new_i32(5);
 
         assert!(v0 == v1 + v1);
         assert!(v1 == v0 - v1);
@@ -202,11 +159,11 @@ mod tests {
 
     #[test]
     fn samplei32_should_scale_properly() {
-        let v0 = SoundSampleI32::new(0);
-        let v1 = SoundSampleI32::new(100);
-        let mut v2 = SoundSampleI32::new(100);
-        let mut v3 = SoundSampleI32::new(100);
-        let mut v4 = SoundSampleI32::new(200);
+        let v0 = SoundSampleI32::new_i32(0);
+        let v1 = SoundSampleI32::new_i32(100);
+        let mut v2 = SoundSampleI32::new_i32(100);
+        let mut v3 = SoundSampleI32::new_i32(100);
+        let mut v4 = SoundSampleI32::new_i32(200);
 
         v2.scale(SoundScale::new_percent(100));
         v3.scale(SoundScale::new(0));

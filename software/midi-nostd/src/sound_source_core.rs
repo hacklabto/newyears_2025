@@ -1,4 +1,4 @@
-use crate::sound_sample::SoundSample;
+use crate::sound_sample::SoundSampleI32;
 
 ///
 /// Interface (so far) for a "core" sound source
@@ -8,7 +8,7 @@ use crate::sound_sample::SoundSample;
 /// concerned about the amount of runtime the abstractions I was building as part of
 /// a modular syntheisizer are going to use.
 ///
-pub trait SoundSourceCore<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
+pub trait SoundSourceCore<'a, const PLAY_FREQUENCY: u32> {
     /// Initialize to a none default state.
 
     type InitValuesType;
@@ -20,7 +20,7 @@ pub trait SoundSourceCore<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
 
     /// Draw a sample from a source
     ///
-    fn get_next(self: &Self) -> SAMPLE;
+    fn get_next(self: &Self) -> SoundSampleI32;
 
     /// Update the state one tick
     ///

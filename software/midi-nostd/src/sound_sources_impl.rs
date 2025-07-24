@@ -1,6 +1,6 @@
 use crate::midi::Midi;
 use crate::note::Note;
-use crate::sound_sample::SoundSample;
+use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceMsg;
@@ -13,64 +13,53 @@ use crate::top::Top;
 
 //const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
 
-pub struct SoundSourcesImpl<
-    'a,
-    SAMPLE: SoundSample,
-    const PLAY_FREQUENCY: u32,
-    const NUM_NOTES: usize,
-> {
+pub struct SoundSourcesImpl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> {
     top_pool: GenericSoundPool<
         'a,
-        SAMPLE,
         PLAY_FREQUENCY,
-        Top<SAMPLE, PLAY_FREQUENCY>,
+        Top<PLAY_FREQUENCY>,
         1,
         { SoundSourceType::Top as usize },
     >,
     note_pool: GenericSoundPool<
         'a,
-        SAMPLE,
         PLAY_FREQUENCY,
-        Note<'a, SAMPLE, PLAY_FREQUENCY>,
+        Note<'a, PLAY_FREQUENCY>,
         NUM_NOTES,
         { SoundSourceType::Note as usize },
     >,
     midi: GenericSoundPool<
         'a,
-        SAMPLE,
         PLAY_FREQUENCY,
-        Midi<'a, SAMPLE, PLAY_FREQUENCY>,
+        Midi<'a, PLAY_FREQUENCY>,
         1,
         { SoundSourceType::Midi as usize },
     >,
     top_id: SoundSourceId,
 }
 
-impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
-    for SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY, NUM_NOTES>
+impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
+    for SoundSourcesImpl<'a, PLAY_FREQUENCY, NUM_NOTES>
 {
     fn default() -> Self {
         let mut top_pool = GenericSoundPool::<
             'a,
-            SAMPLE,
             PLAY_FREQUENCY,
-            Top<SAMPLE, PLAY_FREQUENCY>,
+            Top<PLAY_FREQUENCY>,
             1,
             { SoundSourceType::Top as usize },
         >::new();
         let note_pool = GenericSoundPool::<
             'a,
-            SAMPLE,
             PLAY_FREQUENCY,
-            Note<SAMPLE, PLAY_FREQUENCY>,
+            Note<PLAY_FREQUENCY>,
             NUM_NOTES,
             { SoundSourceType::Note as usize },
         >::new();
         let midi = GenericSoundPool::<
             'a,
-            SAMPLE,
             PLAY_FREQUENCY,
-            Midi<'a, SAMPLE, PLAY_FREQUENCY>,
+            Midi<'a, PLAY_FREQUENCY>,
             1,
             { SoundSourceType::Midi as usize },
         >::new();
@@ -88,13 +77,13 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
     }
 }
 
-impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
-    SoundSourcesImpl<'a, SAMPLE, PLAY_FREQUENCY, NUM_NOTES>
+impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
+    SoundSourcesImpl<'a, PLAY_FREQUENCY, NUM_NOTES>
 {
     pub fn get_pool(
         self: &mut Self,
         sound_source_type: SoundSourceType,
-    ) -> &mut dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> {
+    ) -> &mut dyn SoundSourcePool<'a, PLAY_FREQUENCY> {
         match sound_source_type {
             SoundSourceType::Top => &mut self.top_pool,
             SoundSourceType::Note => &mut self.note_pool,
@@ -105,7 +94,7 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
     pub fn get_const_pool(
         self: &Self,
         sound_source_type: SoundSourceType,
-    ) -> &dyn SoundSourcePool<'a, SAMPLE, PLAY_FREQUENCY> {
+    ) -> &dyn SoundSourcePool<'a, PLAY_FREQUENCY> {
         match sound_source_type {
             SoundSourceType::Top => &self.top_pool,
             SoundSourceType::Note => &self.note_pool,
@@ -156,9 +145,8 @@ impl<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
     }
 }
 
-impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
-    SoundSources<'_, SAMPLE, PLAY_FREQUENCY>
-    for SoundSourcesImpl<'_, SAMPLE, PLAY_FREQUENCY, NUM_NOTES>
+impl<const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> SoundSources<'_, PLAY_FREQUENCY>
+    for SoundSourcesImpl<'_, PLAY_FREQUENCY, NUM_NOTES>
 {
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
         self.note_pool.update(new_msgs);
@@ -177,7 +165,7 @@ impl<SAMPLE: SoundSample, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
     fn has_next(self: &Self, id: &SoundSourceId) -> bool {
         self.get_const_pool(id.source_type()).has_next(id, self)
     }
-    fn get_next(self: &Self, id: &SoundSourceId) -> SAMPLE {
+    fn get_next(self: &Self, id: &SoundSourceId) -> SoundSampleI32 {
         self.get_const_pool(id.source_type()).get_next(id, self)
     }
     fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs) {

@@ -1,33 +1,29 @@
-use crate::sound_sample::SoundSample;
+use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 use core::marker::PhantomData;
 
 pub struct AmpMixerCore<
     'a,
-    T: SoundSample,
     const PLAY_FREQUENCY: u32,
-    MixSource0: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
-    MixSource1: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
+    MixSource0: SoundSourceCore<'a, PLAY_FREQUENCY> + Default,
+    MixSource1: SoundSourceCore<'a, PLAY_FREQUENCY> + Default,
 > {
     source_0: MixSource0,
     source_1: MixSource1,
-    _marker: PhantomData<T>,
     _lifetime_marker: PhantomData<&'a ()>,
 }
 
 impl<
         'a,
-        T: SoundSample,
         const PLAY_FREQUENCY: u32,
-        MixSource0: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
-        MixSource1: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
-    > Default for AmpMixerCore<'a, T, PLAY_FREQUENCY, MixSource0, MixSource1>
+        MixSource0: SoundSourceCore<'a, PLAY_FREQUENCY> + Default,
+        MixSource1: SoundSourceCore<'a, PLAY_FREQUENCY> + Default,
+    > Default for AmpMixerCore<'a, PLAY_FREQUENCY, MixSource0, MixSource1>
 {
     fn default() -> Self {
         return Self {
             source_0: MixSource0::default(),
             source_1: MixSource1::default(),
-            _marker: PhantomData {},
             _lifetime_marker: PhantomData {},
         };
     }
@@ -35,12 +31,11 @@ impl<
 
 impl<
         'a,
-        T: SoundSample,
         const PLAY_FREQUENCY: u32,
-        MixSource0: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
-        MixSource1: SoundSourceCore<'a, T, PLAY_FREQUENCY> + Default,
-    > SoundSourceCore<'a, T, PLAY_FREQUENCY>
-    for AmpMixerCore<'a, T, PLAY_FREQUENCY, MixSource0, MixSource1>
+        MixSource0: SoundSourceCore<'a, PLAY_FREQUENCY> + Default,
+        MixSource1: SoundSourceCore<'a, PLAY_FREQUENCY> + Default,
+    > SoundSourceCore<'a, PLAY_FREQUENCY>
+    for AmpMixerCore<'a, PLAY_FREQUENCY, MixSource0, MixSource1>
 {
     type InitValuesType = (MixSource0::InitValuesType, MixSource1::InitValuesType);
 
@@ -49,7 +44,7 @@ impl<
         self.source_1.init(&(init_values.1));
     }
 
-    fn get_next(self: &Self) -> T {
+    fn get_next(self: &Self) -> SoundSampleI32 {
         let sample_0 = self.source_0.get_next();
         let sample_1 = self.source_1.get_next();
 
@@ -59,7 +54,7 @@ impl<
         let out_i = ((sample_0i >> 1) * (sample_1i >> 1)) >> 14;
         let out: u16 = (out_i + 0x8000) as u16;
 
-        T::new(out)
+        SoundSampleI32::new_u16(out)
     }
 
     fn has_next(self: &Self) -> bool {
@@ -86,14 +81,12 @@ mod tests {
     use crate::oscillator::CoreOscillator;
     use crate::oscillator::OscillatorType;
     use crate::oscillator::SoundSourceOscillatorInit;
-    use crate::sound_sample::SoundSampleI32;
 
-    type OscilatorAdsrCore<'a, T, const PLAY_FREQUENCY: u32> = AmpMixerCore<
+    type OscilatorAdsrCore<'a, const PLAY_FREQUENCY: u32> = AmpMixerCore<
         'a,
-        T,
         PLAY_FREQUENCY,
-        CoreOscillator<T, PLAY_FREQUENCY, 50, 50, { OscillatorType::PulseWidth as usize }>,
-        CoreAdsr<T, PLAY_FREQUENCY, 2, 4, 4, 100, 50>,
+        CoreOscillator<PLAY_FREQUENCY, 50, 50, { OscillatorType::PulseWidth as usize }>,
+        CoreAdsr<PLAY_FREQUENCY, 2, 4, 4, 100, 50>,
     >;
 
     #[test]
@@ -102,7 +95,7 @@ mod tests {
 
         let adsr_init = SoundSourceAdsrInit::new();
 
-        let mut amp_mixer = OscilatorAdsrCore::<'_, SoundSampleI32, 240000>::default();
+        let mut amp_mixer = OscilatorAdsrCore::<'_, 240000>::default();
         amp_mixer.source_0.init(&oscilator_init);
         amp_mixer.source_1.init(&adsr_init);
 

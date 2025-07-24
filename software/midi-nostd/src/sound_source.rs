@@ -1,4 +1,4 @@
-use crate::sound_sample::SoundSample;
+use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_sources::SoundSources;
@@ -16,14 +16,14 @@ use crate::sound_sources::SoundSources;
 /// a note might be created by  taking a waveform at the note's frequency and modifying
 /// it using an ADSR amplitude envelope.
 ///
-pub trait SoundSource<'a, SAMPLE: SoundSample, const PLAY_FREQUENCY: u32> {
+pub trait SoundSource<'a, const PLAY_FREQUENCY: u32> {
     /// Returns false if the sound source is done playing
     ///
-    fn has_next(self: &Self, all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>) -> bool;
+    fn has_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> bool;
 
     /// Draw a sample from a source
     ///
-    fn get_next(self: &Self, all_sources: &dyn SoundSources<SAMPLE, PLAY_FREQUENCY>) -> SAMPLE;
+    fn get_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32;
 
     /// Update the state one tick
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);

@@ -1,10 +1,5 @@
-//use crate::adsr::SoundSourceAdsrInit;
 use crate::amp_adder::AmpAdder;
-//use crate::midi_notes::midi_note_to_freq;
-//use crate::oscillator::OscillatorType;
-//use crate::oscillator::SoundSourceOscillatorInit;
-use crate::sound_sample::SoundSample;
-//use crate::sound_sample::SoundScale;
+use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::SoundSourceMsg;
@@ -12,12 +7,10 @@ use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceNoteInit;
 use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
-use core::marker::PhantomData;
-//use core::slice;
 use midly::Smf;
 
 #[allow(unused)]
-pub struct MidiTrack<T: SoundSample, const PLAY_FREQUENCY: u32> {
+pub struct MidiTrack<const PLAY_FREQUENCY: u32> {
     active: bool,
     current_event_idx: usize,
     current_time: u32,
@@ -25,10 +18,9 @@ pub struct MidiTrack<T: SoundSample, const PLAY_FREQUENCY: u32> {
     next_event_time: u32,
     ignore_hack: u8,
     last_delta: u32,
-    _marker: PhantomData<T>,
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
+impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
     pub fn new<'a>(events: &'a midly::Track<'a>) -> Self {
         let active = events.len() != 0;
         let current_event_idx: usize = 0;
@@ -50,7 +42,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
             next_event_time,
             ignore_hack,
             last_delta,
-            _marker: PhantomData {},
         }
     }
     fn has_next(self: &Self) -> bool {
@@ -152,18 +143,18 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiTrack<T, PLAY_FREQUENCY> {
     }
 }
 
-pub struct MidiReal<'a, T: SoundSample, const PLAY_FREQUENCY: u32> {
+pub struct MidiReal<'a, const PLAY_FREQUENCY: u32> {
     smf: Smf<'a>,
-    track: MidiTrack<T, PLAY_FREQUENCY>,
-    amp_adder: AmpAdder<T, PLAY_FREQUENCY, 5>,
+    track: MidiTrack<PLAY_FREQUENCY>,
+    amp_adder: AmpAdder<PLAY_FREQUENCY, 5>,
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiReal<'_, T, PLAY_FREQUENCY> {
+impl<const PLAY_FREQUENCY: u32> MidiReal<'_, PLAY_FREQUENCY> {
     pub fn new(midi_bytes: &'static [u8]) -> Self {
         let smf = midly::Smf::parse(midi_bytes)
             .expect("It's inlined data, so it better work, gosh darn it");
         let track = MidiTrack::new(&smf.tracks[0]);
-        let amp_adder = AmpAdder::<T, PLAY_FREQUENCY, 5>::default();
+        let amp_adder = AmpAdder::<PLAY_FREQUENCY, 5>::default();
         Self {
             smf,
             track,
@@ -173,14 +164,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> MidiReal<'_, T, PLAY_FREQUENCY> 
 }
 
 #[allow(unused)]
-impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQUENCY>
-    for MidiReal<'a, T, PLAY_FREQUENCY>
+impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY>
+    for MidiReal<'a, PLAY_FREQUENCY>
 {
-    fn get_next(self: &Self, all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
+    fn get_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32 {
         self.amp_adder.get_next(all_sources)
     }
 
-    fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
+    fn has_next(self: &Self, _all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> bool {
         self.track.has_next()
     }
 
@@ -206,20 +197,20 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
 /// Midi Playback
 ///
 #[allow(unused)]
-pub struct Midi<'a, T: SoundSample, const PLAY_FREQUENCY: u32> {
-    midi_maybe: Option<MidiReal<'a, T, PLAY_FREQUENCY>>,
+pub struct Midi<'a, const PLAY_FREQUENCY: u32> {
+    midi_maybe: Option<MidiReal<'a, PLAY_FREQUENCY>>,
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for Midi<'_, T, PLAY_FREQUENCY> {
+impl<const PLAY_FREQUENCY: u32> Default for Midi<'_, PLAY_FREQUENCY> {
     fn default() -> Self {
-        let midi = MidiReal::<T, PLAY_FREQUENCY>::new(include_bytes!("../assets/twinkle.mid"));
+        let midi = MidiReal::<PLAY_FREQUENCY>::new(include_bytes!("../assets/twinkle.mid"));
         Self {
             midi_maybe: Some(midi),
         }
     }
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> Midi<'_, T, PLAY_FREQUENCY> {
+impl<const PLAY_FREQUENCY: u32> Midi<'_, PLAY_FREQUENCY> {
     pub fn new(midi_bytes: &'static [u8]) -> Self {
         Self {
             midi_maybe: Some(MidiReal::new(midi_bytes)),
@@ -228,14 +219,12 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Midi<'_, T, PLAY_FREQUENCY> {
 }
 
 #[allow(unused)]
-impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQUENCY>
-    for Midi<'a, T, PLAY_FREQUENCY>
-{
-    fn get_next(self: &Self, all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
+impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY> for Midi<'a, PLAY_FREQUENCY> {
+    fn get_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32 {
         self.midi_maybe.as_ref().unwrap().get_next(all_sources)
     }
 
-    fn has_next(self: &Self, all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
+    fn has_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> bool {
         self.midi_maybe.as_ref().unwrap().has_next(all_sources)
     }
 
@@ -250,8 +239,6 @@ impl<'a, T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'a, T, PLAY_FREQ
 
 #[cfg(test)]
 mod tests {
-    use crate::sound_sample::SoundSample;
-    use crate::sound_sample::SoundSampleI32;
     use crate::sound_source_id::SoundSourceType;
     use crate::sound_source_msgs::SoundSourceMsgs;
     use crate::sound_sources::SoundSources;
@@ -259,7 +246,7 @@ mod tests {
 
     #[test]
     fn basic_midi_test() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<24000, 3>::default();
         let mut new_msgs = SoundSourceMsgs::default();
         let midi_id = all_pools.alloc(SoundSourceType::Midi);
 

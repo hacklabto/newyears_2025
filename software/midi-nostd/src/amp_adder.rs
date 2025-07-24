@@ -1,53 +1,47 @@
-use crate::sound_sample::SoundSample;
+use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_sources::SoundSources;
-use core::marker::PhantomData;
 
 ///
 /// Amp Adder
 ///
-pub struct AmpAdder<T: SoundSample, const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> {
+pub struct AmpAdder<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> {
     pub channels: [Option<SoundSourceId>; NUM_CHANNELS],
-    _marker: PhantomData<T>,
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> Default
-    for AmpAdder<T, PLAY_FREQUENCY, NUM_CHANNELS>
+impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> Default
+    for AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>
 {
     fn default() -> Self {
         Self {
             channels: [None; NUM_CHANNELS],
-            _marker: PhantomData {},
         }
     }
 }
 
 #[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize>
-    AmpAdder<T, PLAY_FREQUENCY, NUM_CHANNELS>
-{
-}
+impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS> {}
 
 #[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize>
-    SoundSource<'_, T, PLAY_FREQUENCY> for AmpAdder<T, PLAY_FREQUENCY, NUM_CHANNELS>
+impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSource<'_, PLAY_FREQUENCY>
+    for AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>
 {
-    fn get_next(self: &Self, all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
-        let mut output: T = T::default();
+    fn get_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32 {
+        let mut output: SoundSampleI32 = SoundSampleI32::default();
 
         for entry in self.channels {
             if let Some(source_id_ref) = &entry {
-                let this_source: T = all_sources.get_next(source_id_ref);
+                let this_source: SoundSampleI32 = all_sources.get_next(source_id_ref);
                 output = output + this_source;
             }
         }
         output.clip()
     }
 
-    fn has_next(self: &Self, all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
+    fn has_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> bool {
         true
     }
 
@@ -59,15 +53,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize>
 #[cfg(test)]
 mod tests {
     use crate::amp_adder::*;
-    use crate::sound_sample::SoundSampleI32;
     use crate::sound_source_msgs::SoundSourceMsgs;
     use crate::sound_sources_impl::SoundSourcesImpl;
 
     #[test]
     fn basic_amp_adder_test() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<24000, 3>::default();
 
-        let amp_adder = AmpAdder::<SoundSampleI32, 24000, 2>::default();
+        let amp_adder = AmpAdder::<24000, 2>::default();
         let mut new_msgs = SoundSourceMsgs::default();
 
         assert_eq!(0x8000 + 0, amp_adder.get_next(&all_pools).to_u16());
