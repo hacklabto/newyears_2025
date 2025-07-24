@@ -93,17 +93,14 @@ mod tests {
         'a,
         T,
         PLAY_FREQUENCY,
-        CoreOscillator<T, PLAY_FREQUENCY, 50>,
+        CoreOscillator<T, PLAY_FREQUENCY, 50, 50>,
         CoreAdsr<T, PLAY_FREQUENCY, 2, 4, 4>,
     >;
 
     #[test]
     fn basic_amp_mixer_test() {
-        let oscilator_init = SoundSourceOscillatorInit::new(
-            OscillatorType::PulseWidth,
-            260 * FREQUENCY_MULTIPLIER,
-            50,
-        );
+        let oscilator_init =
+            SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 260 * FREQUENCY_MULTIPLIER);
 
         let adsr_init =
             SoundSourceAdsrInit::new(SoundScale::new_percent(100), SoundScale::new_percent(50));
