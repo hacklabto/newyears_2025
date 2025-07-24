@@ -11,7 +11,6 @@ pub mod oscillator;
 pub mod sound_sample;
 pub mod sound_source;
 pub mod sound_source_core;
-pub mod sound_source_id;
 pub mod sound_sources;
 pub mod sound_sources_impl;
 mod wave_tables;
