@@ -44,7 +44,6 @@ impl SoundSourceOscillatorInit {
 pub struct CoreOscillator<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8> {
     pub volume: SoundScale,
     pub oscillator_type: OscillatorType,
-    pub pulse_width_cutoff: u32,
     pub table_idx: u32,
     pub table_remainder: u32,
     pub table_idx_inc: u32,
@@ -58,7 +57,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8> Default
     fn default() -> Self {
         let volume = SoundScale::new_percent(100); // full volume
         let oscillator_type = OscillatorType::PulseWidth;
-        let pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 / 2; // 50% duty cycle by default
         let table_idx_inc: u32 = 0;
         let table_remainder_inc: u32 = 0;
         let table_idx: u32 = 0;
@@ -67,7 +65,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8> Default
         Self {
             volume,
             oscillator_type,
-            pulse_width_cutoff,
             table_idx,
             table_remainder,
             table_idx_inc,
@@ -80,6 +77,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8> Default
 impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8>
     CoreOscillator<T, PLAY_FREQUENCY, PULSE_WIDTH>
 {
+    const PULSE_WIDTH_CUTOFF: u32 = WAVE_TABLE_SIZE_U32 * (PULSE_WIDTH as u32) / 100;
+
     // Read sample from table that has the wave's amplitude values
     //
     // The basic idea of this function is that we're going through the table
@@ -108,7 +107,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8>
     }
 
     fn get_next_pulse_entry(&self) -> T {
-        let mut rval = if self.table_idx < self.pulse_width_cutoff {
+        let mut rval = if self.table_idx < Self::PULSE_WIDTH_CUTOFF {
             T::max()
         } else {
             T::min()
@@ -126,12 +125,10 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8>
     fn init(self: &mut Self, init_values: &Self::InitValuesType) {
         let inc_numerator: u32 = init_values.frequency * WAVE_TABLE_SIZE_U32;
         let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
-        let new_pulse_width_cutoff: u32 = WAVE_TABLE_SIZE_U32 * (PULSE_WIDTH as u32) / 100;
         let volume = SoundScale::new_percent(init_values.volume);
 
         self.volume = volume;
         self.oscillator_type = init_values.oscillator_type;
-        self.pulse_width_cutoff = new_pulse_width_cutoff;
         self.table_idx = 0;
         self.table_remainder = inc_denominator / 2;
         self.table_idx_inc = inc_numerator / inc_denominator;
