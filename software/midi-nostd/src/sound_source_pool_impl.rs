@@ -2,8 +2,6 @@ use crate::free_list::FreeList;
 use crate::free_list::FreeListImpl;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
-use crate::sound_source_msgs::SoundSourceMsg;
-use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_pool::SoundSourcePool;
 use core::marker::PhantomData;
 
@@ -76,9 +74,6 @@ impl<
         self.sound_source[element].get_next()
     }
 
-    fn pool_handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        self.sound_source[msg.dest_id.id()].handle_msg(msg, new_msgs)
-    }
     fn get_type_id(self: &Self) -> usize {
         TYPE_ID
     }

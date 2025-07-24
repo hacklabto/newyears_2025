@@ -1,9 +1,6 @@
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_msgs::SoundSourceMsg;
-use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_source_msgs::SoundSourceValue;
 
 ///
 /// Test Helper
@@ -35,14 +32,5 @@ impl<const PLAY_FREQUENCY: u32> SoundSource<'_, PLAY_FREQUENCY> for Top<PLAY_FRE
 
     fn has_next(self: &Self) -> bool {
         true
-    }
-
-    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        match &msg.value {
-            SoundSourceValue::SoundSourceCreated {} => {
-                self.creation_id = Some(msg.src_id.clone());
-            }
-            _ => todo!(),
-        }
     }
 }

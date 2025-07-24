@@ -1,6 +1,4 @@
 use crate::sound_sample::SoundSampleI32;
-use crate::sound_source_msgs::SoundSourceMsg;
-use crate::sound_source_msgs::SoundSourceMsgs;
 
 ///
 /// Interface (so far) for a sound source  
@@ -22,7 +20,4 @@ pub trait SoundSource<'a, const PLAY_FREQUENCY: u32> {
     /// Draw a sample from a source
     ///
     fn get_next(self: &mut Self) -> SoundSampleI32;
-
-    /// Handle a message
-    fn handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs);
 }

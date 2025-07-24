@@ -2,8 +2,6 @@ use crate::amp_adder::AmpAdder;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source::SoundSource;
 use crate::sound_source_core::SoundSourceCore;
-use crate::sound_source_msgs::SoundSourceMsg;
-use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceNoteInit;
 use midly::Smf;
 
@@ -164,12 +162,6 @@ impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY>
     fn has_next(self: &Self) -> bool {
         self.track.has_next()
     }
-
-    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        match &msg.value {
-            _ => todo!(),
-        }
-    }
 }
 
 ///
@@ -205,10 +197,6 @@ impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY> for Midi<'a,
 
     fn has_next(self: &Self) -> bool {
         self.midi_maybe.as_ref().unwrap().has_next()
-    }
-
-    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        self.midi_maybe.as_mut().unwrap().handle_msg(msg, new_msgs);
     }
 }
 
