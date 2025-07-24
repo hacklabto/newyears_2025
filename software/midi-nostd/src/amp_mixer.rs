@@ -48,13 +48,7 @@ impl<
         let sample_0 = self.source_0.get_next();
         let sample_1 = self.source_1.get_next();
 
-        let sample_0i = (sample_0.to_u16() as i32) - 0x8000;
-        let sample_1i = (sample_1.to_u16() as i32) - 0x8000;
-
-        let out_i = ((sample_0i >> 1) * (sample_1i >> 1)) >> 14;
-        let out: u16 = (out_i + 0x8000) as u16;
-
-        SoundSampleI32::new_u16(out)
+        sample_0 * sample_1
     }
 
     fn has_next(self: &Self) -> bool {

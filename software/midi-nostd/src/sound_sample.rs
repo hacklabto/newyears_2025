@@ -1,6 +1,7 @@
 use core::cmp::Ordering;
 use core::ops::Add;
 use core::ops::Div;
+use core::ops::Mul;
 use core::ops::Sub;
 
 #[derive(Clone, Copy, Default, PartialEq, Debug)]
@@ -90,6 +91,14 @@ impl Sub for SoundSampleI32 {
     }
 }
 
+impl Mul for SoundSampleI32 {
+    type Output = SoundSampleI32;
+    fn mul(mut self, rhs: SoundSampleI32) -> SoundSampleI32 {
+        self.val = ((self.val >> 1) * (rhs.val >> 1)) >> 14;
+        self
+    }
+}
+
 impl Div<i32> for SoundSampleI32 {
     type Output = SoundSampleI32;
     fn div(mut self, rhs: i32) -> SoundSampleI32 {
@@ -116,25 +125,25 @@ mod tests {
 
     #[test]
     fn samplei32_should_less_than_properly() {
-        let v0 = SoundSampleI32::new_u16(0);
-        let v1 = SoundSampleI32::new_u16(1);
+        let v0 = SoundSampleI32::new_i32(0);
+        let v1 = SoundSampleI32::new_i32(1);
         assert!(v0 < v1);
         assert!(!(v1 < v0));
     }
 
     #[test]
     fn samplei32_should_greater_than_properly() {
-        let v0 = SoundSampleI32::new_u16(0);
-        let v1 = SoundSampleI32::new_u16(1);
+        let v0 = SoundSampleI32::new_i32(0);
+        let v1 = SoundSampleI32::new_i32(1);
         assert!(v1 > v0);
         assert!(!(v0 > v1));
     }
 
     #[test]
     fn samplei32_should_equals_properly() {
-        let v0 = SoundSampleI32::new_u16(0);
-        let v1 = SoundSampleI32::new_u16(0);
-        let v2 = SoundSampleI32::new_u16(1);
+        let v0 = SoundSampleI32::new_i32(0);
+        let v1 = SoundSampleI32::new_i32(0);
+        let v2 = SoundSampleI32::new_i32(1);
         assert!(v0 == v1);
         assert!(v0 != v2);
     }
@@ -145,7 +154,7 @@ mod tests {
         assert_eq!(v0.clip().to_u16(), 0xffff);
         let v1 = SoundSampleI32::new_i32(-0x100000);
         assert_eq!(v1.clip().to_u16(), 0);
-        let v2 = SoundSampleI32::new_u16(5);
+        let v2 = SoundSampleI32::new_i32(5);
         assert!(v2 == v2.clip());
     }
 
