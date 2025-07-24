@@ -52,17 +52,27 @@ impl SoundSampleI32 {
         return self.val > other.val;
     }
 
+    pub const fn const_mul(mut self, rhs: Self) -> Self {
+        self.val = ((self.val) * (rhs.val)) >> 15;
+        self
+    }
+
+    pub const fn mul_by_fraction(mut self, numerator: i32, denominator: i32) -> Self {
+        self.val = self.val * numerator / denominator;
+        self
+    }
+
     /// Guarantee that a sample is playable
     ///
     /// out of bounds samples are cliped.
     ///
-    pub const fn clip(&self) -> Self {
+    pub const fn clip(self) -> Self {
         if self.const_gt(&Self::MAX) {
             Self::MAX
         } else if self.const_lt(&Self::MIN) {
             Self::MIN
         } else {
-            self.const_clone()
+            self
         }
     }
 }
@@ -86,9 +96,8 @@ impl Sub for SoundSampleI32 {
 
 impl Mul for SoundSampleI32 {
     type Output = SoundSampleI32;
-    fn mul(mut self, rhs: SoundSampleI32) -> SoundSampleI32 {
-        self.val = ((self.val) * (rhs.val)) >> 15;
-        self
+    fn mul(self, rhs: SoundSampleI32) -> SoundSampleI32 {
+        self.const_mul(rhs)
     }
 }
 

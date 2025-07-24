@@ -64,41 +64,18 @@ impl<
         self.time_since_state_start = 0;
     }
 
-    // TODO, the operation that I really want for a lot of these is something like,
-    //
-    // const ATTACK_VOLUME_SCALE:SoundSampleI32 = SoundSampleI32.new_percent( ATTACK_VOLUME);
-    //
-    // If I add an integer fraction_divide to SoundSampleI32 I get,
-    //
-    // match self.state {
-    //   AdsrState::Attack => {
-    //      SoundSampleI32::ATTACK_VOLUME_SCALED.fraction_divide( self.time_since_state_start, A);
-    //   }
-    //
     fn get_next(self: &Self) -> SoundSampleI32 {
         let scale: SoundSampleI32 = match self.state {
             AdsrState::Attack => {
-                let attack_value =
-                    SoundSampleI32::new_i32(self.time_since_state_start * 0x8000 / A);
-                attack_value * Self::ATTACK_VOLUME_SCALE
+                Self::ATTACK_VOLUME_SCALE.mul_by_fraction(self.time_since_state_start, A)
             }
             AdsrState::Delay => {
-                let attack_contribution =
-                    SoundSampleI32::new_i32((D - self.time_since_state_start) * 0x8000 / D)
-                        * Self::ATTACK_VOLUME_SCALE;
-                let sustain_contribution =
-                    SoundSampleI32::new_i32(self.time_since_state_start * 0x8000 / D)
-                        * Self::SUSTAIN_VOLUME_SCALE;
-                attack_contribution + sustain_contribution
+                Self::ATTACK_VOLUME_SCALE.mul_by_fraction(D - self.time_since_state_start, D)
+                    + Self::SUSTAIN_VOLUME_SCALE.mul_by_fraction(self.time_since_state_start, D)
             }
-            AdsrState::Sustain => {
-                let sustain_contribution = SoundSampleI32::MAX;
-                sustain_contribution * Self::SUSTAIN_VOLUME_SCALE
-            }
+            AdsrState::Sustain => Self::SUSTAIN_VOLUME_SCALE,
             AdsrState::Release => {
-                let release_value =
-                    SoundSampleI32::new_i32((R - self.time_since_state_start) * 0x8000 / R);
-                release_value * Self::SUSTAIN_VOLUME_SCALE
+                Self::SUSTAIN_VOLUME_SCALE.mul_by_fraction(R - self.time_since_state_start, R)
             }
             AdsrState::Ended => SoundSampleI32::ZERO,
         };

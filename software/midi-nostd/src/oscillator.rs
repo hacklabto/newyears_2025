@@ -90,6 +90,8 @@ impl<
     const VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(VOLUME);
     const INC_DENOMINATOR: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
     const OSCILATOR_TYPE_ENUM: OscillatorType = OscillatorType::from_usize(OSCILATOR_TYPE);
+    const PULSE_MAX: SoundSampleI32 = SoundSampleI32::MAX.const_mul(Self::VOLUME_SCALE);
+    const PULSE_MIN: SoundSampleI32 = SoundSampleI32::MIN.const_mul(Self::VOLUME_SCALE);
 
     // Read sample from table that has the wave's amplitude values
     //
@@ -118,9 +120,9 @@ impl<
 
     fn get_next_pulse_entry(&self) -> SoundSampleI32 {
         if self.table_idx < Self::PULSE_WIDTH_CUTOFF {
-            SoundSampleI32::MAX * Self::VOLUME_SCALE
+            Self::PULSE_MAX
         } else {
-            SoundSampleI32::MIN * Self::VOLUME_SCALE
+            Self::PULSE_MIN
         }
     }
 }
