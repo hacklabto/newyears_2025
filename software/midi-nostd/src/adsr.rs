@@ -179,48 +179,48 @@ mod tests {
         adsr.init(&adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
-        assert_eq!(0x8000, adsr.get_next().to_u16());
+        assert_eq!(0x0000, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0xbfff, adsr.get_next().to_u16());
+        assert_eq!(0x3fff, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0xffff, adsr.get_next().to_u16());
+        assert_eq!(0x7fff, adsr.get_next().to_i32());
         adsr.update();
 
         // Delay state, 4 ticks to get to Sustain Volume (50%) from attack volume
-        assert_eq!(0xeffe, adsr.get_next().to_u16());
+        assert_eq!(0x6ffe, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0xdffe, adsr.get_next().to_u16());
+        assert_eq!(0x5ffe, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0xcffe, adsr.get_next().to_u16());
+        assert_eq!(0x4ffe, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0xbfff, adsr.get_next().to_u16());
+        assert_eq!(0x3fff, adsr.get_next().to_i32());
         adsr.update();
 
         // Sustain state
-        assert_eq!(0xbfff, adsr.get_next().to_u16());
+        assert_eq!(0x3fff, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0xbfff, adsr.get_next().to_u16());
+        assert_eq!(0x3fff, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0xbfff, adsr.get_next().to_u16());
+        assert_eq!(0x3fff, adsr.get_next().to_i32());
         adsr.update();
         adsr.trigger_note_off(); // Release doesn't start until update begins
-        assert_eq!(0xbfff, adsr.get_next().to_u16());
+        assert_eq!(0x3fff, adsr.get_next().to_i32());
         adsr.update();
 
         // Release state, 4 ticks to get to quiet from Sustain Volume
-        assert_eq!(0xafff, adsr.get_next().to_u16());
+        assert_eq!(0x2fff, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x9fff, adsr.get_next().to_u16());
+        assert_eq!(0x1fff, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x8fff, adsr.get_next().to_u16());
+        assert_eq!(0x0fff, adsr.get_next().to_i32());
         adsr.update();
         assert_eq!(true, adsr.has_next());
-        assert_eq!(0x8000, adsr.get_next().to_u16());
+        assert_eq!(0x0000, adsr.get_next().to_i32());
         adsr.update();
 
         // End state.  Report silence and no more data
         assert_eq!(false, adsr.has_next());
-        assert_eq!(0x8000, adsr.get_next().to_u16());
+        assert_eq!(0x0000, adsr.get_next().to_i32());
         adsr.update();
         assert_eq!(false, adsr.has_next());
     }

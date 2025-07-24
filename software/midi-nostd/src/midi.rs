@@ -250,13 +250,13 @@ mod tests {
         let mut new_msgs = SoundSourceMsgs::default();
         let midi_id = all_pools.alloc(SoundSourceType::Midi);
 
-        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(0, all_pools.get_next(&midi_id).to_i32());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(0, all_pools.get_next(&midi_id).to_i32());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 - 10, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(-10, all_pools.get_next(&midi_id).to_i32());
         all_pools.update(&mut new_msgs);
-        assert_eq!(0x8000 - 19, all_pools.get_next(&midi_id).to_u16());
+        assert_eq!(-19, all_pools.get_next(&midi_id).to_i32());
         all_pools.update(&mut new_msgs);
     }
 }

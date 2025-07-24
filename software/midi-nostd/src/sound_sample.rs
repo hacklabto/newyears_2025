@@ -46,10 +46,6 @@ impl SoundSampleI32 {
     pub const MIN: Self = Self::new_i32(-0x8000);
     pub const ZERO: Self = Self::new_i32(0);
 
-    pub fn to_u16(&self) -> u16 {
-        (self.val + 0x8000) as u16
-    }
-
     pub fn to_i32(&self) -> i32 {
         self.val
     }

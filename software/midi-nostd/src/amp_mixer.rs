@@ -93,49 +93,49 @@ mod tests {
         // Should mirror the ADSR test, about about half volume because I set the oscilator to half
         // volume.
 
-        assert_eq!(0x8000 + 0, amp_mixer.get_next().to_u16());
+        assert_eq!(0x0000, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x8000 + 0xfff, amp_mixer.get_next().to_u16());
+        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x8000 + 0x1ffe, amp_mixer.get_next().to_u16());
+        assert_eq!(0x1ffe, amp_mixer.get_next().to_i32());
         amp_mixer.update();
 
         // Delay state, 4 ticks to get to Sustain Volume (50%) from attack volume
-        assert_eq!(0x8000 + 0x1bfe, amp_mixer.get_next().to_u16());
+        assert_eq!(0x1bfe, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x8000 + 0x17fe, amp_mixer.get_next().to_u16());
+        assert_eq!(0x17fe, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x8000 + 0x13fe, amp_mixer.get_next().to_u16());
+        assert_eq!(0x13fe, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
+        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
 
         // Sustain state
-        assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
+        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
+        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
+        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
         amp_mixer.trigger_note_off();
         // Release doesn't start until update
-        assert_eq!(0x8000 + 0x0fff, amp_mixer.get_next().to_u16());
+        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
 
         // Release state, 4 ticks to get to quiet from Sustain Volume
-        assert_eq!(0x8000 + 0x0bff, amp_mixer.get_next().to_u16());
+        assert_eq!(0x0bff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x8000 + 0x07ff, amp_mixer.get_next().to_u16());
+        assert_eq!(0x07ff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x8000 + 0x03ff, amp_mixer.get_next().to_u16());
+        assert_eq!(0x03ff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
         assert_eq!(true, amp_mixer.has_next());
-        assert_eq!(0x8000 + 0, amp_mixer.get_next().to_u16());
+        assert_eq!(0x0000, amp_mixer.get_next().to_i32());
         amp_mixer.update();
 
         // End state.  Report silence and no more data
         assert_eq!(false, amp_mixer.has_next());
-        assert_eq!(0x8000, amp_mixer.get_next().to_u16());
+        assert_eq!(0x0000, amp_mixer.get_next().to_i32());
         amp_mixer.update();
         assert_eq!(false, amp_mixer.has_next());
     }

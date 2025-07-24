@@ -63,13 +63,13 @@ mod tests {
         let amp_adder = AmpAdder::<24000, 2>::default();
         let mut new_msgs = SoundSourceMsgs::default();
 
-        assert_eq!(0x8000 + 0, amp_adder.get_next(&all_pools).to_u16());
+        assert_eq!(0, amp_adder.get_next(&all_pools).to_i32());
         all_pools.update(&mut new_msgs);
 
-        assert_eq!(0x8000 + 0, amp_adder.get_next(&all_pools).to_u16());
+        assert_eq!(0, amp_adder.get_next(&all_pools).to_i32());
         all_pools.update(&mut new_msgs);
 
-        assert_eq!(0x8000 + 0, amp_adder.get_next(&all_pools).to_u16());
+        assert_eq!(0, amp_adder.get_next(&all_pools).to_i32());
         all_pools.update(&mut new_msgs);
     }
 }
