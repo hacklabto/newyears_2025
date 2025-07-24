@@ -37,12 +37,13 @@ impl SoundSampleI32 {
     ///
     /// Constructor
     ///
-    const fn new_i32(val: i32) -> Self {
+    pub const fn new_i32(val: i32) -> Self {
         Self { val }
     }
 
     pub const MAX: Self = Self::new_i32(0x7fff);
     pub const MIN: Self = Self::new_i32(-0x8000);
+    pub const ZERO: Self = Self::new_i32(0);
 
     pub fn new_u16(sample: u16) -> Self {
         let int_sample: i32 = (sample as i32) - 0x8000;

@@ -25,21 +25,21 @@ pub enum AdsrState {
 ///
 pub struct CoreAdsr<
     const PLAY_FREQUENCY: u32,
-    const A: u32,
-    const D: u32,
-    const R: u32,
+    const A: i32,
+    const D: i32,
+    const R: i32,
     const ATTACK_VOLUME: u8,
     const SUSTAIN_VOLUME: u8,
 > {
     state: AdsrState,            // CurrentState
-    time_since_state_start: u32, // units are 1/PLAY_FREQUENCY
+    time_since_state_start: i32, // units are 1/PLAY_FREQUENCY
 }
 
 impl<
         const PLAY_FREQUENCY: u32,
-        const A: u32,
-        const D: u32,
-        const R: u32,
+        const A: i32,
+        const D: i32,
+        const R: i32,
         const ATTACK_VOLUME: u8,
         const SUSTAIN_VOLUME: u8,
     > CoreAdsr<PLAY_FREQUENCY, A, D, R, ATTACK_VOLUME, SUSTAIN_VOLUME>
@@ -50,9 +50,9 @@ impl<
 
 impl<
         const PLAY_FREQUENCY: u32,
-        const A: u32,
-        const D: u32,
-        const R: u32,
+        const A: i32,
+        const D: i32,
+        const R: i32,
         const ATTACK_VOLUME: u8,
         const SUSTAIN_VOLUME: u8,
     > SoundSourceCore<'_, PLAY_FREQUENCY>
@@ -68,40 +68,32 @@ impl<
     fn get_next(self: &Self) -> SoundSampleI32 {
         let scale: SoundSampleI32 = match self.state {
             AdsrState::Attack => {
-                let mut attack_value = SoundSampleI32::new_u16(
-                    (self.time_since_state_start * 0x7fff / A + 0x8000) as u16,
-                );
+                let mut attack_value =
+                    SoundSampleI32::new_i32(self.time_since_state_start * 0x7fff / A);
                 attack_value.scale(Self::ATTACK_VOLUME_SCALE);
                 attack_value
             }
             AdsrState::Delay => {
-                let mut attack_contribution = SoundSampleI32::new_u16(
-                    ((D - self.time_since_state_start) * 0x7fff / D + 0x8000) as u16,
-                );
-                let mut sustain_contribution = SoundSampleI32::new_u16(
-                    ((self.time_since_state_start) * 0x7fff / D + 0x8000) as u16,
-                );
+                let mut attack_contribution =
+                    SoundSampleI32::new_i32((D - self.time_since_state_start) * 0x7fff / D);
+                let mut sustain_contribution =
+                    SoundSampleI32::new_i32(self.time_since_state_start * 0x7fff / D);
                 attack_contribution.scale(Self::ATTACK_VOLUME_SCALE);
                 sustain_contribution.scale(Self::SUSTAIN_VOLUME_SCALE);
-                SoundSampleI32::new_u16(
-                    (attack_contribution.to_u16() - 0x8000)
-                        + (sustain_contribution.to_u16() - 0x8000)
-                        + 0x8000,
-                )
+                attack_contribution + sustain_contribution
             }
             AdsrState::Sustain => {
-                let mut sustain_contribution = SoundSampleI32::new_u16(0xffff);
+                let mut sustain_contribution = SoundSampleI32::MAX;
                 sustain_contribution.scale(Self::SUSTAIN_VOLUME_SCALE);
                 sustain_contribution
             }
             AdsrState::Release => {
-                let mut release_value = SoundSampleI32::new_u16(
-                    ((R - self.time_since_state_start) * 0x7fff / R + 0x8000) as u16,
-                );
+                let mut release_value =
+                    SoundSampleI32::new_i32((R - self.time_since_state_start) * 0x7fff / R);
                 release_value.scale(Self::SUSTAIN_VOLUME_SCALE);
                 release_value
             }
-            AdsrState::Ended => SoundSampleI32::new_u16(0x8000),
+            AdsrState::Ended => SoundSampleI32::ZERO,
         };
 
         scale
@@ -112,21 +104,18 @@ impl<
     }
 
     fn update(&mut self) {
-        //let mut rerun_update = false;
         self.time_since_state_start = self.time_since_state_start + 1;
         match self.state {
             AdsrState::Attack => {
                 if self.time_since_state_start >= A {
                     self.time_since_state_start = 0;
                     self.state = AdsrState::Delay;
-                    //rerun_update = true;
                 }
             }
             AdsrState::Delay => {
                 if self.time_since_state_start >= D {
                     self.time_since_state_start = 0;
                     self.state = AdsrState::Sustain;
-                    //rerun_update = true;
                 }
             }
             AdsrState::Sustain => {}
@@ -134,7 +123,6 @@ impl<
                 if self.time_since_state_start > R {
                     self.time_since_state_start = 0;
                     self.state = AdsrState::Ended;
-                    //rerun_update = true;
                 }
             }
             AdsrState::Ended => {}
@@ -150,9 +138,9 @@ impl<
 
 impl<
         const PLAY_FREQUENCY: u32,
-        const A: u32,
-        const D: u32,
-        const R: u32,
+        const A: i32,
+        const D: i32,
+        const R: i32,
         const ATTACK_VOLUME: u8,
         const SUSTAIN_VOLUME: u8,
     > Default for CoreAdsr<PLAY_FREQUENCY, A, D, R, ATTACK_VOLUME, SUSTAIN_VOLUME>

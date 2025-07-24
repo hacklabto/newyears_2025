@@ -30,7 +30,7 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSource<'_, PLAY_
     for AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>
 {
     fn get_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32 {
-        let mut output: SoundSampleI32 = SoundSampleI32::default();
+        let mut output: SoundSampleI32 = SoundSampleI32::ZERO;
 
         for entry in self.channels {
             if let Some(source_id_ref) = &entry {
