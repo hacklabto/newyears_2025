@@ -1,12 +1,7 @@
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundScale;
-use crate::sound_source::SoundSource;
 use crate::sound_source_core::SoundSourceCore;
 use crate::sound_source_msgs::SoundSourceAdsrInit;
-use crate::sound_source_msgs::SoundSourceMsg;
-use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_source_msgs::SoundSourceValue;
-use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
 
 #[allow(unused)]
@@ -129,10 +124,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> CoreAdsr<T, PLAY_FREQUENCY> {
     }
 }
 
-pub struct GenericAdsr<T: SoundSample, const PLAY_FREQUENCY: u32> {
-    core: CoreAdsr<T, PLAY_FREQUENCY>,
-}
-
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for CoreAdsr<T, PLAY_FREQUENCY> {
     fn default() -> Self {
         let state = AdsrState::Ended;
@@ -152,53 +143,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for CoreAdsr<T, PLAY_FRE
             r,
             time_since_state_start,
             _marker: PhantomData {},
-        }
-    }
-}
-
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericAdsr<T, PLAY_FREQUENCY> {
-    fn default() -> Self {
-        return Self {
-            core: CoreAdsr::default(),
-        };
-    }
-}
-
-#[allow(unused)]
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENCY>
-    for GenericAdsr<T, PLAY_FREQUENCY>
-{
-    fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
-        self.core.get_next()
-    }
-
-    fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
-        self.core.has_next()
-    }
-
-    fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {
-        self.core.update()
-    }
-
-    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        match &msg.value {
-            SoundSourceValue::AdsrInit { init_values } => {
-                self.core.init(&init_values);
-
-                let creation_msg = SoundSourceMsg::new(
-                    msg.src_id.clone(),
-                    msg.dest_id.clone(),
-                    SoundSourceValue::SoundSourceCreated,
-                );
-                new_msgs.append(creation_msg);
-            }
-            SoundSourceValue::ReleaseAdsr => {
-                // TODO, What if we aren't in sustain?  Probably I should take
-                // the current volume and run the release on that.
-                self.core.state = AdsrState::Release;
-                self.core.time_since_state_start = 0;
-            }
-            _ => todo!(),
         }
     }
 }
