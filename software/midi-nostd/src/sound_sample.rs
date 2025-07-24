@@ -4,25 +4,6 @@ use core::ops::Div;
 use core::ops::Mul;
 use core::ops::Sub;
 
-#[derive(Clone, Copy, Default, PartialEq, Debug)]
-pub struct SoundScale {
-    // 1.8 fixed point value.  Valid values are 0 to 256
-    pub scale_by_int: i32,
-}
-
-impl SoundScale {
-    pub const fn new(scale_by: u16) -> Self {
-        let scale_by_int: i32 = scale_by as i32;
-        return Self { scale_by_int };
-    }
-    pub const fn new_percent(scale_by_percent: u8) -> Self {
-        return Self::new((scale_by_percent as u16) * 256 / 100);
-    }
-    pub fn get_scale_by_int(&self) -> i32 {
-        self.scale_by_int
-    }
-}
-
 ///
 /// Concrete implementation of Sound Sample using fixed point
 ///
@@ -57,10 +38,6 @@ impl SoundSampleI32 {
 
     pub const fn to_i32(&self) -> i32 {
         self.val
-    }
-
-    pub fn scale(&mut self, scale_by: SoundScale) {
-        self.val = (self.val * scale_by.get_scale_by_int()) >> 8;
     }
 
     pub const fn const_clone(&self) -> Self {
@@ -185,23 +162,6 @@ mod tests {
 
     #[test]
     fn samplei32_should_scale_properly() {
-        let v0 = SoundSampleI32::new_i32(0);
-        let v1 = SoundSampleI32::new_i32(100);
-        let mut v2 = SoundSampleI32::new_i32(100);
-        let mut v3 = SoundSampleI32::new_i32(100);
-        let mut v4 = SoundSampleI32::new_i32(200);
-
-        v2.scale(SoundScale::new_percent(100));
-        v3.scale(SoundScale::new(0));
-        v4.scale(SoundScale::new_percent(50));
-
-        assert!(v1 == v2); // scaled by 1, unchanged
-        assert!(v0 == v3); // scaled by 0
-        assert!(v1 == v4); // scaled by .5
-    }
-
-    #[test]
-    fn samplei32_should_scale_properly_2() {
         let v0 = SoundSampleI32::new_i32(0);
         let v1 = SoundSampleI32::new_i32(100);
         let mut v2 = SoundSampleI32::new_i32(100);

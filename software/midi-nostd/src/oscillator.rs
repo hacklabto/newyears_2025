@@ -1,6 +1,5 @@
 use crate::midi_notes::FREQUENCY_MULTIPLIER;
 use crate::sound_sample::SoundSampleI32;
-use crate::sound_sample::SoundScale;
 use crate::sound_source_core::SoundSourceCore;
 use crate::wave_tables::SAWTOOTH_WAVE;
 use crate::wave_tables::SINE_WAVE;
@@ -88,7 +87,7 @@ impl<
     > CoreOscillator<PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     const PULSE_WIDTH_CUTOFF: u32 = WAVE_TABLE_SIZE_U32 * (PULSE_WIDTH as u32) / 100;
-    const VOLUME_SCALE: SoundScale = SoundScale::new_percent(VOLUME);
+    const VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(VOLUME);
     const INC_DENOMINATOR: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
     const OSCILATOR_TYPE_ENUM: OscillatorType = OscillatorType::from_usize(OSCILATOR_TYPE);
 
@@ -114,19 +113,15 @@ impl<
     //
 
     fn get_next_table(&self, table: &[i32; WAVE_TABLE_SIZE]) -> SoundSampleI32 {
-        let mut rval = SoundSampleI32::new_i32(table[self.table_idx as usize]);
-        rval.scale(Self::VOLUME_SCALE);
-        rval
+        SoundSampleI32::new_i32(table[self.table_idx as usize]) * Self::VOLUME_SCALE
     }
 
     fn get_next_pulse_entry(&self) -> SoundSampleI32 {
-        let mut rval = if self.table_idx < Self::PULSE_WIDTH_CUTOFF {
-            SoundSampleI32::MAX
+        if self.table_idx < Self::PULSE_WIDTH_CUTOFF {
+            SoundSampleI32::MAX * Self::VOLUME_SCALE
         } else {
-            SoundSampleI32::MIN
-        };
-        rval.scale(Self::VOLUME_SCALE);
-        rval
+            SoundSampleI32::MIN * Self::VOLUME_SCALE
+        }
     }
 }
 
