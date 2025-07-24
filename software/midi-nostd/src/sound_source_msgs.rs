@@ -1,56 +1,6 @@
 use crate::adsr::SoundSourceAdsrInit;
+use crate::oscillator::SoundSourceOscillatorInit;
 use crate::sound_source_id::SoundSourceId;
-
-/// Different Wave Types
-///
-#[derive(Clone, Copy, PartialEq, Debug)]
-#[repr(usize)]
-pub enum OscillatorType {
-    Triangle = 0,
-    SawTooth = 1,
-    Sine = 2,
-    PulseWidth = 3,
-}
-
-impl OscillatorType {
-    // TODO, delete.
-    pub fn from_usize(usize_value: usize) -> Self {
-        let optional_enum_value: Option<Self> = match usize_value {
-            0 => Some(OscillatorType::Triangle),
-            1 => Some(OscillatorType::SawTooth),
-            2 => Some(OscillatorType::Sine),
-            3 => Some(OscillatorType::PulseWidth),
-            _ => None,
-        };
-        let enum_value = optional_enum_value.expect("bad usize  aveType");
-        assert_eq!(usize_value, enum_value as usize); // cheap sanity check
-        enum_value
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct SoundSourceOscillatorInit {
-    pub oscillator_type: OscillatorType,
-    pub frequency: u32,
-    pub pulse_width: u8,
-    pub volume: u8,
-}
-
-impl SoundSourceOscillatorInit {
-    pub fn new(
-        oscillator_type: OscillatorType,
-        frequency: u32,
-        pulse_width: u8,
-        volume: u8,
-    ) -> Self {
-        return Self {
-            oscillator_type,
-            frequency,
-            pulse_width,
-            volume,
-        };
-    }
-}
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SoundSourceAmpMixerInit {
@@ -70,12 +20,6 @@ impl SoundSourceAmpMixerInit {
 #[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
-    OscillatorInit {
-        init_values: SoundSourceOscillatorInit,
-    },
-    AdsrInit {
-        init_values: SoundSourceAdsrInit,
-    },
     AmpMixerInit {
         init_values: SoundSourceAmpMixerInit,
     },

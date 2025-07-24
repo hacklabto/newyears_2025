@@ -1,15 +1,15 @@
 use crate::adsr::SoundSourceAdsrInit;
 use crate::amp_adder::AmpAdder;
 use crate::midi_notes::midi_note_to_freq;
+use crate::oscillator::OscillatorType;
+use crate::oscillator::SoundSourceOscillatorInit;
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
 use crate::sound_source_id::SoundSourceId;
-use crate::sound_source_msgs::OscillatorType;
 use crate::sound_source_msgs::SoundSourceAmpMixerInit;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_source_msgs::SoundSourceOscillatorInit;
 use crate::sound_source_msgs::SoundSourceValue;
 use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;

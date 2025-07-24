@@ -2,8 +2,6 @@ use crate::midi_notes::FREQUENCY_MULTIPLIER;
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundScale;
 use crate::sound_source_core::SoundSourceCore;
-use crate::sound_source_msgs::OscillatorType;
-use crate::sound_source_msgs::SoundSourceOscillatorInit;
 use crate::wave_tables::SAWTOOTH_WAVE;
 use crate::wave_tables::SINE_WAVE;
 use crate::wave_tables::SQUARE_WAVE;
@@ -15,6 +13,57 @@ use core::marker::PhantomData;
 
 const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
     [&TRIANGLE_WAVE, &SAWTOOTH_WAVE, &SINE_WAVE, &SQUARE_WAVE];
+
+/// Different Wave Types
+///
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[repr(usize)]
+pub enum OscillatorType {
+    Triangle = 0,
+    SawTooth = 1,
+    Sine = 2,
+    PulseWidth = 3,
+}
+
+impl OscillatorType {
+    // TODO, delete.
+    pub fn from_usize(usize_value: usize) -> Self {
+        let optional_enum_value: Option<Self> = match usize_value {
+            0 => Some(OscillatorType::Triangle),
+            1 => Some(OscillatorType::SawTooth),
+            2 => Some(OscillatorType::Sine),
+            3 => Some(OscillatorType::PulseWidth),
+            _ => None,
+        };
+        let enum_value = optional_enum_value.expect("bad usize  aveType");
+        assert_eq!(usize_value, enum_value as usize); // cheap sanity check
+        enum_value
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct SoundSourceOscillatorInit {
+    pub oscillator_type: OscillatorType,
+    pub frequency: u32,
+    pub pulse_width: u8,
+    pub volume: u8,
+}
+
+impl SoundSourceOscillatorInit {
+    pub fn new(
+        oscillator_type: OscillatorType,
+        frequency: u32,
+        pulse_width: u8,
+        volume: u8,
+    ) -> Self {
+        return Self {
+            oscillator_type,
+            frequency,
+            pulse_width,
+            volume,
+        };
+    }
+}
 
 pub struct CoreOscillator<T: SoundSample, const PLAY_FREQUENCY: u32> {
     pub volume: SoundScale,
