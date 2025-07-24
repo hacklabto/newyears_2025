@@ -199,13 +199,13 @@ mod tests {
     }
 
     fn sample_core_wave(oscilator: &mut CoreOscillator<SoundSampleI32, 24000>) -> (u32, u32) {
-        oscilator.update();
         let mut last = oscilator.get_next();
+        oscilator.update();
         let mut transitions: u32 = 0;
         let mut area: u32 = abs_sample(last.to_u16()) as u32;
         for _ in 1..24000 {
-            oscilator.update();
             let current = oscilator.get_next();
+            oscilator.update();
             let last_above_0 = last.to_u16() >= 0x8000;
             let current_above_0 = current.to_u16() >= 0x8000;
             if last_above_0 != current_above_0 {
@@ -229,7 +229,7 @@ mod tests {
         oscilator.init(&init_vals);
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
-        assert_eq!(2600 * 2, transitions);
+        assert_eq!(2600 * 2 - 1, transitions);
 
         assert_eq!(0x7fff * 12000 + 0x8000 * 12000, area);
     }
@@ -247,7 +247,7 @@ mod tests {
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
 
-        assert_eq!(2600 * 2, transitions);
+        assert_eq!(2600 * 2 - 1, transitions);
         assert_eq!(0x3fff * 12000 + 0x4000 * 12000, area);
     }
 
@@ -264,7 +264,7 @@ mod tests {
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
 
-        assert_eq!(2600 * 2, transitions); // we don't get the last transition in square.
+        assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
         assert_eq!(0x7fff * 6000 + 0x8000 * 18000, area);
     }
 

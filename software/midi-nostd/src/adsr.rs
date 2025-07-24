@@ -175,9 +175,9 @@ mod tests {
         assert_eq!(0xbfff, adsr.get_next().to_u16());
         adsr.update();
         assert_eq!(0xffff, adsr.get_next().to_u16());
+        adsr.update();
 
         // Delay state, 4 ticks to get to Sustain Volume (50%) from attack volume
-        adsr.update();
         assert_eq!(0xeffe, adsr.get_next().to_u16());
         adsr.update();
         assert_eq!(0xdffe, adsr.get_next().to_u16());
@@ -185,31 +185,34 @@ mod tests {
         assert_eq!(0xcffe, adsr.get_next().to_u16());
         adsr.update();
         assert_eq!(0xbfff, adsr.get_next().to_u16());
+        adsr.update();
 
         // Sustain state
-        adsr.update();
         assert_eq!(0xbfff, adsr.get_next().to_u16());
         adsr.update();
         assert_eq!(0xbfff, adsr.get_next().to_u16());
         adsr.update();
         assert_eq!(0xbfff, adsr.get_next().to_u16());
-
-        adsr.trigger_release();
+        adsr.update();
+        adsr.trigger_release(); // Release doesn't start until update begins
+        assert_eq!(0xbfff, adsr.get_next().to_u16());
+        adsr.update();
 
         // Release state, 4 ticks to get to quiet from Sustain Volume
-        adsr.update();
         assert_eq!(0xafff, adsr.get_next().to_u16());
         adsr.update();
         assert_eq!(0x9fff, adsr.get_next().to_u16());
         adsr.update();
         assert_eq!(0x8fff, adsr.get_next().to_u16());
         adsr.update();
-        assert_eq!(0x8000, adsr.get_next().to_u16());
         assert_eq!(true, adsr.has_next());
+        assert_eq!(0x8000, adsr.get_next().to_u16());
+        adsr.update();
 
         // End state.  Report silence and no more data
-        adsr.update();
+        assert_eq!(false, adsr.has_next());
         assert_eq!(0x8000, adsr.get_next().to_u16());
+        adsr.update();
         assert_eq!(false, adsr.has_next());
     }
 }
