@@ -4,17 +4,11 @@ use crate::sound_source_core::SoundSourceCore;
 use core::marker::PhantomData;
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct SoundSourceAdsrInit {
-    pub attack_max_volume: SoundScale,
-    pub sustain_volume: SoundScale,
-}
+pub struct SoundSourceAdsrInit {}
 
 impl SoundSourceAdsrInit {
-    pub fn new(attack_max_volume: SoundScale, sustain_volume: SoundScale) -> Self {
-        return Self {
-            attack_max_volume,
-            sustain_volume,
-        };
+    pub fn new() -> Self {
+        return Self {};
     }
 }
 
@@ -36,23 +30,43 @@ pub struct CoreAdsr<
     const A: u32,
     const D: u32,
     const R: u32,
+    const ATTACK_VOLUME: u8,
+    const SUSTAIN_VOLUME: u8,
 > {
-    state: AdsrState,              // CurrentState
-    attack_max_volume: SoundScale, // Reduction in volume after attack finishes
-    sustain_volume: SoundScale,    // Reduction in volume during sustain phase
-    time_since_state_start: u32,   // units are 1/PLAY_FREQUENCY
+    state: AdsrState,            // CurrentState
+    time_since_state_start: u32, // units are 1/PLAY_FREQUENCY
     _marker: PhantomData<T>,
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32, const A: u32, const D: u32, const R: u32>
-    SoundSourceCore<'_, T, PLAY_FREQUENCY> for CoreAdsr<T, PLAY_FREQUENCY, A, D, R>
+impl<
+        T: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        const A: u32,
+        const D: u32,
+        const R: u32,
+        const ATTACK_VOLUME: u8,
+        const SUSTAIN_VOLUME: u8,
+    > CoreAdsr<T, PLAY_FREQUENCY, A, D, R, ATTACK_VOLUME, SUSTAIN_VOLUME>
+{
+    const ATTACK_VOLUME_SCALE: SoundScale = SoundScale::new_percent(ATTACK_VOLUME);
+    const SUSTAIN_VOLUME_SCALE: SoundScale = SoundScale::new_percent(SUSTAIN_VOLUME);
+}
+
+impl<
+        T: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        const A: u32,
+        const D: u32,
+        const R: u32,
+        const ATTACK_VOLUME: u8,
+        const SUSTAIN_VOLUME: u8,
+    > SoundSourceCore<'_, T, PLAY_FREQUENCY>
+    for CoreAdsr<T, PLAY_FREQUENCY, A, D, R, ATTACK_VOLUME, SUSTAIN_VOLUME>
 {
     type InitValuesType = SoundSourceAdsrInit;
 
-    fn init(self: &mut Self, init_values: &Self::InitValuesType) {
+    fn init(self: &mut Self, _init_values: &Self::InitValuesType) {
         self.state = AdsrState::Attack;
-        self.attack_max_volume = init_values.attack_max_volume;
-        self.sustain_volume = init_values.sustain_volume;
         self.time_since_state_start = 0;
     }
 
@@ -61,7 +75,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const A: u32, const D: u32, cons
             AdsrState::Attack => {
                 let mut attack_value =
                     T::new((self.time_since_state_start * 0x7fff / A + 0x8000) as u16);
-                attack_value.scale(self.attack_max_volume);
+                attack_value.scale(Self::ATTACK_VOLUME_SCALE);
                 attack_value
             }
             AdsrState::Delay => {
@@ -69,8 +83,8 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const A: u32, const D: u32, cons
                     T::new(((D - self.time_since_state_start) * 0x7fff / D + 0x8000) as u16);
                 let mut sustain_contribution =
                     T::new(((self.time_since_state_start) * 0x7fff / D + 0x8000) as u16);
-                attack_contribution.scale(self.attack_max_volume);
-                sustain_contribution.scale(self.sustain_volume);
+                attack_contribution.scale(Self::ATTACK_VOLUME_SCALE);
+                sustain_contribution.scale(Self::SUSTAIN_VOLUME_SCALE);
                 T::new(
                     (attack_contribution.to_u16() - 0x8000)
                         + (sustain_contribution.to_u16() - 0x8000)
@@ -79,13 +93,13 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const A: u32, const D: u32, cons
             }
             AdsrState::Sustain => {
                 let mut sustain_contribution = T::new(0xffff);
-                sustain_contribution.scale(self.sustain_volume);
+                sustain_contribution.scale(Self::SUSTAIN_VOLUME_SCALE);
                 sustain_contribution
             }
             AdsrState::Release => {
                 let mut release_value =
                     T::new(((R - self.time_since_state_start) * 0x7fff / R + 0x8000) as u16);
-                release_value.scale(self.sustain_volume);
+                release_value.scale(Self::SUSTAIN_VOLUME_SCALE);
                 release_value
             }
             AdsrState::Ended => T::new(0x8000),
@@ -135,19 +149,22 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const A: u32, const D: u32, cons
     }
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32, const A: u32, const D: u32, const R: u32> Default
-    for CoreAdsr<T, PLAY_FREQUENCY, A, D, R>
+impl<
+        T: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        const A: u32,
+        const D: u32,
+        const R: u32,
+        const ATTACK_VOLUME: u8,
+        const SUSTAIN_VOLUME: u8,
+    > Default for CoreAdsr<T, PLAY_FREQUENCY, A, D, R, ATTACK_VOLUME, SUSTAIN_VOLUME>
 {
     fn default() -> Self {
         let state = AdsrState::Ended;
-        let attack_max_volume = SoundScale::default();
-        let sustain_volume = SoundScale::default();
         let time_since_state_start = 0;
 
         Self {
             state,
-            attack_max_volume,
-            sustain_volume,
             time_since_state_start,
             _marker: PhantomData {},
         }
@@ -161,10 +178,9 @@ mod tests {
 
     #[test]
     fn basic_adsr_test() {
-        let adsr_init =
-            SoundSourceAdsrInit::new(SoundScale::new_percent(100), SoundScale::new_percent(50));
+        let adsr_init = SoundSourceAdsrInit::new();
 
-        let mut adsr = CoreAdsr::<SoundSampleI32, 24000, 2, 4, 4>::default();
+        let mut adsr = CoreAdsr::<SoundSampleI32, 24000, 2, 4, 4, 100, 50>::default();
         adsr.init(&adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0

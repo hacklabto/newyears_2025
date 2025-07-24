@@ -87,14 +87,13 @@ mod tests {
     use crate::oscillator::OscillatorType;
     use crate::oscillator::SoundSourceOscillatorInit;
     use crate::sound_sample::SoundSampleI32;
-    use crate::sound_sample::SoundScale;
 
     type OscilatorAdsrCore<'a, T, const PLAY_FREQUENCY: u32> = AmpMixerCore<
         'a,
         T,
         PLAY_FREQUENCY,
         CoreOscillator<T, PLAY_FREQUENCY, 50, 50>,
-        CoreAdsr<T, PLAY_FREQUENCY, 2, 4, 4>,
+        CoreAdsr<T, PLAY_FREQUENCY, 2, 4, 4, 100, 50>,
     >;
 
     #[test]
@@ -102,8 +101,7 @@ mod tests {
         let oscilator_init =
             SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 260 * FREQUENCY_MULTIPLIER);
 
-        let adsr_init =
-            SoundSourceAdsrInit::new(SoundScale::new_percent(100), SoundScale::new_percent(50));
+        let adsr_init = SoundSourceAdsrInit::new();
 
         let mut amp_mixer = OscilatorAdsrCore::<'_, SoundSampleI32, 240000>::default();
         amp_mixer.source_0.init(&oscilator_init);

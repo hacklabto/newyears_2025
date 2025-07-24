@@ -7,7 +7,6 @@ use crate::oscillator::OscillatorType;
 use crate::oscillator::SoundSourceOscillatorInit;
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundSampleI32;
-use crate::sound_sample::SoundScale;
 use crate::sound_source::SoundSource;
 use crate::sound_source_core::SoundSourceCore;
 use crate::sound_source_id::SoundSourceId;
@@ -24,7 +23,7 @@ type OscilatorAdsrCore<'a, T, const PLAY_FREQUENCY: u32> = AmpMixerCore<
     T,
     PLAY_FREQUENCY,
     CoreOscillator<T, PLAY_FREQUENCY, 50, 100>,
-    CoreAdsr<T, PLAY_FREQUENCY, 1200, 2400, 2400>,
+    CoreAdsr<T, PLAY_FREQUENCY, 1200, 2400, 2400, 75, 50>,
 >;
 
 ///
@@ -65,10 +64,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
                 let oscilator_init =
                     SoundSourceOscillatorInit::new(OscillatorType::Triangle, frequency);
 
-                let adsr_init = SoundSourceAdsrInit::new(
-                    SoundScale::new_percent(75),
-                    SoundScale::new_percent(50),
-                );
+                let adsr_init = SoundSourceAdsrInit::new();
 
                 self.core.init(&(oscilator_init, adsr_init));
 
