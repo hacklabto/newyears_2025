@@ -149,12 +149,11 @@ impl<
 
     fn init(self: &mut Self, init_values: &Self::InitValuesType) {
         let inc_numerator: u32 = init_values.frequency * WAVE_TABLE_SIZE_U32;
-        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
 
         self.table_idx = 0;
-        self.table_remainder = inc_denominator / 2;
-        self.table_idx_inc = inc_numerator / inc_denominator;
-        self.table_remainder_inc = inc_numerator % inc_denominator;
+        self.table_remainder = Self::INC_DENOMINATOR / 2;
+        self.table_idx_inc = inc_numerator / Self::INC_DENOMINATOR;
+        self.table_remainder_inc = inc_numerator % Self::INC_DENOMINATOR;
     }
 
     fn has_next(self: &Self) -> bool {
