@@ -1,5 +1,4 @@
 use crate::sound_sample::SoundSampleI32;
-use crate::sound_sample::SoundScale;
 use crate::sound_source_core::SoundSourceCore;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -44,8 +43,8 @@ impl<
         const SUSTAIN_VOLUME: u8,
     > CoreAdsr<PLAY_FREQUENCY, A, D, R, ATTACK_VOLUME, SUSTAIN_VOLUME>
 {
-    const ATTACK_VOLUME_SCALE: SoundScale = SoundScale::new_percent(ATTACK_VOLUME);
-    const SUSTAIN_VOLUME_SCALE: SoundScale = SoundScale::new_percent(SUSTAIN_VOLUME);
+    const ATTACK_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(ATTACK_VOLUME);
+    const SUSTAIN_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(SUSTAIN_VOLUME);
 }
 
 impl<
@@ -79,30 +78,27 @@ impl<
     fn get_next(self: &Self) -> SoundSampleI32 {
         let scale: SoundSampleI32 = match self.state {
             AdsrState::Attack => {
-                let mut attack_value =
-                    SoundSampleI32::new_i32(self.time_since_state_start * 0x7fff / A);
-                attack_value.scale(Self::ATTACK_VOLUME_SCALE);
-                attack_value
+                let attack_value =
+                    SoundSampleI32::new_i32(self.time_since_state_start * 0x8000 / A);
+                attack_value * Self::ATTACK_VOLUME_SCALE
             }
             AdsrState::Delay => {
-                let mut attack_contribution =
-                    SoundSampleI32::new_i32((D - self.time_since_state_start) * 0x7fff / D);
-                let mut sustain_contribution =
-                    SoundSampleI32::new_i32(self.time_since_state_start * 0x7fff / D);
-                attack_contribution.scale(Self::ATTACK_VOLUME_SCALE);
-                sustain_contribution.scale(Self::SUSTAIN_VOLUME_SCALE);
+                let attack_contribution =
+                    SoundSampleI32::new_i32((D - self.time_since_state_start) * 0x8000 / D)
+                        * Self::ATTACK_VOLUME_SCALE;
+                let sustain_contribution =
+                    SoundSampleI32::new_i32(self.time_since_state_start * 0x8000 / D)
+                        * Self::SUSTAIN_VOLUME_SCALE;
                 attack_contribution + sustain_contribution
             }
             AdsrState::Sustain => {
-                let mut sustain_contribution = SoundSampleI32::MAX;
-                sustain_contribution.scale(Self::SUSTAIN_VOLUME_SCALE);
-                sustain_contribution
+                let sustain_contribution = SoundSampleI32::MAX;
+                sustain_contribution * Self::SUSTAIN_VOLUME_SCALE
             }
             AdsrState::Release => {
-                let mut release_value =
-                    SoundSampleI32::new_i32((R - self.time_since_state_start) * 0x7fff / R);
-                release_value.scale(Self::SUSTAIN_VOLUME_SCALE);
-                release_value
+                let release_value =
+                    SoundSampleI32::new_i32((R - self.time_since_state_start) * 0x8000 / R);
+                release_value * Self::SUSTAIN_VOLUME_SCALE
             }
             AdsrState::Ended => SoundSampleI32::ZERO,
         };
@@ -181,17 +177,17 @@ mod tests {
         // Attack state, 2 ticks to get to attack volume (max) from 0
         assert_eq!(0x0000, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x3fff, adsr.get_next().to_i32());
+        assert_eq!(0x4000, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x7fff, adsr.get_next().to_i32());
+        assert_eq!(0x8000, adsr.get_next().to_i32());
         adsr.update();
 
         // Delay state, 4 ticks to get to Sustain Volume (50%) from attack volume
-        assert_eq!(0x6ffe, adsr.get_next().to_i32());
+        assert_eq!(0x7000, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x5ffe, adsr.get_next().to_i32());
+        assert_eq!(0x6000, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x4ffe, adsr.get_next().to_i32());
+        assert_eq!(0x5000, adsr.get_next().to_i32());
         adsr.update();
         assert_eq!(0x4000, adsr.get_next().to_i32());
         adsr.update();
@@ -204,15 +200,15 @@ mod tests {
         assert_eq!(0x4000, adsr.get_next().to_i32());
         adsr.update();
         adsr.trigger_note_off(); // Release doesn't start until update begins
-        assert_eq!(0x3fff, adsr.get_next().to_i32());
+        assert_eq!(0x4000, adsr.get_next().to_i32());
         adsr.update();
 
         // Release state, 4 ticks to get to quiet from Sustain Volume
-        assert_eq!(0x2fff, adsr.get_next().to_i32());
+        assert_eq!(0x3000, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x1fff, adsr.get_next().to_i32());
+        assert_eq!(0x2000, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x0fff, adsr.get_next().to_i32());
+        assert_eq!(0x1000, adsr.get_next().to_i32());
         adsr.update();
         assert_eq!(true, adsr.has_next());
         assert_eq!(0x0000, adsr.get_next().to_i32());
