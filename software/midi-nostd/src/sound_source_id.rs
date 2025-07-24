@@ -3,28 +3,25 @@
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(usize)]
 pub enum SoundSourceType {
-    Oscillator = 0,
-    Adsr = 1,
-    Top = 2,
-    AmpMixer = 3,
-    Midi = 4,
+    Adsr = 0,
+    Top = 1,
+    AmpMixer = 2,
+    Midi = 3,
 }
 
 impl SoundSourceType {
     pub fn from_usize(usize_value: usize) -> Self {
         let optional_enum_value: Option<Self> = match usize_value {
-            0 => Some(SoundSourceType::Oscillator),
-            1 => Some(SoundSourceType::Adsr),
-            2 => Some(SoundSourceType::Top),
-            3 => Some(SoundSourceType::AmpMixer),
-            4 => Some(SoundSourceType::Midi),
+            0 => Some(SoundSourceType::Adsr),
+            1 => Some(SoundSourceType::Top),
+            2 => Some(SoundSourceType::AmpMixer),
+            3 => Some(SoundSourceType::Midi),
             _ => None,
         };
         optional_enum_value.expect("bad usize to SoundSourceType")
     }
     pub const fn all_variants() -> &'static [SoundSourceType] {
         &[
-            SoundSourceType::Oscillator,
             SoundSourceType::Adsr,
             SoundSourceType::Top,
             SoundSourceType::AmpMixer,

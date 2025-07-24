@@ -4,18 +4,8 @@
 //! Bencina.
 
 extern crate portaudio;
-use midi_nostd::adsr::create_adsr;
-use midi_nostd::amp_mixer::create_amp_mixer;
 use midi_nostd::sound_sample::SoundSample;
-use midi_nostd::sound_sample::SoundScale;
-use midi_nostd::sound_source_id::SoundSourceId;
 use midi_nostd::sound_source_id::SoundSourceType;
-use midi_nostd::sound_source_msgs::SoundSourceAdsrInit;
-use midi_nostd::sound_source_msgs::SoundSourceAmpMixerInit;
-use midi_nostd::sound_source_msgs::SoundSourceMsg;
-use midi_nostd::sound_source_msgs::SoundSourceMsgs;
-use midi_nostd::sound_source_msgs::SoundSourceOscillatorInit;
-use midi_nostd::sound_source_msgs::SoundSourceValue;
 use midi_nostd::sound_sources::SoundSources;
 use midly::Smf;
 
@@ -58,7 +48,6 @@ fn run() -> Result<(), pa::Error> {
     let mut all_pools = midi_nostd::sound_sources_impl::SoundSourcesImpl::<
         midi_nostd::sound_sample::SoundSampleI32,
         24000,
-        512,
         512,
         512,
     >::default();

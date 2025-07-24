@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn basic_amp_mixer_test() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
 
         let oscilator_init = SoundSourceOscillatorInit::new(
             OscillatorType::PulseWidth,

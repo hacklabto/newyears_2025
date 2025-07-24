@@ -1,14 +1,9 @@
 use crate::midi_notes::FREQUENCY_MULTIPLIER;
 use crate::sound_sample::SoundSample;
 use crate::sound_sample::SoundScale;
-use crate::sound_source::SoundSource;
 use crate::sound_source_core::SoundSourceCore;
 use crate::sound_source_msgs::OscillatorType;
-use crate::sound_source_msgs::SoundSourceMsg;
-use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceOscillatorInit;
-use crate::sound_source_msgs::SoundSourceValue;
-use crate::sound_sources::SoundSources;
 use crate::wave_tables::SAWTOOTH_WAVE;
 use crate::wave_tables::SINE_WAVE;
 use crate::wave_tables::SQUARE_WAVE;
@@ -110,21 +105,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> CoreOscillator<T, PLAY_FREQUENCY
     }
 }
 
-///
-/// Wave source generic for a sample type and frequency
-///
-pub struct GenericOscillator<T: SoundSample, const PLAY_FREQUENCY: u32> {
-    core: CoreOscillator<T, PLAY_FREQUENCY>,
-}
-
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> Default for GenericOscillator<T, PLAY_FREQUENCY> {
-    fn default() -> Self {
-        return Self {
-            core: CoreOscillator::<T, PLAY_FREQUENCY>::default(),
-        };
-    }
-}
-
 impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSourceCore<'_, T, PLAY_FREQUENCY>
     for CoreOscillator<T, PLAY_FREQUENCY>
 {
@@ -153,37 +133,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSourceCore<'_, T, PLAY_FREQ
             self.table_idx += 1;
         }
         self.table_idx = self.table_idx & (WAVE_TABLE_SIZE_U32 - 1);
-    }
-}
-
-impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENCY>
-    for GenericOscillator<T, PLAY_FREQUENCY>
-{
-    fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
-        self.core.get_next()
-    }
-
-    fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {
-        self.core.has_next()
-    }
-
-    fn update(&mut self, _new_msgs: &mut SoundSourceMsgs) {
-        self.core.update();
-    }
-
-    fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-        match &msg.value {
-            SoundSourceValue::OscillatorInit { init_values } => {
-                self.core.init(init_values);
-                let creation_msg = SoundSourceMsg::new(
-                    msg.src_id.clone(),
-                    msg.dest_id.clone(),
-                    SoundSourceValue::SoundSourceCreated,
-                );
-                new_msgs.append(creation_msg);
-            }
-            _ => todo!(),
-        }
     }
 }
 

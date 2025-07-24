@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn basic_amp_adder_test() {
-        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3, 3>::default();
+        let mut all_pools = SoundSourcesImpl::<SoundSampleI32, 24000, 3, 3>::default();
 
         let amp_adder = AmpAdder::<SoundSampleI32, 24000, 2>::default();
         let mut new_msgs = SoundSourceMsgs::default();
