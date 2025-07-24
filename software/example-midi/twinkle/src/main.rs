@@ -69,7 +69,7 @@ fn run() -> Result<(), pa::Error> {
         for _ in 0..frames {
             all_pools.update(&mut new_msgs);
             let current = all_pools.get_next(&midi_id);
-            let converted: f32 = (((current.to_u16() as i32) - 32768) as f32) / 32768.0;
+            let converted: f32 = (current.to_i32() as f32) / 32768.0;
             buffer[idx] = converted; //sine[left_phase];
             buffer[idx + 1] = converted; // = sine[right_phase];
             left_phase += 1;
