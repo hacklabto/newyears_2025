@@ -17,28 +17,11 @@ const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
 /// Different Wave Types
 ///
 #[derive(Clone, Copy, PartialEq, Debug)]
-#[repr(usize)]
 pub enum OscillatorType {
-    Triangle = 0,
-    SawTooth = 1,
-    Sine = 2,
-    PulseWidth = 3,
-}
-
-impl OscillatorType {
-    // TODO, delete.
-    pub fn from_usize(usize_value: usize) -> Self {
-        let optional_enum_value: Option<Self> = match usize_value {
-            0 => Some(OscillatorType::Triangle),
-            1 => Some(OscillatorType::SawTooth),
-            2 => Some(OscillatorType::Sine),
-            3 => Some(OscillatorType::PulseWidth),
-            _ => None,
-        };
-        let enum_value = optional_enum_value.expect("bad usize  aveType");
-        assert_eq!(usize_value, enum_value as usize); // cheap sanity check
-        enum_value
-    }
+    Triangle,
+    SawTooth,
+    Sine,
+    PulseWidth,
 }
 
 #[derive(Clone, PartialEq, Debug)]
