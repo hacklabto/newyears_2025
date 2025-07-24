@@ -45,10 +45,7 @@ impl<
     }
 
     fn get_next(self: &Self) -> SoundSampleI32 {
-        let sample_0 = self.source_0.get_next();
-        let sample_1 = self.source_1.get_next();
-
-        sample_0 * sample_1
+        self.source_0.get_next() * self.source_1.get_next()
     }
 
     fn has_next(self: &Self) -> bool {

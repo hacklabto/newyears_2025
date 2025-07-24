@@ -183,11 +183,11 @@ impl<
 mod tests {
     use crate::oscillator::*;
 
-    fn abs_sample(sample: u16) -> u16 {
-        if sample >= 0x8000 {
-            sample - 0x8000
+    fn abs_sample(sample: i32) -> u32 {
+        if sample >= 0 {
+            sample as u32
         } else {
-            0x8000 - sample
+            (-sample) as u32
         }
     }
 
@@ -198,16 +198,16 @@ mod tests {
         let mut last = oscilator.get_next();
         oscilator.update();
         let mut transitions: u32 = 0;
-        let mut area: u32 = abs_sample(last.to_u16()) as u32;
+        let mut area: u32 = abs_sample(last.to_i32());
         for _ in 1..24000 {
             let current = oscilator.get_next();
             oscilator.update();
-            let last_above_0 = last.to_u16() >= 0x8000;
-            let current_above_0 = current.to_u16() >= 0x8000;
+            let last_above_0 = last.to_i32() > 0;
+            let current_above_0 = current.to_i32() > 0;
             if last_above_0 != current_above_0 {
                 transitions = transitions + 1;
             }
-            area = area + abs_sample(current.to_u16()) as u32;
+            area = area + abs_sample(current.to_i32());
             last = current;
         }
         (transitions, area)

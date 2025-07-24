@@ -46,13 +46,12 @@ impl SoundSampleI32 {
     pub const MIN: Self = Self::new_i32(-0x8000);
     pub const ZERO: Self = Self::new_i32(0);
 
-    pub fn new_u16(sample: u16) -> Self {
-        let int_sample: i32 = (sample as i32) - 0x8000;
-        Self::new_i32(int_sample)
-    }
-
     pub fn to_u16(&self) -> u16 {
         (self.val + 0x8000) as u16
+    }
+
+    pub fn to_i32(&self) -> i32 {
+        self.val
     }
 
     pub fn scale(&mut self, scale_by: SoundScale) {
@@ -151,9 +150,9 @@ mod tests {
     #[test]
     fn samplei32_should_clip_properly() {
         let v0 = SoundSampleI32::new_i32(0x100000);
-        assert_eq!(v0.clip().to_u16(), 0xffff);
+        assert_eq!(v0.clip().to_i32(), 0x7fff);
         let v1 = SoundSampleI32::new_i32(-0x100000);
-        assert_eq!(v1.clip().to_u16(), 0);
+        assert_eq!(v1.clip().to_i32(), -0x8000);
         let v2 = SoundSampleI32::new_i32(5);
         assert!(v2 == v2.clip());
     }

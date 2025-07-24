@@ -65,6 +65,17 @@ impl<
         self.time_since_state_start = 0;
     }
 
+    // TODO, the operation that I really want for a lot of these is something like,
+    //
+    // const ATTACK_VOLUME_SCALE:SoundSampleI32 = SoundSampleI32.new_percent( ATTACK_VOLUME);
+    //
+    // If I add an integer fraction_divide to SoundSampleI32 I get,
+    //
+    // match self.state {
+    //   AdsrState::Attack => {
+    //      SoundSampleI32::ATTACK_VOLUME_SCALED.fraction_divide( self.time_since_state_start, A);
+    //   }
+    //
     fn get_next(self: &Self) -> SoundSampleI32 {
         let scale: SoundSampleI32 = match self.state {
             AdsrState::Attack => {
