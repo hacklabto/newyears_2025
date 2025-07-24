@@ -254,9 +254,9 @@ mod tests {
         all_pools.update(&mut new_msgs);
         assert_eq!(0, all_pools.get_next(&midi_id).to_i32());
         all_pools.update(&mut new_msgs);
-        assert_eq!(-10, all_pools.get_next(&midi_id).to_i32());
+        assert_eq!(-20, all_pools.get_next(&midi_id).to_i32());
         all_pools.update(&mut new_msgs);
-        assert_eq!(-19, all_pools.get_next(&midi_id).to_i32());
+        assert_eq!(-37, all_pools.get_next(&midi_id).to_i32());
         all_pools.update(&mut new_msgs);
     }
 }

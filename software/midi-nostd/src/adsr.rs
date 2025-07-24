@@ -193,15 +193,15 @@ mod tests {
         adsr.update();
         assert_eq!(0x4ffe, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x3fff, adsr.get_next().to_i32());
+        assert_eq!(0x4000, adsr.get_next().to_i32());
         adsr.update();
 
         // Sustain state
-        assert_eq!(0x3fff, adsr.get_next().to_i32());
+        assert_eq!(0x4000, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x3fff, adsr.get_next().to_i32());
+        assert_eq!(0x4000, adsr.get_next().to_i32());
         adsr.update();
-        assert_eq!(0x3fff, adsr.get_next().to_i32());
+        assert_eq!(0x4000, adsr.get_next().to_i32());
         adsr.update();
         adsr.trigger_note_off(); // Release doesn't start until update begins
         assert_eq!(0x3fff, adsr.get_next().to_i32());

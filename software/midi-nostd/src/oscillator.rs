@@ -223,7 +223,7 @@ mod tests {
         let (transitions, area) = sample_core_wave(&mut oscilator);
         assert_eq!(2600 * 2 - 1, transitions);
 
-        assert_eq!(0x7fff * 12000 + 0x8000 * 12000, area);
+        assert_eq!(0x8000 * 24000, area);
     }
 
     #[test]
@@ -236,7 +236,7 @@ mod tests {
         let (transitions, area) = sample_core_wave(&mut oscilator);
 
         assert_eq!(2600 * 2 - 1, transitions);
-        assert_eq!(0x3fff * 12000 + 0x4000 * 12000, area);
+        assert_eq!(0x4000 * 12000 + 0x4000 * 12000, area);
     }
 
     #[test]
@@ -249,7 +249,7 @@ mod tests {
         let (transitions, area) = sample_core_wave(&mut oscilator);
 
         assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
-        assert_eq!(0x7fff * 6000 + 0x8000 * 18000, area);
+        assert_eq!(0x8000 * 24000, area); // TODO - this is kind of uninteresting.
     }
 
     #[test]

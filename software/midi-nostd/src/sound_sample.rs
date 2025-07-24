@@ -42,11 +42,20 @@ impl SoundSampleI32 {
         Self { val }
     }
 
-    pub const MAX: Self = Self::new_i32(0x7fff);
+    pub const fn new_percent(scale_by_percent: u8) -> Self {
+        return Self::new_i32(0x8000 * (scale_by_percent as i32) / 100);
+    }
+
+    //
+    // Making this 0x8000.  If we convert to 16 or 8 bit output we'll need
+    // the extra logic of a clip phase, but it makes the integer math so much
+    // more sane.
+    //
+    pub const MAX: Self = Self::new_i32(0x8000);
     pub const MIN: Self = Self::new_i32(-0x8000);
     pub const ZERO: Self = Self::new_i32(0);
 
-    pub fn to_i32(&self) -> i32 {
+    pub const fn to_i32(&self) -> i32 {
         self.val
     }
 
@@ -54,17 +63,29 @@ impl SoundSampleI32 {
         self.val = (self.val * scale_by.get_scale_by_int()) >> 8;
     }
 
+    pub const fn const_clone(&self) -> Self {
+        Self::new_i32(self.val)
+    }
+
+    pub const fn const_lt(&self, other: &Self) -> bool {
+        return self.val < other.val;
+    }
+
+    pub const fn const_gt(&self, other: &Self) -> bool {
+        return self.val > other.val;
+    }
+
     /// Guarantee that a sample is playable
     ///
     /// out of bounds samples are cliped.
     ///
-    pub fn clip(&self) -> Self {
-        if *self > Self::MAX {
+    pub const fn clip(&self) -> Self {
+        if self.const_gt(&Self::MAX) {
             Self::MAX
-        } else if *self < Self::MIN {
+        } else if self.const_lt(&Self::MIN) {
             Self::MIN
         } else {
-            self.clone()
+            self.const_clone()
         }
     }
 }
@@ -89,7 +110,7 @@ impl Sub for SoundSampleI32 {
 impl Mul for SoundSampleI32 {
     type Output = SoundSampleI32;
     fn mul(mut self, rhs: SoundSampleI32) -> SoundSampleI32 {
-        self.val = ((self.val >> 1) * (rhs.val >> 1)) >> 14;
+        self.val = ((self.val) * (rhs.val)) >> 15;
         self
     }
 }
@@ -146,7 +167,7 @@ mod tests {
     #[test]
     fn samplei32_should_clip_properly() {
         let v0 = SoundSampleI32::new_i32(0x100000);
-        assert_eq!(v0.clip().to_i32(), 0x7fff);
+        assert_eq!(v0.clip().to_i32(), 0x8000);
         let v1 = SoundSampleI32::new_i32(-0x100000);
         assert_eq!(v1.clip().to_i32(), -0x8000);
         let v2 = SoundSampleI32::new_i32(5);
@@ -177,5 +198,22 @@ mod tests {
         assert!(v1 == v2); // scaled by 1, unchanged
         assert!(v0 == v3); // scaled by 0
         assert!(v1 == v4); // scaled by .5
+    }
+
+    #[test]
+    fn samplei32_should_scale_properly_2() {
+        let v0 = SoundSampleI32::new_i32(0);
+        let v1 = SoundSampleI32::new_i32(100);
+        let mut v2 = SoundSampleI32::new_i32(100);
+        let mut v3 = SoundSampleI32::new_i32(100);
+        let mut v4 = SoundSampleI32::new_i32(200);
+
+        v2 = v2 * SoundSampleI32::new_percent(100);
+        v3 = v3 * SoundSampleI32::new_percent(0);
+        v4 = v4 * SoundSampleI32::new_percent(50);
+
+        assert_eq!(v1, v2); // scaled by 1, unchanged
+        assert_eq!(v0, v3); // scaled by 0
+        assert_eq!(v1, v4); // scaled by .5
     }
 }

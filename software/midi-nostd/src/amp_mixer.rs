@@ -95,39 +95,39 @@ mod tests {
 
         assert_eq!(0x0000, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
+        assert_eq!(0x1fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x1ffe, amp_mixer.get_next().to_i32());
+        assert_eq!(0x3fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
 
         // Delay state, 4 ticks to get to Sustain Volume (50%) from attack volume
-        assert_eq!(0x1bfe, amp_mixer.get_next().to_i32());
+        assert_eq!(0x37ff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x17fe, amp_mixer.get_next().to_i32());
+        assert_eq!(0x2fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x13fe, amp_mixer.get_next().to_i32());
+        assert_eq!(0x27ff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
+        assert_eq!(0x2000, amp_mixer.get_next().to_i32());
         amp_mixer.update();
 
         // Sustain state
-        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
+        assert_eq!(0x2000, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
+        assert_eq!(0x2000, amp_mixer.get_next().to_i32());
         amp_mixer.update();
-        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
+        assert_eq!(0x2000, amp_mixer.get_next().to_i32());
         amp_mixer.update();
         amp_mixer.trigger_note_off();
-        // Release doesn't start until update
-        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
+        // Release doesn't start until update.  But integer math
+        assert_eq!(0x1fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
 
         // Release state, 4 ticks to get to quiet from Sustain Volume
-        assert_eq!(0x0bff, amp_mixer.get_next().to_i32());
+        assert_eq!(0x17ff, amp_mixer.get_next().to_i32());
+        amp_mixer.update();
+        assert_eq!(0x0fff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
         assert_eq!(0x07ff, amp_mixer.get_next().to_i32());
-        amp_mixer.update();
-        assert_eq!(0x03ff, amp_mixer.get_next().to_i32());
         amp_mixer.update();
         assert_eq!(true, amp_mixer.has_next());
         assert_eq!(0x0000, amp_mixer.get_next().to_i32());
