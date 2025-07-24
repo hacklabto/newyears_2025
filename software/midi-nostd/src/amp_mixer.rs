@@ -1,6 +1,24 @@
+use crate::adsr::SoundSourceAdsrInit;
+use crate::oscillator::SoundSourceOscillatorInit;
 use crate::sound_sample::SoundSample;
 use crate::sound_source_core::SoundSourceCore;
 use core::marker::PhantomData;
+
+// for one kind of amp mixer, at least,
+#[derive(Clone, PartialEq, Debug)]
+pub struct SoundSourceAmpMixerInit {
+    pub oscilator_init: SoundSourceOscillatorInit,
+    pub adsr_init: SoundSourceAdsrInit,
+}
+
+impl SoundSourceAmpMixerInit {
+    pub fn new(oscilator_init: SoundSourceOscillatorInit, adsr_init: SoundSourceAdsrInit) -> Self {
+        return Self {
+            oscilator_init,
+            adsr_init,
+        };
+    }
+}
 
 pub struct AmpMixerCore<
     'a,

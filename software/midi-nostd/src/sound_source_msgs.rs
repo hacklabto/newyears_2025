@@ -1,21 +1,4 @@
-use crate::adsr::SoundSourceAdsrInit;
-use crate::oscillator::SoundSourceOscillatorInit;
 use crate::sound_source_id::SoundSourceId;
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct SoundSourceAmpMixerInit {
-    pub oscilator_init: SoundSourceOscillatorInit,
-    pub adsr_init: SoundSourceAdsrInit,
-}
-
-impl SoundSourceAmpMixerInit {
-    pub fn new(oscilator_init: SoundSourceOscillatorInit, adsr_init: SoundSourceAdsrInit) -> Self {
-        return Self {
-            oscilator_init,
-            adsr_init,
-        };
-    }
-}
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SoundSourceNoteInit {
@@ -32,18 +15,11 @@ impl SoundSourceNoteInit {
 #[derive(Clone, PartialEq, Debug)]
 pub enum SoundSourceValue {
     Uninitialized,
-    AmpMixerInit {
-        init_values: SoundSourceAmpMixerInit,
-    },
-    NoteInit {
-        init_values: SoundSourceNoteInit,
-    },
+    NoteInit { init_values: SoundSourceNoteInit },
     AmpAdderInit,
     ReleaseAdsr,
     SoundSourceCreated,
-    CreatedId {
-        created_id: SoundSourceId,
-    },
+    CreatedId { created_id: SoundSourceId },
 }
 
 impl Default for SoundSourceValue {
