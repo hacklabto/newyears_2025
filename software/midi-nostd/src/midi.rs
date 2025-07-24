@@ -151,7 +151,7 @@ impl<'a, const PLAY_FREQUENCY: u32> MidiReal<'a, PLAY_FREQUENCY> {
 impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY>
     for MidiReal<'a, PLAY_FREQUENCY>
 {
-    fn get_next(self: &Self) -> SoundSampleI32 {
+    fn get_next(self: &mut Self) -> SoundSampleI32 {
         self.amp_adder.get_next()
     }
 
@@ -202,8 +202,8 @@ impl<const PLAY_FREQUENCY: u32> Midi<'_, PLAY_FREQUENCY> {
 
 #[allow(unused)]
 impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY> for Midi<'a, PLAY_FREQUENCY> {
-    fn get_next(self: &Self) -> SoundSampleI32 {
-        self.midi_maybe.as_ref().unwrap().get_next()
+    fn get_next(self: &mut Self) -> SoundSampleI32 {
+        self.midi_maybe.as_mut().unwrap().get_next()
     }
 
     fn has_next(self: &Self) -> bool {

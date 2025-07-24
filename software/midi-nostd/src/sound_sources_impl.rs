@@ -137,8 +137,8 @@ impl<const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> SoundSources<'_, PLAY_FR
     fn has_next(self: &Self, id: &SoundSourceId) -> bool {
         self.get_const_pool(id.source_type()).has_next(id)
     }
-    fn get_next(self: &Self, id: &SoundSourceId) -> SoundSampleI32 {
-        self.get_const_pool(id.source_type()).get_next(id)
+    fn get_next(self: &mut Self, id: &SoundSourceId) -> SoundSampleI32 {
+        self.get_pool(id.source_type()).get_next(id)
     }
     fn process_and_clear_msgs(self: &mut Self, msgs: &mut SoundSourceMsgs) {
         // Hopefully not a performance problem WRT to clearing on init

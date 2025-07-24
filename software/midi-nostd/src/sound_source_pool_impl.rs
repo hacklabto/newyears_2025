@@ -72,7 +72,7 @@ impl<
     fn pool_has_next(self: &Self, element: usize) -> bool {
         self.sound_source[element].has_next()
     }
-    fn pool_get_next(self: &Self, element: usize) -> SoundSampleI32 {
+    fn pool_get_next(self: &mut Self, element: usize) -> SoundSampleI32 {
         self.sound_source[element].get_next()
     }
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {

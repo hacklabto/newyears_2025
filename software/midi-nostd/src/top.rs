@@ -29,7 +29,7 @@ impl<const PLAY_FREQUENCY: u32> Top<PLAY_FREQUENCY> {
 
 #[allow(unused)]
 impl<const PLAY_FREQUENCY: u32> SoundSource<'_, PLAY_FREQUENCY> for Top<PLAY_FREQUENCY> {
-    fn get_next(self: &Self) -> SoundSampleI32 {
+    fn get_next(self: &mut Self) -> SoundSampleI32 {
         SoundSampleI32::ZERO
     }
 

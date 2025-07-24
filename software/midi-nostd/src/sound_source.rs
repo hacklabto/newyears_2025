@@ -21,7 +21,7 @@ pub trait SoundSource<'a, const PLAY_FREQUENCY: u32> {
 
     /// Draw a sample from a source
     ///
-    fn get_next(self: &Self) -> SoundSampleI32;
+    fn get_next(self: &mut Self) -> SoundSampleI32;
 
     /// Update the state one tick
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
