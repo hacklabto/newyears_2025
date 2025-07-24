@@ -127,9 +127,9 @@ impl<
 
     fn get_next_pulse_entry(&self) -> T {
         let mut rval = if self.table_idx < Self::PULSE_WIDTH_CUTOFF {
-            T::max()
+            T::MAX
         } else {
-            T::min()
+            T::MIN
         };
         rval.scale(Self::VOLUME_SCALE);
         rval

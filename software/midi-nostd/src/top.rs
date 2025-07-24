@@ -38,7 +38,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
     for Top<T, PLAY_FREQUENCY>
 {
     fn get_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> T {
-        T::min()
+        T::MIN
     }
 
     fn has_next(self: &Self, _all_sources: &dyn SoundSources<T, PLAY_FREQUENCY>) -> bool {

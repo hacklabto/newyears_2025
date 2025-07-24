@@ -43,11 +43,11 @@ pub trait SoundSample:
 {
     /// Maximum playable sound sample
     ///
-    fn max() -> Self;
+    const MAX: Self;
 
     /// Minimum playabe sound sample
     ///
-    fn min() -> Self;
+    const MIN: Self;
 
     /// Convert a playable sound sample to a u16 more suitable for hardware
     ///
@@ -67,10 +67,10 @@ pub trait SoundSample:
     /// out of bounds samples are cliped.
     ///
     fn clip(&self) -> Self {
-        if *self > Self::max() {
-            Self::max()
-        } else if *self < Self::min() {
-            Self::min()
+        if *self > Self::MAX {
+            Self::MAX
+        } else if *self < Self::MIN {
+            Self::MIN
         } else {
             self.clone()
         }
@@ -98,12 +98,9 @@ impl SoundSampleI32 {
 }
 
 impl SoundSample for SoundSampleI32 {
-    fn max() -> Self {
-        Self::new(0x7fff)
-    }
-    fn min() -> Self {
-        Self::new(-0x8000)
-    }
+    const MAX: Self = Self::new(0x7fff);
+    const MIN: Self = Self::new(-0x8000);
+
     fn new(sample: u16) -> Self {
         let int_sample: i32 = (sample as i32) - 0x8000;
         Self::new(int_sample)
