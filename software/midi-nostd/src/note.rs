@@ -22,7 +22,7 @@ type OscilatorAdsrCore<'a, T, const PLAY_FREQUENCY: u32> = AmpMixerCore<
     'a,
     T,
     PLAY_FREQUENCY,
-    CoreOscillator<T, PLAY_FREQUENCY, 50, 100>,
+    CoreOscillator<T, PLAY_FREQUENCY, 50, 100, { OscillatorType::Triangle as usize }>,
     CoreAdsr<T, PLAY_FREQUENCY, 1200, 2400, 2400, 75, 50>,
 >;
 
@@ -61,8 +61,7 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32> SoundSource<'_, T, PLAY_FREQUENC
             SoundSourceValue::NoteInit { init_values } => {
                 let frequency = midi_note_to_freq(init_values.key);
 
-                let oscilator_init =
-                    SoundSourceOscillatorInit::new(OscillatorType::Triangle, frequency);
+                let oscilator_init = SoundSourceOscillatorInit::new(frequency);
 
                 let adsr_init = SoundSourceAdsrInit::new();
 

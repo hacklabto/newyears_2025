@@ -17,6 +17,7 @@ const ALL_WAVE_TABLES: [&[u16; WAVE_TABLE_SIZE]; 4] =
 /// Different Wave Types
 ///
 #[derive(Clone, Copy, PartialEq, Debug)]
+#[repr(usize)]
 pub enum OscillatorType {
     Triangle,
     SawTooth,
@@ -24,18 +25,26 @@ pub enum OscillatorType {
     PulseWidth,
 }
 
+impl OscillatorType {
+    const fn from_usize(usize_value: usize) -> Self {
+        match usize_value {
+            0 => Self::Triangle,
+            1 => Self::SawTooth,
+            2 => Self::Sine,
+            3 => Self::PulseWidth,
+            4_usize.. => todo!(),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct SoundSourceOscillatorInit {
-    pub oscillator_type: OscillatorType,
     pub frequency: u32,
 }
 
 impl SoundSourceOscillatorInit {
-    pub fn new(oscillator_type: OscillatorType, frequency: u32) -> Self {
-        return Self {
-            oscillator_type,
-            frequency,
-        };
+    pub fn new(frequency: u32) -> Self {
+        return Self { frequency };
     }
 }
 
@@ -44,8 +53,8 @@ pub struct CoreOscillator<
     const PLAY_FREQUENCY: u32,
     const PULSE_WIDTH: u8,
     const VOLUME_U8: u8,
+    const OSCILLATOR_TYPE: usize,
 > {
-    pub oscillator_type: OscillatorType,
     pub table_idx: u32,
     pub table_remainder: u32,
     pub table_idx_inc: u32,
@@ -53,18 +62,20 @@ pub struct CoreOscillator<
     _marker: PhantomData<T>,
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8, const VOLUME: u8> Default
-    for CoreOscillator<T, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME>
+impl<
+        T: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        const PULSE_WIDTH: u8,
+        const VOLUME: u8,
+        const OSCILATOR_TYPE: usize,
+    > Default for CoreOscillator<T, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     fn default() -> Self {
-        let oscillator_type = OscillatorType::PulseWidth;
         let table_idx_inc: u32 = 0;
         let table_remainder_inc: u32 = 0;
         let table_idx: u32 = 0;
-        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
-        let table_remainder: u32 = inc_denominator / 2;
+        let table_remainder: u32 = Self::INC_DENOMINATOR / 2;
         Self {
-            oscillator_type,
             table_idx,
             table_remainder,
             table_idx_inc,
@@ -74,11 +85,18 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8, const VOL
     }
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8, const VOLUME: u8>
-    CoreOscillator<T, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME>
+impl<
+        T: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        const PULSE_WIDTH: u8,
+        const VOLUME: u8,
+        const OSCILATOR_TYPE: usize,
+    > CoreOscillator<T, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     const PULSE_WIDTH_CUTOFF: u32 = WAVE_TABLE_SIZE_U32 * (PULSE_WIDTH as u32) / 100;
     const VOLUME_SCALE: SoundScale = SoundScale::new_percent(VOLUME);
+    const INC_DENOMINATOR: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
+    const OSCILATOR_TYPE_ENUM: OscillatorType = OscillatorType::from_usize(OSCILATOR_TYPE);
 
     // Read sample from table that has the wave's amplitude values
     //
@@ -118,9 +136,14 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8, const VOL
     }
 }
 
-impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8, const VOLUME: u8>
-    SoundSourceCore<'_, T, PLAY_FREQUENCY>
-    for CoreOscillator<T, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME>
+impl<
+        T: SoundSample,
+        const PLAY_FREQUENCY: u32,
+        const PULSE_WIDTH: u8,
+        const VOLUME: u8,
+        const OSCILATOR_TYPE: usize,
+    > SoundSourceCore<'_, T, PLAY_FREQUENCY>
+    for CoreOscillator<T, PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     type InitValuesType = SoundSourceOscillatorInit;
 
@@ -128,7 +151,6 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8, const VOL
         let inc_numerator: u32 = init_values.frequency * WAVE_TABLE_SIZE_U32;
         let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
 
-        self.oscillator_type = init_values.oscillator_type;
         self.table_idx = 0;
         self.table_remainder = inc_denominator / 2;
         self.table_idx_inc = inc_numerator / inc_denominator;
@@ -139,10 +161,10 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8, const VOL
         true
     }
     fn get_next(self: &Self) -> T {
-        if self.oscillator_type == OscillatorType::PulseWidth {
+        if Self::OSCILATOR_TYPE_ENUM == OscillatorType::PulseWidth {
             self.get_next_pulse_entry()
         } else {
-            self.get_next_table(ALL_WAVE_TABLES[self.oscillator_type as usize])
+            self.get_next_table(ALL_WAVE_TABLES[Self::OSCILATOR_TYPE_ENUM as usize])
         }
     }
     fn update(&mut self) {
@@ -150,13 +172,12 @@ impl<T: SoundSample, const PLAY_FREQUENCY: u32, const PULSE_WIDTH: u8, const VOL
         //
         self.table_idx += self.table_idx_inc;
         self.table_remainder += self.table_remainder_inc;
-        let inc_denominator: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
 
         // If the fractional value represents a number greater than 1, increment
         // the table index and decease the fractional value so it's [0..1).
         //
-        if self.table_remainder > inc_denominator {
-            self.table_remainder -= inc_denominator;
+        if self.table_remainder > Self::INC_DENOMINATOR {
+            self.table_remainder -= Self::INC_DENOMINATOR;
             self.table_idx += 1;
         }
         self.table_idx = self.table_idx & (WAVE_TABLE_SIZE_U32 - 1);
@@ -203,9 +224,14 @@ mod tests {
 
     #[test]
     fn test_pulse_50_from_pool() {
-        let init_vals =
-            SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 2600 * FREQUENCY_MULTIPLIER);
-        let mut oscilator = CoreOscillator::<SoundSampleI32, 24000, 50, 100>::default();
+        let init_vals = SoundSourceOscillatorInit::new(2600 * FREQUENCY_MULTIPLIER);
+        let mut oscilator = CoreOscillator::<
+            SoundSampleI32,
+            24000,
+            50,
+            100,
+            { OscillatorType::PulseWidth as usize },
+        >::default();
         oscilator.init(&init_vals);
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
@@ -216,9 +242,14 @@ mod tests {
 
     #[test]
     fn test_pulse_50_vol_50_from_pool() {
-        let init_vals =
-            SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 2600 * FREQUENCY_MULTIPLIER);
-        let mut oscilator = CoreOscillator::<SoundSampleI32, 24000, 50, 50>::default();
+        let init_vals = SoundSourceOscillatorInit::new(2600 * FREQUENCY_MULTIPLIER);
+        let mut oscilator = CoreOscillator::<
+            SoundSampleI32,
+            24000,
+            50,
+            50,
+            { OscillatorType::PulseWidth as usize },
+        >::default();
         oscilator.init(&init_vals);
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
@@ -229,9 +260,14 @@ mod tests {
 
     #[test]
     fn test_pulse_25_from_pool() {
-        let init_vals =
-            SoundSourceOscillatorInit::new(OscillatorType::PulseWidth, 2600 * FREQUENCY_MULTIPLIER);
-        let mut oscilator = CoreOscillator::<SoundSampleI32, 24000, 25, 100>::default();
+        let init_vals = SoundSourceOscillatorInit::new(2600 * FREQUENCY_MULTIPLIER);
+        let mut oscilator = CoreOscillator::<
+            SoundSampleI32,
+            24000,
+            25,
+            100,
+            { OscillatorType::PulseWidth as usize },
+        >::default();
         oscilator.init(&init_vals);
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
@@ -242,9 +278,14 @@ mod tests {
 
     #[test]
     fn test_triangle_from_pool() {
-        let init_vals =
-            SoundSourceOscillatorInit::new(OscillatorType::Triangle, 2600 * FREQUENCY_MULTIPLIER);
-        let mut oscilator = CoreOscillator::<SoundSampleI32, 24000, 0, 100>::default();
+        let init_vals = SoundSourceOscillatorInit::new(2600 * FREQUENCY_MULTIPLIER);
+        let mut oscilator = CoreOscillator::<
+            SoundSampleI32,
+            24000,
+            0,
+            100,
+            { OscillatorType::Triangle as usize },
+        >::default();
         oscilator.init(&init_vals);
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
@@ -256,9 +297,14 @@ mod tests {
 
     #[test]
     fn test_triangle_from_pool_vol_50percent() {
-        let init_vals =
-            SoundSourceOscillatorInit::new(OscillatorType::Triangle, 2600 * FREQUENCY_MULTIPLIER);
-        let mut oscilator = CoreOscillator::<SoundSampleI32, 24000, 0, 50>::default();
+        let init_vals = SoundSourceOscillatorInit::new(2600 * FREQUENCY_MULTIPLIER);
+        let mut oscilator = CoreOscillator::<
+            SoundSampleI32,
+            24000,
+            0,
+            50,
+            { OscillatorType::Triangle as usize },
+        >::default();
         oscilator.init(&init_vals);
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
