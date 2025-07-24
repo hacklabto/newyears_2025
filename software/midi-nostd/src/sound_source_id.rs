@@ -3,21 +3,19 @@
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(usize)]
 pub enum SoundSourceType {
-    Top = 0,
-    Midi = 1,
+    Midi = 0,
 }
 
 impl SoundSourceType {
     pub fn from_usize(usize_value: usize) -> Self {
         let optional_enum_value: Option<Self> = match usize_value {
-            0 => Some(SoundSourceType::Top),
-            1 => Some(SoundSourceType::Midi),
+            0 => Some(SoundSourceType::Midi),
             _ => None,
         };
         optional_enum_value.expect("bad usize to SoundSourceType")
     }
     pub const fn all_variants() -> &'static [SoundSourceType] {
-        &[SoundSourceType::Top, SoundSourceType::Midi]
+        &[SoundSourceType::Midi]
     }
     pub const fn max_variant_id() -> usize {
         let mut max_variant_id: Option<usize> = None;
@@ -112,9 +110,6 @@ impl SoundSourceId {
             SoundSourceId::Real { real } => real.id,
             _ => panic!("ID only exists if the enum is real"),
         }
-    }
-    pub fn get_top_id() -> Self {
-        Self::new(SoundSourceType::Top, 0)
     }
     pub fn get_midi_id() -> Self {
         Self::new(SoundSourceType::Midi, 0)

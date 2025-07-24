@@ -5,18 +5,10 @@ use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_pool::SoundSourcePool;
 use crate::sound_source_pool_impl::GenericSoundPool;
 use crate::sound_sources::SoundSources;
-use crate::top::Top;
 
 //const MAX_ENUM_MAP: usize = SoundSourceType::max_variant_id() + 1;
 
 pub struct SoundSourcesImpl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> {
-    top_pool: GenericSoundPool<
-        'a,
-        PLAY_FREQUENCY,
-        Top<PLAY_FREQUENCY>,
-        1,
-        { SoundSourceType::Top as usize },
-    >,
     midi: GenericSoundPool<
         'a,
         PLAY_FREQUENCY,
@@ -30,13 +22,6 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
     for SoundSourcesImpl<'a, PLAY_FREQUENCY, NUM_NOTES>
 {
     fn default() -> Self {
-        let mut top_pool = GenericSoundPool::<
-            'a,
-            PLAY_FREQUENCY,
-            Top<PLAY_FREQUENCY>,
-            1,
-            { SoundSourceType::Top as usize },
-        >::new();
         let midi = GenericSoundPool::<
             'a,
             PLAY_FREQUENCY,
@@ -45,9 +30,7 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize> Default
             { SoundSourceType::Midi as usize },
         >::new();
 
-        top_pool.pool_alloc();
-
-        Self { top_pool, midi }
+        Self { midi }
     }
 }
 
@@ -59,7 +42,6 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
         sound_source_type: SoundSourceType,
     ) -> &mut dyn SoundSourcePool<'a, PLAY_FREQUENCY> {
         match sound_source_type {
-            SoundSourceType::Top => &mut self.top_pool,
             SoundSourceType::Midi => &mut self.midi,
         }
     }
@@ -69,7 +51,6 @@ impl<'a, const PLAY_FREQUENCY: u32, const NUM_NOTES: usize>
         sound_source_type: SoundSourceType,
     ) -> &dyn SoundSourcePool<'a, PLAY_FREQUENCY> {
         match sound_source_type {
-            SoundSourceType::Top => &self.top_pool,
             SoundSourceType::Midi => &self.midi,
         }
     }
