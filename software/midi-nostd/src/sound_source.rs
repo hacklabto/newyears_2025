@@ -1,8 +1,6 @@
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_sources::SoundSources;
-//use core::marker::PhantomData;
 
 ///
 /// Interface (so far) for a sound source  
@@ -19,11 +17,11 @@ use crate::sound_sources::SoundSources;
 pub trait SoundSource<'a, const PLAY_FREQUENCY: u32> {
     /// Returns false if the sound source is done playing
     ///
-    fn has_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> bool;
+    fn has_next(self: &Self) -> bool;
 
     /// Draw a sample from a source
     ///
-    fn get_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32;
+    fn get_next(self: &Self) -> SoundSampleI32;
 
     /// Update the state one tick
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);

@@ -5,7 +5,6 @@ use crate::sound_source_core::SoundSourceCore;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceNoteInit;
-use crate::sound_sources::SoundSources;
 use midly::Smf;
 
 #[allow(unused)]
@@ -152,11 +151,11 @@ impl<'a, const PLAY_FREQUENCY: u32> MidiReal<'a, PLAY_FREQUENCY> {
 impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY>
     for MidiReal<'a, PLAY_FREQUENCY>
 {
-    fn get_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32 {
+    fn get_next(self: &Self) -> SoundSampleI32 {
         self.amp_adder.get_next()
     }
 
-    fn has_next(self: &Self, _all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> bool {
+    fn has_next(self: &Self) -> bool {
         self.track.has_next()
     }
 
@@ -203,12 +202,12 @@ impl<const PLAY_FREQUENCY: u32> Midi<'_, PLAY_FREQUENCY> {
 
 #[allow(unused)]
 impl<'a, const PLAY_FREQUENCY: u32> SoundSource<'a, PLAY_FREQUENCY> for Midi<'a, PLAY_FREQUENCY> {
-    fn get_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32 {
-        self.midi_maybe.as_ref().unwrap().get_next(all_sources)
+    fn get_next(self: &Self) -> SoundSampleI32 {
+        self.midi_maybe.as_ref().unwrap().get_next()
     }
 
-    fn has_next(self: &Self, all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> bool {
-        self.midi_maybe.as_ref().unwrap().has_next(all_sources)
+    fn has_next(self: &Self) -> bool {
+        self.midi_maybe.as_ref().unwrap().has_next()
     }
 
     fn update(&mut self, new_msgs: &mut SoundSourceMsgs) {

@@ -4,7 +4,6 @@ use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_msgs::SoundSourceValue;
-use crate::sound_sources::SoundSources;
 
 ///
 /// Test Helper
@@ -30,11 +29,11 @@ impl<const PLAY_FREQUENCY: u32> Top<PLAY_FREQUENCY> {
 
 #[allow(unused)]
 impl<const PLAY_FREQUENCY: u32> SoundSource<'_, PLAY_FREQUENCY> for Top<PLAY_FREQUENCY> {
-    fn get_next(self: &Self, _all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> SoundSampleI32 {
-        SoundSampleI32::MIN
+    fn get_next(self: &Self) -> SoundSampleI32 {
+        SoundSampleI32::ZERO
     }
 
-    fn has_next(self: &Self, _all_sources: &dyn SoundSources<PLAY_FREQUENCY>) -> bool {
+    fn has_next(self: &Self) -> bool {
         true
     }
 

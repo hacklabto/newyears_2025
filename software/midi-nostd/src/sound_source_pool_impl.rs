@@ -5,7 +5,6 @@ use crate::sound_source::SoundSource;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
 use crate::sound_source_pool::SoundSourcePool;
-use crate::sound_sources::SoundSources;
 use core::marker::PhantomData;
 
 pub struct GenericSoundPool<
@@ -70,19 +69,11 @@ impl<
     > SoundSourcePool<'a, PLAY_FREQUENCY>
     for GenericSoundPool<'a, PLAY_FREQUENCY, MySoundSource, N, TYPE_ID>
 {
-    fn pool_has_next(
-        self: &Self,
-        element: usize,
-        all_sources: &dyn SoundSources<PLAY_FREQUENCY>,
-    ) -> bool {
-        self.sound_source[element].has_next(all_sources)
+    fn pool_has_next(self: &Self, element: usize) -> bool {
+        self.sound_source[element].has_next()
     }
-    fn pool_get_next(
-        self: &Self,
-        element: usize,
-        all_sources: &dyn SoundSources<PLAY_FREQUENCY>,
-    ) -> SoundSampleI32 {
-        self.sound_source[element].get_next(all_sources)
+    fn pool_get_next(self: &Self, element: usize) -> SoundSampleI32 {
+        self.sound_source[element].get_next()
     }
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs) {
         for idx in 0..N {

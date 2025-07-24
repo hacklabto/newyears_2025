@@ -4,21 +4,12 @@ use crate::sound_source_id::SoundSourceId;
 use crate::sound_source_id::SoundSourceType;
 use crate::sound_source_msgs::SoundSourceMsg;
 use crate::sound_source_msgs::SoundSourceMsgs;
-use crate::sound_sources::SoundSources;
 
 pub trait SoundSourcePool<'a, const PLAY_FREQUENCY: u32>: FreeList {
     // Functions that need to be filled in by implementor
     //
-    fn pool_has_next(
-        self: &Self,
-        element: usize,
-        all_sources: &dyn SoundSources<PLAY_FREQUENCY>,
-    ) -> bool;
-    fn pool_get_next(
-        self: &Self,
-        element: usize,
-        all_sources: &dyn SoundSources<PLAY_FREQUENCY>,
-    ) -> SoundSampleI32;
+    fn pool_has_next(self: &Self, element: usize) -> bool;
+    fn pool_get_next(self: &Self, element: usize) -> SoundSampleI32;
     fn pool_handle_msg(self: &mut Self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs);
     fn get_type_id(self: &Self) -> usize;
 
@@ -32,22 +23,14 @@ pub trait SoundSourcePool<'a, const PLAY_FREQUENCY: u32>: FreeList {
         self.free(id.id());
     }
 
-    fn has_next(
-        self: &Self,
-        id: &SoundSourceId,
-        all_sources: &dyn SoundSources<PLAY_FREQUENCY>,
-    ) -> bool {
+    fn has_next(self: &Self, id: &SoundSourceId) -> bool {
         assert_eq!(self.get_type_id(), id.source_type() as usize);
-        self.pool_has_next(id.id(), all_sources)
+        self.pool_has_next(id.id())
     }
 
-    fn get_next(
-        self: &Self,
-        id: &SoundSourceId,
-        all_sources: &dyn SoundSources<PLAY_FREQUENCY>,
-    ) -> SoundSampleI32 {
+    fn get_next(self: &Self, id: &SoundSourceId) -> SoundSampleI32 {
         assert_eq!(self.get_type_id(), id.source_type() as usize);
-        self.pool_get_next(id.id(), all_sources)
+        self.pool_get_next(id.id())
     }
 
     fn update(self: &mut Self, new_msgs: &mut SoundSourceMsgs);
