@@ -114,7 +114,7 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
         }
         self.current_remainder = self.current_remainder + 1;
         // TODO, adjust properly.
-        if (self.current_remainder) & 15 == 0 {
+        if (self.current_remainder) % 25 == 0 {
             self.current_time = self.current_time + 1;
         }
     }
@@ -198,8 +198,8 @@ mod tests {
 
         assert_eq!(0, all_pools.get_next().to_i32());
         assert_eq!(0, all_pools.get_next().to_i32());
-        assert_eq!(-20, all_pools.get_next().to_i32());
-        assert_eq!(-37, all_pools.get_next().to_i32());
-        assert_eq!(-54, all_pools.get_next().to_i32());
+        assert_eq!(-6, all_pools.get_next().to_i32());
+        assert_eq!(-11, all_pools.get_next().to_i32());
+        assert_eq!(-15, all_pools.get_next().to_i32());
     }
 }

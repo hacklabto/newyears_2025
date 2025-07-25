@@ -1,4 +1,5 @@
 use crate::sound_sample::SoundSampleI32;
+use crate::sound_sample::time_to_ticks;
 use crate::sound_source_core::SoundSourceCore;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -46,24 +47,28 @@ impl<
     const ATTACK_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(ATTACK_VOLUME);
     const SUSTAIN_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(SUSTAIN_VOLUME);
 
+    const A_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(A);
+    const D_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(D);
+    const R_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(R);
+
     fn update_internal(&mut self) {
         self.time_since_state_start = self.time_since_state_start + 1;
         match self.state {
             AdsrState::Attack => {
-                if self.time_since_state_start >= A {
+                if self.time_since_state_start >= Self::A_TICKS {
                     self.time_since_state_start = 0;
                     self.state = AdsrState::Delay;
                 }
             }
             AdsrState::Delay => {
-                if self.time_since_state_start >= D {
+                if self.time_since_state_start >= Self::D_TICKS {
                     self.time_since_state_start = 0;
                     self.state = AdsrState::Sustain;
                 }
             }
             AdsrState::Sustain => {}
             AdsrState::Release => {
-                if self.time_since_state_start > R {
+                if self.time_since_state_start > Self::R_TICKS {
                     self.time_since_state_start = 0;
                     self.state = AdsrState::Ended;
                 }
@@ -93,15 +98,15 @@ impl<
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let scale: SoundSampleI32 = match self.state {
             AdsrState::Attack => {
-                Self::ATTACK_VOLUME_SCALE.mul_by_fraction(self.time_since_state_start, A)
+                Self::ATTACK_VOLUME_SCALE.mul_by_fraction(self.time_since_state_start, Self::A_TICKS)
             }
             AdsrState::Delay => {
-                Self::ATTACK_VOLUME_SCALE.mul_by_fraction(D - self.time_since_state_start, D)
-                    + Self::SUSTAIN_VOLUME_SCALE.mul_by_fraction(self.time_since_state_start, D)
+                Self::ATTACK_VOLUME_SCALE.mul_by_fraction(Self::D_TICKS - self.time_since_state_start, Self::D_TICKS)
+                    + Self::SUSTAIN_VOLUME_SCALE.mul_by_fraction(self.time_since_state_start, Self::D_TICKS)
             }
             AdsrState::Sustain => Self::SUSTAIN_VOLUME_SCALE,
             AdsrState::Release => {
-                Self::SUSTAIN_VOLUME_SCALE.mul_by_fraction(R - self.time_since_state_start, R)
+                Self::SUSTAIN_VOLUME_SCALE.mul_by_fraction(Self::R_TICKS - self.time_since_state_start, Self::R_TICKS)
             }
             AdsrState::Ended => SoundSampleI32::ZERO,
         };
@@ -150,7 +155,7 @@ mod tests {
     fn basic_adsr_test() {
         let adsr_init = SoundSourceAdsrInit::new();
 
-        let mut adsr = CoreAdsr::<24000, 2, 4, 4, 100, 50>::default();
+        let mut adsr = CoreAdsr::<1000, 2, 4, 4, 100, 50>::default();
         adsr.init(&adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0

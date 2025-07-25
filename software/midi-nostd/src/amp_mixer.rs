@@ -69,11 +69,11 @@ mod tests {
 
     #[test]
     fn basic_amp_mixer_test() {
-        let oscilator_init = SoundSourceOscillatorInit::new(260 * FREQUENCY_MULTIPLIER);
+        let oscilator_init = SoundSourceOscillatorInit::new(FREQUENCY_MULTIPLIER); // 1 hz
 
         let adsr_init = SoundSourceAdsrInit::new();
 
-        let mut amp_mixer = OscilatorAdsrCore::<240000>::default();
+        let mut amp_mixer = OscilatorAdsrCore::<1000>::default();
         amp_mixer.source_0.init(&oscilator_init);
         amp_mixer.source_1.init(&adsr_init);
 

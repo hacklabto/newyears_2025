@@ -4,6 +4,11 @@ use core::ops::Div;
 use core::ops::Mul;
 use core::ops::Sub;
 
+pub const fn time_to_ticks<const PLAY_FREQUENCY:u32>( time_in_ms: i32 ) -> i32
+{
+    return ((PLAY_FREQUENCY as i32) * time_in_ms )/1000
+}
+
 ///
 /// Concrete implementation of Sound Sample using fixed point
 ///

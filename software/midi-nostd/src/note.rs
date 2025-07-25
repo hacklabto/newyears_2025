@@ -22,8 +22,8 @@ impl SoundSourceNoteInit {
 
 type OscilatorAdsrCore<const PLAY_FREQUENCY: u32> = AmpMixerCore<
     PLAY_FREQUENCY,
-    CoreOscillator<PLAY_FREQUENCY, 50, 100, { OscillatorType::Triangle as usize }>,
-    CoreAdsr<PLAY_FREQUENCY, 1200, 2400, 2400, 75, 50>,
+    CoreOscillator<PLAY_FREQUENCY, 2, 55, { OscillatorType::Triangle as usize }>,
+    CoreAdsr<PLAY_FREQUENCY, 130, 330, 140, 100, 50>,
 >;
 
 ///
