@@ -1,5 +1,5 @@
-use crate::sound_sample::SoundSampleI32;
 use crate::sound_sample::time_to_ticks;
+use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -97,17 +97,17 @@ impl<
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let scale: SoundSampleI32 = match self.state {
-            AdsrState::Attack => {
-                Self::ATTACK_VOLUME_SCALE.mul_by_fraction(self.time_since_state_start, Self::A_TICKS)
-            }
+            AdsrState::Attack => Self::ATTACK_VOLUME_SCALE
+                .mul_by_fraction(self.time_since_state_start, Self::A_TICKS),
             AdsrState::Delay => {
-                Self::ATTACK_VOLUME_SCALE.mul_by_fraction(Self::D_TICKS - self.time_since_state_start, Self::D_TICKS)
-                    + Self::SUSTAIN_VOLUME_SCALE.mul_by_fraction(self.time_since_state_start, Self::D_TICKS)
+                Self::ATTACK_VOLUME_SCALE
+                    .mul_by_fraction(Self::D_TICKS - self.time_since_state_start, Self::D_TICKS)
+                    + Self::SUSTAIN_VOLUME_SCALE
+                        .mul_by_fraction(self.time_since_state_start, Self::D_TICKS)
             }
             AdsrState::Sustain => Self::SUSTAIN_VOLUME_SCALE,
-            AdsrState::Release => {
-                Self::SUSTAIN_VOLUME_SCALE.mul_by_fraction(Self::R_TICKS - self.time_since_state_start, Self::R_TICKS)
-            }
+            AdsrState::Release => Self::SUSTAIN_VOLUME_SCALE
+                .mul_by_fraction(Self::R_TICKS - self.time_since_state_start, Self::R_TICKS),
             AdsrState::Ended => SoundSampleI32::ZERO,
         };
         self.update_internal();
@@ -125,6 +125,8 @@ impl<
         self.state = AdsrState::Release;
         self.time_since_state_start = 0;
     }
+
+    fn reset_oscillator(self: &mut Self) {}
 }
 
 impl<

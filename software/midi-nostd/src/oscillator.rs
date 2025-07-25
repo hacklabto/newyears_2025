@@ -175,6 +175,10 @@ impl<
     fn trigger_note_off(self: &mut Self) {
         // does nothing.
     }
+    fn reset_oscillator(self: &mut Self) {
+        self.table_idx = 0;
+        self.table_remainder = Self::INC_DENOMINATOR / 2;
+    }
 }
 
 #[cfg(test)]

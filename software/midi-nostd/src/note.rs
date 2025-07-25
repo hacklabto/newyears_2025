@@ -63,45 +63,5 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
         self.core.trigger_note_off();
     }
 
-    /*
-        fn handle_msg(&mut self, msg: &SoundSourceMsg, new_msgs: &mut SoundSourceMsgs) {
-            match &msg.value {
-                SoundSourceValue::NoteInit { init_values } => {
-
-                    let creation_msg = SoundSourceMsg::new(
-                        msg.src_id.clone(),
-                        msg.dest_id.clone(),
-                        SoundSourceValue::SoundSourceCreated,
-                    );
-                    new_msgs.append(creation_msg);
-                }
-                SoundSourceValue::ReleaseAdsr => {
-                    // TODO, What if we aren't in sustain?  Probably I should take
-                    // the current volume and run the release on that.
-                    self.core.trigger_note_off();
-                }
-                _ => todo!(),
-            }
-        }
-    */
+    fn reset_oscillator(self: &mut Self) {}
 }
-
-/*
-pub fn create_note(
-    all_pools: &mut dyn SoundSources<24000>,
-    init_values: SoundSourceNoteInit,
-) -> SoundSourceId {
-    let mut msgs = SoundSourceMsgs::default();
-    msgs.append(SoundSourceMsg::new(
-        SoundSourceId::get_top_id(),
-        SoundSourceId::get_top_id(),
-        SoundSourceValue::NoteInit { init_values },
-    ));
-    all_pools.process_and_clear_msgs(&mut msgs);
-
-    all_pools
-        .get_last_created_sound_source()
-        .expect("Id should have been recorded")
-        .clone()
-}
-*/

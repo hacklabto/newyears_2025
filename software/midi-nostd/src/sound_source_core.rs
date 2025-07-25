@@ -8,7 +8,7 @@ use crate::sound_sample::SoundSampleI32;
 /// concerned about the amount of runtime the abstractions I was building as part of
 /// a modular syntheisizer are going to use.
 ///
-pub trait SoundSourceCore<const PLAY_FREQUENCY: u32> {
+pub trait SoundSourceCore<const PLAY_FREQUENCY: u32>: Default {
     /// Initialize to a none default state.
 
     type InitValuesType;
@@ -26,4 +26,8 @@ pub trait SoundSourceCore<const PLAY_FREQUENCY: u32> {
     /// Note off is the midi term.
     ///
     fn trigger_note_off(self: &mut Self);
+
+    /// Reset an oscillator
+    ///
+    fn reset_oscillator(self: &mut Self);
 }

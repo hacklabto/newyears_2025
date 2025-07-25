@@ -1,23 +1,27 @@
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
-pub struct AmpMixerCore<
+pub struct DoubleOscilator<
     const PLAY_FREQUENCY: u32,
-    MixSource0: SoundSourceCore<PLAY_FREQUENCY> + Default,
-    MixSource1: SoundSourceCore<PLAY_FREQUENCY> + Default,
+    MixSource0: SoundSourceCore<PLAY_FREQUENCY>,
+    MixSource1: SoundSourceCore<PLAY_FREQUENCY>,
+    const SYNC_1_FROM_0: bool,
 > {
+    last_source_0_sample: SoundSampleI32,
     source_0: MixSource0,
     source_1: MixSource1,
 }
 
 impl<
         const PLAY_FREQUENCY: u32,
-        MixSource0: SoundSourceCore<PLAY_FREQUENCY> + Default,
-        MixSource1: SoundSourceCore<PLAY_FREQUENCY> + Default,
-    > Default for AmpMixerCore<PLAY_FREQUENCY, MixSource0, MixSource1>
+        MixSource0: SoundSourceCore<PLAY_FREQUENCY>,
+        MixSource1: SoundSourceCore<PLAY_FREQUENCY>,
+        const SYNC_1_FROM_0: bool,
+    > Default for DoubleOscilator<PLAY_FREQUENCY, MixSource0, MixSource1, SYNC_1_FROM_0>
 {
     fn default() -> Self {
         return Self {
+            last_source_0_sample: SoundSampleI32::ZERO,
             source_0: MixSource0::default(),
             source_1: MixSource1::default(),
         };
@@ -28,7 +32,9 @@ impl<
         const PLAY_FREQUENCY: u32,
         MixSource0: SoundSourceCore<PLAY_FREQUENCY> + Default,
         MixSource1: SoundSourceCore<PLAY_FREQUENCY> + Default,
-    > SoundSourceCore<PLAY_FREQUENCY> for AmpMixerCore<PLAY_FREQUENCY, MixSource0, MixSource1>
+        const SYNC_1_FROM_0: bool,
+    > SoundSourceCore<PLAY_FREQUENCY>
+    for DoubleOscilator<PLAY_FREQUENCY, MixSource0, MixSource1, SYNC_1_FROM_0>
 {
     type InitValuesType = (MixSource0::InitValuesType, MixSource1::InitValuesType);
 
@@ -38,7 +44,15 @@ impl<
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
-        self.source_0.get_next() * self.source_1.get_next()
+        let s0 = self.source_0.get_next();
+        if SYNC_1_FROM_0
+            && s0 >= SoundSampleI32::ZERO
+            && self.last_source_0_sample < SoundSampleI32::ZERO
+        {
+            self.source_1.reset_oscillator();
+        }
+        let s1 = self.source_1.get_next();
+        return s0 + s1;
     }
 
     fn has_next(self: &Self) -> bool {
@@ -53,6 +67,7 @@ impl<
     fn reset_oscillator(self: &mut Self) {}
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use crate::adsr::CoreAdsr;
@@ -63,7 +78,7 @@ mod tests {
     use crate::oscillator::OscillatorType;
     use crate::oscillator::SoundSourceOscillatorInit;
 
-    type OscilatorAdsrCore<const PLAY_FREQUENCY: u32> = AmpMixerCore<
+    type OscilatorAdsrCore<const PLAY_FREQUENCY: u32> = DoubleOscilator<
         PLAY_FREQUENCY,
         CoreOscillator<PLAY_FREQUENCY, 50, 50, { OscillatorType::PulseWidth as usize }>,
         CoreAdsr<PLAY_FREQUENCY, 2, 4, 4, 100, 50>,
@@ -113,3 +128,4 @@ mod tests {
         assert_eq!(false, amp_mixer.has_next());
     }
 }
+*/

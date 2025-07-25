@@ -43,6 +43,8 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
     fn has_next(self: &Self) -> bool {
         true
     }
+
+    fn reset_oscillator(self: &mut Self) {}
 }
 
 #[cfg(test)]
