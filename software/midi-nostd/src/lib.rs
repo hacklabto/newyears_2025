@@ -3,7 +3,7 @@
 pub mod adsr;
 pub mod amp_adder;
 pub mod amp_mixer;
-pub mod double_oscilator;
+pub mod double_oscillator;
 pub mod free_list;
 pub mod midi;
 pub mod midi_notes;

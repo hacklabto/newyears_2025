@@ -52,28 +52,23 @@ impl<
     const R_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(R);
 
     fn update_internal(&mut self) {
-        self.time_since_state_start = self.time_since_state_start + 1;
-        match self.state {
-            AdsrState::Attack => {
-                if self.time_since_state_start >= Self::A_TICKS {
-                    self.time_since_state_start = 0;
-                    self.state = AdsrState::Delay;
-                }
+        if self.state == AdsrState::Attack {
+            if self.time_since_state_start >= Self::A_TICKS {
+                self.time_since_state_start = 0;
+                self.state = AdsrState::Delay;
             }
-            AdsrState::Delay => {
-                if self.time_since_state_start >= Self::D_TICKS {
-                    self.time_since_state_start = 0;
-                    self.state = AdsrState::Sustain;
-                }
+        }
+        if self.state == AdsrState::Delay {
+            if self.time_since_state_start >= Self::D_TICKS {
+                self.time_since_state_start = 0;
+                self.state = AdsrState::Sustain;
             }
-            AdsrState::Sustain => {}
-            AdsrState::Release => {
-                if self.time_since_state_start > Self::R_TICKS {
-                    self.time_since_state_start = 0;
-                    self.state = AdsrState::Ended;
-                }
+        }
+        if self.state == AdsrState::Release {
+            if self.time_since_state_start > Self::R_TICKS {
+                self.time_since_state_start = 0;
+                self.state = AdsrState::Ended;
             }
-            AdsrState::Ended => {}
         }
     }
 }
@@ -93,6 +88,7 @@ impl<
     fn init(self: &mut Self, _init_values: &Self::InitValuesType) {
         self.state = AdsrState::Attack;
         self.time_since_state_start = 0;
+        self.update_internal();
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
@@ -110,6 +106,7 @@ impl<
                 .mul_by_fraction(Self::R_TICKS - self.time_since_state_start, Self::R_TICKS),
             AdsrState::Ended => SoundSampleI32::ZERO,
         };
+        self.time_since_state_start = self.time_since_state_start + 1;
         self.update_internal();
 
         scale

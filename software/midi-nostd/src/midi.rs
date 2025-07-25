@@ -197,9 +197,8 @@ mod tests {
         let mut all_pools = Midi::<24000>::default();
 
         assert_eq!(0, all_pools.get_next().to_i32());
-        assert_eq!(0, all_pools.get_next().to_i32());
-        assert_eq!(-6, all_pools.get_next().to_i32());
-        assert_eq!(-11, all_pools.get_next().to_i32());
-        assert_eq!(-15, all_pools.get_next().to_i32());
+        assert_eq!(-24576, all_pools.get_next().to_i32());
+        assert_eq!(-24046, all_pools.get_next().to_i32());
+        assert_eq!(-23518, all_pools.get_next().to_i32());
     }
 }
