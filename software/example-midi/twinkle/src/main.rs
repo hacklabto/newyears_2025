@@ -13,7 +13,6 @@ const CHANNELS: i32 = 2;
 const NUM_SECONDS: i32 = 30;
 const SAMPLE_RATE: f64 = 24_000.0;
 const FRAMES_PER_BUFFER: u32 = 64;
-const TABLE_SIZE: usize = 200;
 
 fn midly_exploration() {
     let smf = Smf::parse(include_bytes!("../assets/twinkle.mid")).unwrap();
@@ -43,11 +42,9 @@ fn run() -> Result<(), pa::Error> {
         SAMPLE_RATE, FRAMES_PER_BUFFER
     );
 
-    let mut all_pools = Midi::<24000>::new(include_bytes!("../assets/twinkle.mid"));
-
-    // Initialise sinusoidal wavetable.
-    let mut left_phase = 0;
-    let mut right_phase = 0;
+    let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
+        .expect("It's inlined data, so it better work, gosh darn it");
+    let mut midi = Midi::<24000>::new(&smf);
 
     let pa = pa::PortAudio::new()?;
 
@@ -63,18 +60,10 @@ fn run() -> Result<(), pa::Error> {
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         let mut idx = 0;
         for _ in 0..frames {
-            let current = all_pools.get_next();
+            let current = midi.get_next(&smf);
             let converted: f32 = (current.to_i32() as f32) / 32768.0;
-            buffer[idx] = converted; //sine[left_phase];
-            buffer[idx + 1] = converted; // = sine[right_phase];
-            left_phase += 1;
-            if left_phase >= TABLE_SIZE {
-                left_phase -= TABLE_SIZE;
-            }
-            right_phase += 3;
-            if right_phase >= TABLE_SIZE {
-                right_phase -= TABLE_SIZE;
-            }
+            buffer[idx] = converted;
+            buffer[idx + 1] = converted;
             idx += 2;
             sent_count = sent_count + 1;
             /*

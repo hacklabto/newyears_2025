@@ -120,34 +120,27 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
     }
 }
 
-pub struct Midi<'a, const PLAY_FREQUENCY: u32> {
-    smf: Smf<'a>,
+pub struct Midi<const PLAY_FREQUENCY: u32> {
     track: MidiTrack<PLAY_FREQUENCY>,
     amp_adder: AmpAdder<PLAY_FREQUENCY, 5>,
     dest_note: usize,
 }
 
-impl<'a, const PLAY_FREQUENCY: u32> Midi<'a, PLAY_FREQUENCY> {
-    pub fn new(midi_bytes: &'static [u8]) -> Self {
-        let smf = midly::Smf::parse(midi_bytes)
-            .expect("It's inlined data, so it better work, gosh darn it");
+impl<const PLAY_FREQUENCY: u32> Midi<PLAY_FREQUENCY> {
+    pub fn new(smf: &Smf) -> Self {
         let track = MidiTrack::new(&smf.tracks[0]);
         let amp_adder = AmpAdder::<PLAY_FREQUENCY, 5>::default();
         let dest_note = 0;
         Self {
-            smf,
             track,
             amp_adder,
             dest_note,
         }
     }
-    pub fn get_next(self: &mut Self) -> SoundSampleI32 {
+    pub fn get_next(self: &mut Self, smf: &Smf) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
-        self.track.update::<5>(
-            &self.smf.tracks[0],
-            &mut self.amp_adder,
-            &mut self.dest_note,
-        );
+        self.track
+            .update::<5>(&smf.tracks[0], &mut self.amp_adder, &mut self.dest_note);
         result
     }
 
@@ -163,11 +156,13 @@ mod tests {
 
     #[test]
     fn basic_midi_test() {
-        let mut midi = Midi::<24000>::new(include_bytes!("../assets/twinkle.mid"));
+        let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
+            .expect("It's inlined data, so it better work, gosh darn it");
+        let mut midi = Midi::<24000>::new(&smf);
 
-        assert_eq!(0, midi.get_next().to_i32());
-        assert_eq!(8192, midi.get_next().to_i32());
-        assert_eq!(8719, midi.get_next().to_i32());
-        assert_eq!(9246, midi.get_next().to_i32());
+        assert_eq!(0, midi.get_next(&smf).to_i32());
+        assert_eq!(8192, midi.get_next(&smf).to_i32());
+        assert_eq!(8719, midi.get_next(&smf).to_i32());
+        assert_eq!(9246, midi.get_next(&smf).to_i32());
     }
 }
