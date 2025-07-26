@@ -14,17 +14,22 @@ impl SoundSourceNoteInit {
     }
 }
 
+pub enum NoteEnum<const PLAY_FREQUENCY: u32> {
+    PianoEnum { pcore: Piano<PLAY_FREQUENCY> },
+    Unassigned,
+}
+
 ///
 /// Note.  Now sort of a proof of concept.
 ///
 pub struct Note<const PLAY_FREQUENCY: u32> {
-    core: Piano<PLAY_FREQUENCY>,
+    core: NoteEnum<PLAY_FREQUENCY>,
 }
 
 impl<const PLAY_FREQUENCY: u32> Default for Note<PLAY_FREQUENCY> {
     fn default() -> Self {
         Self {
-            core: Piano::default(),
+            core: NoteEnum::<PLAY_FREQUENCY>::Unassigned,
         }
     }
 }
@@ -33,18 +38,30 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
     type InitValuesType = SoundSourceNoteInit;
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
-        self.core.get_next()
+        match &mut self.core {
+            NoteEnum::PianoEnum { pcore } => pcore.get_next(),
+            NoteEnum::Unassigned => SoundSampleI32::ZERO,
+        }
     }
 
     fn has_next(self: &Self) -> bool {
-        self.core.has_next()
+        match &self.core {
+            NoteEnum::PianoEnum { pcore } => pcore.has_next(),
+            NoteEnum::Unassigned => false,
+        }
     }
 
     fn init(&mut self, init_values: &Self::InitValuesType) {
-        self.core.init(init_values);
+        let mut pcore = Piano::<PLAY_FREQUENCY>::default();
+        Piano::<PLAY_FREQUENCY>::init(&mut pcore, init_values);
+        let test = NoteEnum::<PLAY_FREQUENCY>::PianoEnum { pcore };
+        self.core = test;
     }
 
     fn trigger_note_off(self: &mut Self) {
-        self.core.trigger_note_off();
+        match &mut self.core {
+            NoteEnum::PianoEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::Unassigned => {}
+        }
     }
 }
