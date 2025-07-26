@@ -43,7 +43,7 @@ fn run() -> Result<(), pa::Error> {
         SAMPLE_RATE, FRAMES_PER_BUFFER
     );
 
-    let mut all_pools = Midi::<24000>::default();
+    let mut all_pools = Midi::<24000>::new(include_bytes!("../assets/twinkle.mid"));
 
     // Initialise sinusoidal wavetable.
     let mut left_phase = 0;
