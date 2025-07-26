@@ -122,8 +122,6 @@ impl<
         self.state = AdsrState::Release;
         self.time_since_state_start = 0;
     }
-
-    fn reset_oscillator(self: &mut Self) {}
 }
 
 impl<

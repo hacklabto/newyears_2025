@@ -49,8 +49,6 @@ impl<
         self.source_0.trigger_note_off();
         self.source_1.trigger_note_off();
     }
-
-    fn reset_oscillator(self: &mut Self) {}
 }
 
 #[cfg(test)]

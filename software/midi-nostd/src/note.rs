@@ -73,6 +73,4 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
     fn trigger_note_off(self: &mut Self) {
         self.core.trigger_note_off();
     }
-
-    fn reset_oscillator(self: &mut Self) {}
 }

@@ -29,5 +29,5 @@ pub trait SoundSourceCore<const PLAY_FREQUENCY: u32>: Default {
 
     /// Reset an oscillator
     ///
-    fn reset_oscillator(self: &mut Self);
+    fn reset_oscillator(self: &mut Self) {}
 }
