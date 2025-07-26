@@ -1,11 +1,4 @@
-use crate::adsr::CoreAdsr;
-use crate::adsr::SoundSourceAdsrInit;
-use crate::amp_mixer::AmpMixerCore;
-use crate::double_oscillator::DoubleOscillator;
-use crate::midi_notes::midi_note_to_freq;
-use crate::oscillator::CoreOscillator;
-use crate::oscillator::OscillatorType;
-use crate::oscillator::SoundSourceOscillatorInit;
+use crate::piano::Piano;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
@@ -21,30 +14,17 @@ impl SoundSourceNoteInit {
     }
 }
 
-type OscillatorPair<const PLAY_FREQUENCY: u32> = DoubleOscillator<
-    PLAY_FREQUENCY,
-    CoreOscillator<PLAY_FREQUENCY, 50, 75, { OscillatorType::SawTooth as usize }>,
-    CoreOscillator<PLAY_FREQUENCY, 15, 100, { OscillatorType::PulseWidth as usize }>,
-    true,
->;
-
-type OscilatorAdsrCore<const PLAY_FREQUENCY: u32> = AmpMixerCore<
-    PLAY_FREQUENCY,
-    OscillatorPair<PLAY_FREQUENCY>,
-    CoreAdsr<PLAY_FREQUENCY, 0, 670, 500, 100, 25>,
->;
-
 ///
 /// Note.  Now sort of a proof of concept.
 ///
 pub struct Note<const PLAY_FREQUENCY: u32> {
-    core: OscilatorAdsrCore<PLAY_FREQUENCY>,
+    core: Piano<PLAY_FREQUENCY>,
 }
 
 impl<const PLAY_FREQUENCY: u32> Default for Note<PLAY_FREQUENCY> {
     fn default() -> Self {
         Self {
-            core: OscilatorAdsrCore::<PLAY_FREQUENCY>::default(),
+            core: Piano::default(),
         }
     }
 }
@@ -61,13 +41,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
     }
 
     fn init(&mut self, init_values: &Self::InitValuesType) {
-        let frequency_1 = midi_note_to_freq(init_values.key);
-        let frequency_2 = midi_note_to_freq(init_values.key + 16);
-        let oscillator_init_1 = SoundSourceOscillatorInit::new(frequency_1);
-        let oscillator_init_2 = SoundSourceOscillatorInit::new(frequency_2);
-        let adsr_init = SoundSourceAdsrInit::new();
-        self.core
-            .init(&((oscillator_init_1, oscillator_init_2), adsr_init));
+        self.core.init(init_values);
     }
 
     fn trigger_note_off(self: &mut Self) {
