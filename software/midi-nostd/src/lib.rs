@@ -7,6 +7,7 @@ pub mod double_oscillator;
 pub mod free_list;
 pub mod midi;
 pub mod midi_notes;
+pub mod piano;
 pub mod note;
 pub mod oscillator;
 pub mod sound_sample;
