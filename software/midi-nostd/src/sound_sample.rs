@@ -25,11 +25,21 @@ impl<const DENOMINATOR: i32> I32Fraction<DENOMINATOR> {
         self.int_part += other.int_part;
         self.numerator_part += other.numerator_part;
         if self.numerator_part > DENOMINATOR {
-            self.int_part = self.int_part + 1;
+            if other.int_part > 0 {
+                self.int_part = self.int_part + 1;
+            }
+            else {
+                panic!("unexpected");
+            }
             self.numerator_part -= DENOMINATOR;
         }
-        if self.numerator_part < DENOMINATOR {
-            self.int_part = self.int_part - 1;
+        if self.numerator_part < -DENOMINATOR {
+            if other.int_part < 0 {
+                self.int_part = self.int_part - 1;
+            }
+            else {
+                panic!("unexpected");
+            }
             self.numerator_part += DENOMINATOR;
         }
     }
@@ -102,6 +112,15 @@ impl SoundSampleI32 {
             Self::MAX
         } else if self.const_lt(&Self::MIN) {
             Self::MIN
+        } else {
+            self
+        }
+    }
+    pub const fn pos_clip(self) -> Self {
+        if self.const_gt(&Self::MAX) {
+            Self::MAX
+        } else if self.const_lt(&Self::ZERO) {
+            Self::ZERO
         } else {
             self
         }
