@@ -8,6 +8,33 @@ pub const fn time_to_ticks<const PLAY_FREQUENCY: u32>(time_in_ms: i32) -> i32 {
     return ((PLAY_FREQUENCY as i32) * time_in_ms) / 1000;
 }
 
+#[derive(Default, Debug, PartialEq, Eq)]
+pub struct I32Fraction<const DENOMINATOR: i32> {
+    pub int_part: i32,
+    pub numerator_part: i32,
+}
+
+impl<const DENOMINATOR: i32> I32Fraction<DENOMINATOR> {
+    pub const fn new(int_part: i32, numerator_part: i32) -> Self {
+        Self {
+            int_part,
+            numerator_part,
+        }
+    }
+    pub const fn add(self: &mut Self, other: &Self) {
+        self.int_part += other.int_part;
+        self.numerator_part += other.numerator_part;
+        if self.numerator_part > DENOMINATOR {
+            self.int_part = self.int_part + 1;
+            self.numerator_part -= DENOMINATOR;
+        }
+        if self.numerator_part < DENOMINATOR {
+            self.int_part = self.int_part - 1;
+            self.numerator_part += DENOMINATOR;
+        }
+    }
+}
+
 ///
 /// Concrete implementation of Sound Sample using fixed point
 ///
