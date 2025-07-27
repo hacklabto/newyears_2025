@@ -21,7 +21,7 @@ type PianoOscillatorPair<const PLAY_FREQUENCY: u32> = DoubleOscillator<
 type PianoOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
     PLAY_FREQUENCY,
     PianoOscillatorPair<PLAY_FREQUENCY>,
-    CoreAdsr<PLAY_FREQUENCY, 0, 670, 500, 100, 25>,
+    CoreAdsr<PLAY_FREQUENCY, 0, 670, 25, 500>,
 >;
 
 type PianoFiltered<const PLAY_FREQUENCY: u32> =

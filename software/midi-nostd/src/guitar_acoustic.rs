@@ -21,7 +21,7 @@ type GuitarAcousticOscillatorPair<const PLAY_FREQUENCY: u32> = DoubleOscillator<
 type GuitarAcousticOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
     PLAY_FREQUENCY,
     GuitarAcousticOscillatorPair<PLAY_FREQUENCY>,
-    CoreAdsr<PLAY_FREQUENCY, 0, 1700, 1700, 100, 0>,
+    CoreAdsr<PLAY_FREQUENCY, 0, 1700, 0, 1700>,
 >;
 
 type GuitarAcousticFiltered<const PLAY_FREQUENCY: u32> = Filter<

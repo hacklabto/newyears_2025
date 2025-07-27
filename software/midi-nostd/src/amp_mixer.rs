@@ -64,7 +64,7 @@ mod tests {
     type OscilatorAdsrCore<const PLAY_FREQUENCY: u32> = AmpMixerCore<
         PLAY_FREQUENCY,
         CoreOscillator<PLAY_FREQUENCY, 50, 50, { OscillatorType::PulseWidth as usize }>,
-        CoreAdsr<PLAY_FREQUENCY, 2, 4, 4, 100, 50>,
+        CoreAdsr<PLAY_FREQUENCY, 2, 4, 50, 4>,
     >;
 
     #[test]

@@ -27,9 +27,8 @@ pub struct CoreAdsr<
     const PLAY_FREQUENCY: u32,
     const A: i32,
     const D: i32,
-    const R: i32,
-    const ATTACK_VOLUME: u8,
     const SUSTAIN_VOLUME: u8,
+    const R: i32,
 > {
     state: AdsrState,            // CurrentState
     time_since_state_start: i32, // units are 1/PLAY_FREQUENCY
@@ -39,12 +38,11 @@ impl<
         const PLAY_FREQUENCY: u32,
         const A: i32,
         const D: i32,
-        const R: i32,
-        const ATTACK_VOLUME: u8,
         const SUSTAIN_VOLUME: u8,
-    > CoreAdsr<PLAY_FREQUENCY, A, D, R, ATTACK_VOLUME, SUSTAIN_VOLUME>
+        const R: i32,
+    > CoreAdsr<PLAY_FREQUENCY, A, D, SUSTAIN_VOLUME, R>
 {
-    const ATTACK_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(ATTACK_VOLUME);
+    const ATTACK_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::MAX;
     const SUSTAIN_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(SUSTAIN_VOLUME);
 
     const A_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(A);
@@ -77,11 +75,9 @@ impl<
         const PLAY_FREQUENCY: u32,
         const A: i32,
         const D: i32,
-        const R: i32,
-        const ATTACK_VOLUME: u8,
         const SUSTAIN_VOLUME: u8,
-    > SoundSourceCore<PLAY_FREQUENCY>
-    for CoreAdsr<PLAY_FREQUENCY, A, D, R, ATTACK_VOLUME, SUSTAIN_VOLUME>
+        const R: i32,
+    > SoundSourceCore<PLAY_FREQUENCY> for CoreAdsr<PLAY_FREQUENCY, A, D, SUSTAIN_VOLUME, R>
 {
     type InitValuesType = SoundSourceAdsrInit;
 
@@ -128,10 +124,9 @@ impl<
         const PLAY_FREQUENCY: u32,
         const A: i32,
         const D: i32,
-        const R: i32,
-        const ATTACK_VOLUME: u8,
         const SUSTAIN_VOLUME: u8,
-    > Default for CoreAdsr<PLAY_FREQUENCY, A, D, R, ATTACK_VOLUME, SUSTAIN_VOLUME>
+        const R: i32,
+    > Default for CoreAdsr<PLAY_FREQUENCY, A, D, SUSTAIN_VOLUME, R>
 {
     fn default() -> Self {
         let state = AdsrState::Ended;
@@ -152,7 +147,7 @@ mod tests {
     fn basic_adsr_test() {
         let adsr_init = SoundSourceAdsrInit::new();
 
-        let mut adsr = CoreAdsr::<1000, 2, 4, 4, 100, 50>::default();
+        let mut adsr = CoreAdsr::<1000, 2, 4, 50, 4>::default();
         adsr.init(&adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
