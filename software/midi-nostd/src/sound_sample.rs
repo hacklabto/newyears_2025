@@ -25,19 +25,17 @@ impl<const DENOMINATOR: i32> I32Fraction<DENOMINATOR> {
         self.int_part += other.int_part;
         self.numerator_part += other.numerator_part;
         if self.numerator_part > DENOMINATOR {
-            if other.int_part > 0 {
+            if other.int_part >= 0 {
                 self.int_part = self.int_part + 1;
-            }
-            else {
+            } else {
                 panic!("unexpected");
             }
             self.numerator_part -= DENOMINATOR;
         }
         if self.numerator_part < -DENOMINATOR {
-            if other.int_part < 0 {
+            if other.int_part <= 0 {
                 self.int_part = self.int_part - 1;
-            }
-            else {
+            } else {
                 panic!("unexpected");
             }
             self.numerator_part += DENOMINATOR;
