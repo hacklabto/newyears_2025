@@ -1,3 +1,4 @@
+use crate::guitar_acoustic::GuitarAcoustic;
 use crate::piano::Piano;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
@@ -15,7 +16,12 @@ impl SoundSourceNoteInit {
 }
 
 pub enum NoteEnum<const PLAY_FREQUENCY: u32> {
-    PianoEnum { pcore: Piano<PLAY_FREQUENCY> },
+    PianoEnum {
+        pcore: Piano<PLAY_FREQUENCY>,
+    },
+    GuitarAcousticEnum {
+        pcore: GuitarAcoustic<PLAY_FREQUENCY>,
+    },
     Unassigned,
 }
 
@@ -40,6 +46,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         match &mut self.core {
             NoteEnum::PianoEnum { pcore } => pcore.get_next(),
+            NoteEnum::GuitarAcousticEnum { pcore } => pcore.get_next(),
             NoteEnum::Unassigned => SoundSampleI32::ZERO,
         }
     }
@@ -47,20 +54,22 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
     fn has_next(self: &Self) -> bool {
         match &self.core {
             NoteEnum::PianoEnum { pcore } => pcore.has_next(),
+            NoteEnum::GuitarAcousticEnum { pcore } => pcore.has_next(),
             NoteEnum::Unassigned => false,
         }
     }
 
     fn init(&mut self, init_values: &Self::InitValuesType) {
-        let mut pcore = Piano::<PLAY_FREQUENCY>::default();
-        Piano::<PLAY_FREQUENCY>::init(&mut pcore, init_values);
-        let test = NoteEnum::<PLAY_FREQUENCY>::PianoEnum { pcore };
+        let mut pcore = GuitarAcoustic::<PLAY_FREQUENCY>::default();
+        GuitarAcoustic::<PLAY_FREQUENCY>::init(&mut pcore, init_values);
+        let test = NoteEnum::<PLAY_FREQUENCY>::GuitarAcousticEnum { pcore };
         self.core = test;
     }
 
     fn trigger_note_off(self: &mut Self) {
         match &mut self.core {
             NoteEnum::PianoEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::GuitarAcousticEnum { pcore } => pcore.trigger_note_off(),
             NoteEnum::Unassigned => {}
         }
     }

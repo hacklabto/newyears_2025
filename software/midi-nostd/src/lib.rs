@@ -6,6 +6,7 @@ pub mod amp_mixer;
 pub mod double_oscillator;
 pub mod filter;
 pub mod free_list;
+pub mod guitar_acoustic;
 pub mod midi;
 pub mod midi_notes;
 pub mod note;
