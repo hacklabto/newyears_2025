@@ -51,8 +51,9 @@ impl<
         {
             self.source_1.reset_oscillator();
         }
+        self.last_source_0_sample = s0;
         let s1 = self.source_1.get_next();
-        return s0 + s1;
+        s0 + s1
     }
 
     fn has_next(self: &Self) -> bool {

@@ -2,6 +2,7 @@ use crate::adsr::CoreAdsr;
 use crate::adsr::SoundSourceAdsrInit;
 use crate::amp_mixer::AmpMixerCore;
 use crate::double_oscillator::DoubleOscillator;
+use crate::filter::Filter;
 use crate::midi_notes::midi_note_to_freq;
 use crate::note::SoundSourceNoteInit;
 use crate::oscillator::CoreOscillator;
@@ -23,17 +24,20 @@ type PianoOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
     CoreAdsr<PLAY_FREQUENCY, 0, 670, 500, 100, 25>,
 >;
 
+type PianoFiltered<const PLAY_FREQUENCY: u32> =
+    Filter<PLAY_FREQUENCY, PianoOscillatorAdsr<PLAY_FREQUENCY>, 5477232, 1840925108, -1846402340>;
+
 ///
 /// Piano.  Now sort of a proof of concept.
 ///
 pub struct Piano<const PLAY_FREQUENCY: u32> {
-    core: PianoOscillatorAdsr<PLAY_FREQUENCY>,
+    core: PianoFiltered<PLAY_FREQUENCY>,
 }
 
 impl<const PLAY_FREQUENCY: u32> Default for Piano<PLAY_FREQUENCY> {
     fn default() -> Self {
         Self {
-            core: PianoOscillatorAdsr::<PLAY_FREQUENCY>::default(),
+            core: PianoFiltered::<PLAY_FREQUENCY>::default(),
         }
     }
 }
