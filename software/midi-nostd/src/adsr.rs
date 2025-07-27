@@ -1,7 +1,10 @@
 use crate::sound_sample::time_to_ticks;
-//use crate::sound_sample::I32Fraction;
+use crate::sound_sample::I32Fraction;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
+
+const ADSR_FRACTION_DENOMINATOR: i64= 0x8000000;
+type AdsrFraction= I32Fraction<{ADSR_FRACTION_DENOMINATOR as i32}>;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SoundSourceAdsrInit {}
@@ -10,23 +13,6 @@ impl SoundSourceAdsrInit {
     pub fn new() -> Self {
         return Self {};
     }
-}
-
-/*
-#[derive(PartialEq, Eq, Debug)]
-pub enum AdsrState<const A: i32, const D: i32, const R: i32> {
-    Attack { value: I32Fraction<A>},
-    Delay { value: I32Fraction<D> },
-    Sustain,
-    Release { value: I32Fraction<R> },
-    Ended,
-}
-*/
-#[derive(PartialEq, Eq, Debug)]
-pub enum AdsrState {
-    ADS,
-    Release,
-    Ended,
 }
 
 ///
@@ -40,6 +26,7 @@ pub struct CoreAdsr<
     const R: i32,
 > {
     time_since_state_start: i32, // units are 1/PLAY_FREQUENCY
+    last_sound: AdsrFraction
 }
 
 impl<
@@ -56,6 +43,28 @@ impl<
     const A_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(A);
     const D_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(D);
     const R_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(R);
+
+    const A_GAIN : AdsrFraction = if Self::A_TICKS != 0 {
+        let a_diff: i64= Self::ATTACK_VOLUME_SCALE.to_i32() as i64;
+        AdsrFraction::new(
+            (a_diff/(Self::A_TICKS as i64)) as i32,
+            ((a_diff)%(Self::A_TICKS as i64) * ADSR_FRACTION_DENOMINATOR / (Self::A_TICKS as i64)) as i32
+        )
+    }
+    else {
+        AdsrFraction::new(0,0)
+    };
+
+    const D_GAIN : AdsrFraction = if Self::D_TICKS != 0 {
+        let d_diff: i64= (Self::SUSTAIN_VOLUME_SCALE.to_i32() - Self::ATTACK_VOLUME_SCALE.to_i32()) as i64;
+        AdsrFraction::new(
+            (d_diff/(Self::D_TICKS as i64)) as i32,
+            ((d_diff)%(Self::D_TICKS as i64) * ADSR_FRACTION_DENOMINATOR / (Self::D_TICKS as i64)) as i32
+        )
+    }
+    else {
+        AdsrFraction::new(0,0)
+    };
 
     const A_END: i32 = Self::A_TICKS;
     const D_END: i32 = Self::A_END + Self::D_TICKS;
@@ -74,17 +83,25 @@ impl<
     type InitValuesType = SoundSourceAdsrInit;
 
     fn init(self: &mut Self, _init_values: &Self::InitValuesType) {
-        self.time_since_state_start = 0;
+        *self = Self::default();
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let scale: SoundSampleI32 = if self.time_since_state_start < Self::A_END {
-            Self::ATTACK_VOLUME_SCALE.mul_by_fraction(self.time_since_state_start, Self::A_TICKS)
+            let rval = SoundSampleI32::new_i32(self.last_sound.int_part );
+            self.last_sound.add(&Self::A_GAIN);
+            rval
         } else if self.time_since_state_start < Self::D_END {
+            /*
             let time_since_d_start = self.time_since_state_start - Self::A_TICKS;
-            Self::ATTACK_VOLUME_SCALE
+            Self::ATTACK_VOLUME_SCALE 
                 .mul_by_fraction(Self::D_TICKS - time_since_d_start, Self::D_TICKS)
                 + Self::SUSTAIN_VOLUME_SCALE.mul_by_fraction(time_since_d_start, Self::D_TICKS)
+            */
+
+            let rval = SoundSampleI32::new_i32(self.last_sound.int_part );
+            self.last_sound.add(&Self::D_GAIN);
+            rval
         } else if self.time_since_state_start < Self::R_START {
             Self::SUSTAIN_VOLUME_SCALE
         } else if self.time_since_state_start <= Self::R_END {
@@ -95,7 +112,7 @@ impl<
             SoundSampleI32::ZERO
         };
         self.time_since_state_start = self.time_since_state_start + 1;
-        scale
+        scale.pos_clip()
     }
 
     fn has_next(self: &Self) -> bool {
@@ -118,8 +135,19 @@ impl<
     fn default() -> Self {
         let time_since_state_start = 0;
 
+        let last_sound = 
+            if A != 0 {
+                AdsrFraction::new(0,0)
+            }
+            else if D != 0 {
+                AdsrFraction::new(Self::ATTACK_VOLUME_SCALE.to_i32(),0)
+            }
+            else {
+                AdsrFraction::new(Self::SUSTAIN_VOLUME_SCALE.to_i32(),0)
+            };
+
         Self {
-            time_since_state_start,
+            time_since_state_start, last_sound
         }
     }
 }
@@ -177,5 +205,59 @@ mod tests {
         assert_eq!(0x0000, adsr.get_next().to_i32());
         assert_eq!(0x0000, adsr.get_next().to_i32());
         assert_eq!(false, adsr.has_next());
+    }
+    #[test]
+    fn no_attack_adsr_test() {
+        let adsr_init = SoundSourceAdsrInit::new();
+
+        const D_RANGE:i32 = 1000;
+
+        let mut adsr = CoreAdsr::<10000, 0, 100, 50, 8>::default();
+        adsr.init(&adsr_init);
+
+        // Attack state, 2 ticks to get to attack volume (max) from 0
+        assert_eq!(true, adsr.has_next());
+
+        for i in 0..D_RANGE {
+            assert_eq!((i, true), (i, adsr.has_next()));
+            let desired:i32= 0x4000 * i / D_RANGE + 0x8000 * (D_RANGE -i)/ D_RANGE;
+            let actual:i32 = adsr.get_next().to_i32();
+            let diff = desired - actual;
+            let is_less_than_2 = diff >= -2 && diff <= 2;
+
+            assert_eq!((i, desired, actual, is_less_than_2), (i, desired, actual, true))
+        }
+
+        // Sustain state
+        assert_eq!(true, adsr.has_next());
+        assert_eq!(0x4000, adsr.get_next().to_i32());
+        assert_eq!(0x4000, adsr.get_next().to_i32());
+        assert_eq!(0x4000, adsr.get_next().to_i32());
+        adsr.trigger_note_off(); // Release doesn't start until update begins
+        assert_eq!(0x4000, adsr.get_next().to_i32());
+
+        /*
+        // Release state, 4 ticks to get to quiet from Sustain Volume
+        assert_eq!(true, adsr.has_next());
+        assert_eq!(0x3800, adsr.get_next().to_i32());
+        assert_eq!(0x3000, adsr.get_next().to_i32());
+        assert_eq!(0x2800, adsr.get_next().to_i32());
+        assert_eq!(0x2000, adsr.get_next().to_i32());
+        assert_eq!(0x1800, adsr.get_next().to_i32());
+        assert_eq!(0x1000, adsr.get_next().to_i32());
+        assert_eq!(0x0800, adsr.get_next().to_i32());
+        assert_eq!(true, adsr.has_next());
+        assert_eq!(0x0000, adsr.get_next().to_i32());
+
+        // End state.  Report silence and no more data
+        assert_eq!(false, adsr.has_next());
+        assert_eq!(0x0000, adsr.get_next().to_i32());
+        assert_eq!(0x0000, adsr.get_next().to_i32());
+        assert_eq!(0x0000, adsr.get_next().to_i32());
+        assert_eq!(0x0000, adsr.get_next().to_i32());
+        assert_eq!(0x0000, adsr.get_next().to_i32());
+        assert_eq!(0x0000, adsr.get_next().to_i32());
+        assert_eq!(false, adsr.has_next());
+        */
     }
 }

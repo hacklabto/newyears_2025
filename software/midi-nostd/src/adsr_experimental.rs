@@ -203,15 +203,21 @@ mod tests {
     fn no_attack_adsr_test() {
         let adsr_init = SoundSourceAdsrInit::new();
 
-        let mut adsr = CoreAdsr::<1000, 0, 4, 50, 8>::default();
+        let mut adsr = CoreAdsr::<1000, 0, {3*256}, 50, 8>::default();
         adsr.init(&adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
         assert_eq!(true, adsr.has_next());
+
+        for i in 0..768 {
+            let prev:i32= 0x8000 - 0x4000 * i / 768;
+            assert_eq!((i, prev), (i, adsr.get_next().to_i32()));
+        }
+
         assert_eq!(0x8000, adsr.get_next().to_i32());
-        assert_eq!(0x7000, adsr.get_next().to_i32());
-        assert_eq!(0x6000, adsr.get_next().to_i32());
-        assert_eq!(0x5000, adsr.get_next().to_i32());
+        assert_eq!(0x7feb, adsr.get_next().to_i32());
+        assert_eq!(0x5556, adsr.get_next().to_i32());
+        assert_eq!(0x4000, adsr.get_next().to_i32());
         assert_eq!(0x4000, adsr.get_next().to_i32());
 
         // Sustain state
