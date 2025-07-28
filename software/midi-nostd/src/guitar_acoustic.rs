@@ -58,14 +58,17 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for GuitarAcoust
         self.core.has_next()
     }
 
-    fn init(&mut self, init_values: &Self::InitValuesType) {
+    fn new(init_values: &Self::InitValuesType) -> Self {
         let frequency_1 = midi_note_to_freq(init_values.key);
         let frequency_2 = midi_note_to_freq(init_values.key + 10);
         let oscillator_init_1 = SoundSourceOscillatorInit::new(frequency_1);
         let oscillator_init_2 = SoundSourceOscillatorInit::new(frequency_2);
         let adsr_init = SoundSourceAdsrInit::new();
-        self.core
-            .init(&((oscillator_init_1, oscillator_init_2), adsr_init));
+        let core = GuitarAcousticFiltered::<PLAY_FREQUENCY>::new(&(
+            (oscillator_init_1, oscillator_init_2),
+            adsr_init,
+        ));
+        return Self { core };
     }
 
     fn trigger_note_off(self: &mut Self) {

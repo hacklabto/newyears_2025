@@ -12,7 +12,7 @@ pub trait SoundSourceCore<const PLAY_FREQUENCY: u32>: Default {
     /// Initialize to a none default state.
 
     type InitValuesType;
-    fn init(&mut self, init_values: &Self::InitValuesType);
+    fn new(init_values: &Self::InitValuesType) -> Self;
 
     /// Returns false if the sound source is done playing
     ///

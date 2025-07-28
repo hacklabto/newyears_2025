@@ -137,13 +137,19 @@ impl<
 {
     type InitValuesType = SoundSourceOscillatorInit;
 
-    fn init(self: &mut Self, init_values: &Self::InitValuesType) {
+    fn new(init_values: &Self::InitValuesType) -> Self {
         let inc_numerator: u32 = init_values.frequency * WAVE_TABLE_SIZE_U32;
 
-        self.table_idx = 0;
-        self.table_remainder = Self::INC_DENOMINATOR / 2;
-        self.table_idx_inc = inc_numerator / Self::INC_DENOMINATOR;
-        self.table_remainder_inc = inc_numerator % Self::INC_DENOMINATOR;
+        let table_idx: u32 = 0;
+        let table_remainder: u32 = Self::INC_DENOMINATOR / 2;
+        let table_idx_inc: u32 = inc_numerator / Self::INC_DENOMINATOR;
+        let table_remainder_inc: u32 = inc_numerator % Self::INC_DENOMINATOR;
+        Self {
+            table_idx,
+            table_remainder,
+            table_idx_inc,
+            table_remainder_inc,
+        }
     }
 
     fn has_next(self: &Self) -> bool {

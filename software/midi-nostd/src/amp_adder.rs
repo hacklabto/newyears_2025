@@ -26,7 +26,9 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
 {
     type InitValuesType = u32;
 
-    fn init(&mut self, _init_values: &Self::InitValuesType) {}
+    fn new(_init_values: &Self::InitValuesType) -> Self {
+        return Self::default();
+    }
 
     fn trigger_note_off(self: &mut Self) {}
 

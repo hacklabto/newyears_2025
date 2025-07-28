@@ -1,4 +1,5 @@
 use crate::amp_adder::AmpAdder;
+use crate::note::Note;
 use crate::note::SoundSourceNoteInit;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
@@ -66,7 +67,7 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
                     self.ignore_hack = key_as_u32;
 
                     let note_init = SoundSourceNoteInit::new((*key).into(), 0);
-                    notes.channels[*dest_note].init(&note_init);
+                    notes.channels[*dest_note] = Note::<PLAY_FREQUENCY>::new(&note_init);
                     *dest_note = 1 - *dest_note;
                 }
             }

@@ -32,9 +32,10 @@ impl<
 {
     type InitValuesType = (MixSource0::InitValuesType, MixSource1::InitValuesType);
 
-    fn init(self: &mut Self, init_values: &Self::InitValuesType) {
-        self.source_0.init(&(init_values.0));
-        self.source_1.init(&(init_values.1));
+    fn new(init_values: &Self::InitValuesType) -> Self {
+        let source_0 = MixSource0::new(&(init_values.0));
+        let source_1 = MixSource1::new(&(init_values.1));
+        Self { source_0, source_1 }
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {

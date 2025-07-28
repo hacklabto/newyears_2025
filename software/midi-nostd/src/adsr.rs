@@ -99,8 +99,8 @@ impl<
 {
     type InitValuesType = SoundSourceAdsrInit;
 
-    fn init(self: &mut Self, _init_values: &Self::InitValuesType) {
-        *self = Self::default();
+    fn new(_init_values: &Self::InitValuesType) -> Self {
+        return Self::default();
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
