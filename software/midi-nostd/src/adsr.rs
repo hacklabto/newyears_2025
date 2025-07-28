@@ -173,8 +173,7 @@ mod tests {
     fn basic_adsr_test() {
         let adsr_init = SoundSourceAdsrInit::new();
 
-        let mut adsr = CoreAdsr::<1000, 2, 4, 50, 8>::default();
-        adsr.init(&adsr_init);
+        let mut adsr = CoreAdsr::<1000, 2, 4, 50, 8>::new(&adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
         assert_eq!(true, adsr.has_next());
@@ -225,8 +224,7 @@ mod tests {
 
         const D_RANGE: i32 = 1000;
 
-        let mut adsr = CoreAdsr::<10000, 0, 100, 50, 8>::default();
-        adsr.init(&adsr_init);
+        let mut adsr = CoreAdsr::<10000, 0, 100, 50, 8>::new(&adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
         assert_eq!(true, adsr.has_next());

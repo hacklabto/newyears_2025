@@ -223,8 +223,9 @@ mod tests {
     fn test_pulse_50_from_pool() {
         let init_vals = SoundSourceOscillatorInit::new(2600 * FREQUENCY_MULTIPLIER);
         let mut oscilator =
-            CoreOscillator::<24000, 50, 100, { OscillatorType::PulseWidth as usize }>::default();
-        oscilator.init(&init_vals);
+            CoreOscillator::<24000, 50, 100, { OscillatorType::PulseWidth as usize }>::new(
+                &init_vals,
+            );
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
         assert_eq!(2600 * 2 - 1, transitions);
@@ -236,8 +237,9 @@ mod tests {
     fn test_pulse_50_vol_50_from_pool() {
         let init_vals = SoundSourceOscillatorInit::new(2600 * FREQUENCY_MULTIPLIER);
         let mut oscilator =
-            CoreOscillator::<24000, 50, 50, { OscillatorType::PulseWidth as usize }>::default();
-        oscilator.init(&init_vals);
+            CoreOscillator::<24000, 50, 50, { OscillatorType::PulseWidth as usize }>::new(
+                &init_vals,
+            );
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
 
@@ -249,8 +251,9 @@ mod tests {
     fn test_pulse_25_from_pool() {
         let init_vals = SoundSourceOscillatorInit::new(2600 * FREQUENCY_MULTIPLIER);
         let mut oscilator =
-            CoreOscillator::<24000, 25, 100, { OscillatorType::PulseWidth as usize }>::default();
-        oscilator.init(&init_vals);
+            CoreOscillator::<24000, 25, 100, { OscillatorType::PulseWidth as usize }>::new(
+                &init_vals,
+            );
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
 
@@ -262,8 +265,7 @@ mod tests {
     fn test_triangle_from_pool() {
         let init_vals = SoundSourceOscillatorInit::new(2600 * FREQUENCY_MULTIPLIER);
         let mut oscilator =
-            CoreOscillator::<24000, 0, 100, { OscillatorType::Triangle as usize }>::default();
-        oscilator.init(&init_vals);
+            CoreOscillator::<24000, 0, 100, { OscillatorType::Triangle as usize }>::new(&init_vals);
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
         assert_eq!(2600 * 2, transitions);
@@ -276,8 +278,7 @@ mod tests {
     fn test_triangle_from_pool_vol_50percent() {
         let init_vals = SoundSourceOscillatorInit::new(2600 * FREQUENCY_MULTIPLIER);
         let mut oscilator =
-            CoreOscillator::<24000, 0, 50, { OscillatorType::Triangle as usize }>::default();
-        oscilator.init(&init_vals);
+            CoreOscillator::<24000, 0, 50, { OscillatorType::Triangle as usize }>::new(&init_vals);
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
         assert_eq!(transitions, 2600 * 2);

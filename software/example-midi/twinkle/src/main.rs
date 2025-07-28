@@ -10,7 +10,7 @@ use midly::Smf;
 use portaudio as pa;
 
 const CHANNELS: i32 = 2;
-const NUM_SECONDS: i32 = 30;
+const NUM_SECONDS: i32 = 130;
 const SAMPLE_RATE: f64 = 24_000.0;
 const FRAMES_PER_BUFFER: u32 = 64;
 
