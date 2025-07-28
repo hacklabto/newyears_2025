@@ -114,7 +114,7 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
         }
         self.current_remainder = self.current_remainder + 1;
         // TODO, adjust properly.
-        if (self.current_remainder) % 25 == 0 {
+        if (self.current_remainder) % 127 == 0 {
             self.current_time = self.current_time + 1;
         }
     }

@@ -68,7 +68,12 @@ impl<
     };
 
     const R_GAIN: AdsrFraction = if Self::R_TICKS != 0 {
-        let r_diff: i64 = (-Self::SUSTAIN_VOLUME_SCALE.to_i32()) as i64;
+        let assumed_start_volume = if Self::SUSTAIN_VOLUME_SCALE.to_i32() != 0 {
+            Self::SUSTAIN_VOLUME_SCALE
+        } else {
+            Self::ATTACK_VOLUME_SCALE
+        };
+        let r_diff: i64 = (-assumed_start_volume.to_i32()) as i64;
         AdsrFraction::new(
             (r_diff / (Self::R_TICKS as i64)) as i32,
             ((r_diff) % (Self::R_TICKS as i64) * ADSR_FRACTION_DENOMINATOR / (Self::R_TICKS as i64))
