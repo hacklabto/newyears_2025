@@ -64,14 +64,12 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
         let core = NoteEnum::<PLAY_FREQUENCY>::PianoEnum { pcore };
         return Self { core };
     }
-
     /*
-        fn init(&mut self, init_values: &Self::InitValuesType) {
-            let mut pcore = GuitarAcoustic::<PLAY_FREQUENCY>::default();
-            GuitarAcoustic::<PLAY_FREQUENCY>::init(&mut pcore, init_values);
-            let test = NoteEnum::<PLAY_FREQUENCY>::GuitarAcousticEnum { pcore };
-            self.core = test;
-        }
+    fn new(init_values: &Self::InitValuesType) -> Self {
+        let pcore = GuitarAcoustic::<PLAY_FREQUENCY>::new(&init_values);
+        let core = NoteEnum::<PLAY_FREQUENCY>::GuitarAcousticEnum{ pcore };
+        return Self { core };
+    }
     */
 
     fn trigger_note_off(self: &mut Self) {
