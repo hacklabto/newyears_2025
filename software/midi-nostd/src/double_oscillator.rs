@@ -14,22 +14,6 @@ pub struct DoubleOscillator<
 
 impl<
         const PLAY_FREQUENCY: u32,
-        MixSource0: SoundSourceCore<PLAY_FREQUENCY>,
-        MixSource1: SoundSourceCore<PLAY_FREQUENCY>,
-        const SYNC_1_FROM_0: bool,
-    > Default for DoubleOscillator<PLAY_FREQUENCY, MixSource0, MixSource1, SYNC_1_FROM_0>
-{
-    fn default() -> Self {
-        return Self {
-            last_source_0_sample: SoundSampleI32::ZERO,
-            source_0: MixSource0::default(),
-            source_1: MixSource1::default(),
-        };
-    }
-}
-
-impl<
-        const PLAY_FREQUENCY: u32,
         MixSource0: SoundSourceCore<PLAY_FREQUENCY> + Default,
         MixSource1: SoundSourceCore<PLAY_FREQUENCY> + Default,
         const SYNC_1_FROM_0: bool,

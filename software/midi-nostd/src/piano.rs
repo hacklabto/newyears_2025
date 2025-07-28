@@ -34,14 +34,6 @@ pub struct Piano<const PLAY_FREQUENCY: u32> {
     core: PianoFiltered<PLAY_FREQUENCY>,
 }
 
-impl<const PLAY_FREQUENCY: u32> Default for Piano<PLAY_FREQUENCY> {
-    fn default() -> Self {
-        Self {
-            core: PianoFiltered::<PLAY_FREQUENCY>::default(),
-        }
-    }
-}
-
 impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Piano<PLAY_FREQUENCY> {
     type InitValuesType = SoundSourceNoteInit;
 

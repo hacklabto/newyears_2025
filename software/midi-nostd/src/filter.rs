@@ -3,7 +3,7 @@ use crate::sound_source_core::SoundSourceCore;
 
 pub struct Filter<
     const PLAY_FREQUENCY: u32,
-    Source: SoundSourceCore<PLAY_FREQUENCY> + Default,
+    Source: SoundSourceCore<PLAY_FREQUENCY>,
     const B0: i64,
     const B1: i64,
     const B2: i64,
@@ -15,24 +15,7 @@ pub struct Filter<
 
 impl<
         const PLAY_FREQUENCY: u32,
-        Source: SoundSourceCore<PLAY_FREQUENCY> + Default,
-        const B0: i64,
-        const B1: i64,
-        const B2: i64,
-    > Default for Filter<PLAY_FREQUENCY, Source, B0, B1, B2>
-{
-    fn default() -> Self {
-        return Self {
-            source: Source::default(),
-            z1: 0,
-            z2: 0,
-        };
-    }
-}
-
-impl<
-        const PLAY_FREQUENCY: u32,
-        Source: SoundSourceCore<PLAY_FREQUENCY> + Default,
+        Source: SoundSourceCore<PLAY_FREQUENCY>,
         const B0: i64,
         const B1: i64,
         const B2: i64,

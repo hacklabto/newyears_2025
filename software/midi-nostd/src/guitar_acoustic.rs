@@ -39,14 +39,6 @@ pub struct GuitarAcoustic<const PLAY_FREQUENCY: u32> {
     core: GuitarAcousticFiltered<PLAY_FREQUENCY>,
 }
 
-impl<const PLAY_FREQUENCY: u32> Default for GuitarAcoustic<PLAY_FREQUENCY> {
-    fn default() -> Self {
-        Self {
-            core: GuitarAcousticFiltered::<PLAY_FREQUENCY>::default(),
-        }
-    }
-}
-
 impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for GuitarAcoustic<PLAY_FREQUENCY> {
     type InitValuesType = SoundSourceNoteInit;
 

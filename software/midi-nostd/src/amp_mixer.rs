@@ -3,8 +3,8 @@ use crate::sound_source_core::SoundSourceCore;
 
 pub struct AmpMixerCore<
     const PLAY_FREQUENCY: u32,
-    MixSource0: SoundSourceCore<PLAY_FREQUENCY> + Default,
-    MixSource1: SoundSourceCore<PLAY_FREQUENCY> + Default,
+    MixSource0: SoundSourceCore<PLAY_FREQUENCY>,
+    MixSource1: SoundSourceCore<PLAY_FREQUENCY>,
 > {
     source_0: MixSource0,
     source_1: MixSource1,
@@ -12,22 +12,8 @@ pub struct AmpMixerCore<
 
 impl<
         const PLAY_FREQUENCY: u32,
-        MixSource0: SoundSourceCore<PLAY_FREQUENCY> + Default,
-        MixSource1: SoundSourceCore<PLAY_FREQUENCY> + Default,
-    > Default for AmpMixerCore<PLAY_FREQUENCY, MixSource0, MixSource1>
-{
-    fn default() -> Self {
-        return Self {
-            source_0: MixSource0::default(),
-            source_1: MixSource1::default(),
-        };
-    }
-}
-
-impl<
-        const PLAY_FREQUENCY: u32,
-        MixSource0: SoundSourceCore<PLAY_FREQUENCY> + Default,
-        MixSource1: SoundSourceCore<PLAY_FREQUENCY> + Default,
+        MixSource0: SoundSourceCore<PLAY_FREQUENCY>,
+        MixSource1: SoundSourceCore<PLAY_FREQUENCY>,
     > SoundSourceCore<PLAY_FREQUENCY> for AmpMixerCore<PLAY_FREQUENCY, MixSource0, MixSource1>
 {
     type InitValuesType = (MixSource0::InitValuesType, MixSource1::InitValuesType);
