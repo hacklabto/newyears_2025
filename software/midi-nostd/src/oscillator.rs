@@ -63,27 +63,6 @@ impl<
         const PULSE_WIDTH: u8,
         const VOLUME: u8,
         const OSCILATOR_TYPE: usize,
-    > Default for CoreOscillator<PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
-{
-    fn default() -> Self {
-        let table_idx_inc: u32 = 0;
-        let table_remainder_inc: u32 = 0;
-        let table_idx: u32 = 0;
-        let table_remainder: u32 = Self::INC_DENOMINATOR / 2;
-        Self {
-            table_idx,
-            table_remainder,
-            table_idx_inc,
-            table_remainder_inc,
-        }
-    }
-}
-
-impl<
-        const PLAY_FREQUENCY: u32,
-        const PULSE_WIDTH: u8,
-        const VOLUME: u8,
-        const OSCILATOR_TYPE: usize,
     > CoreOscillator<PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     const PULSE_WIDTH_CUTOFF: u32 = WAVE_TABLE_SIZE_U32 * (PULSE_WIDTH as u32) / 100;

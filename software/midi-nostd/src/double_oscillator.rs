@@ -14,8 +14,8 @@ pub struct DoubleOscillator<
 
 impl<
         const PLAY_FREQUENCY: u32,
-        MixSource0: SoundSourceCore<PLAY_FREQUENCY> + Default,
-        MixSource1: SoundSourceCore<PLAY_FREQUENCY> + Default,
+        MixSource0: SoundSourceCore<PLAY_FREQUENCY>,
+        MixSource1: SoundSourceCore<PLAY_FREQUENCY>,
         const SYNC_1_FROM_0: bool,
     > SoundSourceCore<PLAY_FREQUENCY>
     for DoubleOscillator<PLAY_FREQUENCY, MixSource0, MixSource1, SYNC_1_FROM_0>

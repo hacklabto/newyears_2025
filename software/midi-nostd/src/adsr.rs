@@ -100,7 +100,20 @@ impl<
     type InitValuesType = SoundSourceAdsrInit;
 
     fn new(_init_values: &Self::InitValuesType) -> Self {
-        return Self::default();
+        let time_since_state_start = 0;
+
+        let last_sound = if A != 0 {
+            AdsrFraction::new(0, 0)
+        } else if D != 0 {
+            AdsrFraction::new(Self::ATTACK_VOLUME_SCALE.to_i32(), 0)
+        } else {
+            AdsrFraction::new(Self::SUSTAIN_VOLUME_SCALE.to_i32(), 0)
+        };
+
+        Self {
+            time_since_state_start,
+            last_sound,
+        }
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
@@ -136,32 +149,6 @@ impl<
 
     fn trigger_note_off(self: &mut Self) {
         self.time_since_state_start = Self::R_START;
-    }
-}
-
-impl<
-        const PLAY_FREQUENCY: u32,
-        const A: i32,
-        const D: i32,
-        const SUSTAIN_VOLUME: u8,
-        const R: i32,
-    > Default for CoreAdsr<PLAY_FREQUENCY, A, D, SUSTAIN_VOLUME, R>
-{
-    fn default() -> Self {
-        let time_since_state_start = 0;
-
-        let last_sound = if A != 0 {
-            AdsrFraction::new(0, 0)
-        } else if D != 0 {
-            AdsrFraction::new(Self::ATTACK_VOLUME_SCALE.to_i32(), 0)
-        } else {
-            AdsrFraction::new(Self::SUSTAIN_VOLUME_SCALE.to_i32(), 0)
-        };
-
-        Self {
-            time_since_state_start,
-            last_sound,
-        }
     }
 }
 

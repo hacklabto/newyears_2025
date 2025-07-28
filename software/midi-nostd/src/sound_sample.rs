@@ -8,7 +8,7 @@ pub const fn time_to_ticks<const PLAY_FREQUENCY: u32>(time_in_ms: i32) -> i32 {
     return ((PLAY_FREQUENCY as i32) * time_in_ms) / 1000;
 }
 
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct I32Fraction<const DENOMINATOR: i32> {
     pub int_part: i32,
     pub numerator_part: i32,
@@ -49,7 +49,7 @@ impl<const DENOMINATOR: i32> I32Fraction<DENOMINATOR> {
 /// ~15 bits are used for the fractional component.  Playable sound is from
 /// -0x8000 (-1) to 0x7fff (1).  0 maps to zero.
 ///
-#[derive(Clone, Eq, Copy, Default, Debug)]
+#[derive(Clone, Eq, Copy, Debug)]
 pub struct SoundSampleI32 {
     pub val: i32,
 }
