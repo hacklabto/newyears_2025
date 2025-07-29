@@ -9,3 +9,6 @@ portaudio = { version = "0.8.0" }
 midly = { version = "0.5.3" }
 midi-nostd = {path = "../../midi-nostd" }
 
+[profile.release]
+debug = true # This will include debug info
+

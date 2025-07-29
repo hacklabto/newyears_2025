@@ -46,6 +46,12 @@ fn run() -> Result<(), pa::Error> {
         .expect("It's inlined data, so it better work, gosh darn it");
     let mut midi = Midi::<24000, 64, 32>::new(&smf);
 
+    /*
+    for i in 0..960000 {
+        let current = midi.get_next(&smf);
+    }
+    */
+
     let pa = pa::PortAudio::new()?;
 
     let mut settings =
