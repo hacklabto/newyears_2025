@@ -48,6 +48,8 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
                 self.free_list.free(i);
             }
         }
+
+        output = SoundSampleI32::new_i32(output.to_i32() / 16);
         output.clip()
     }
 

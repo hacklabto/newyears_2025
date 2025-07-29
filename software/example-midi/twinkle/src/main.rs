@@ -42,9 +42,9 @@ fn run() -> Result<(), pa::Error> {
         SAMPLE_RATE, FRAMES_PER_BUFFER
     );
 
-    let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
+    let smf = midly::Smf::parse(include_bytes!("../assets/vivaldi.mid"))
         .expect("It's inlined data, so it better work, gosh darn it");
-    let mut midi = Midi::<24000, 32, 16>::new(&smf);
+    let mut midi = Midi::<24000, 64, 32>::new(&smf);
 
     let pa = pa::PortAudio::new()?;
 
