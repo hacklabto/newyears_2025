@@ -23,7 +23,7 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> Default
 }
 
 impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS> {
-    fn alloc(self: &mut Self) -> usize {
+    pub fn alloc(self: &mut Self) -> usize {
         self.free_list.alloc()
     }
 }

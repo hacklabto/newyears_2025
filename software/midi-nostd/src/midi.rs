@@ -13,6 +13,7 @@ pub struct MidiTrack<const PLAY_FREQUENCY: u32> {
     next_event_time: u32,
     ignore_hack: u8,
     last_delta: u32,
+    playing_notes: [Option<usize>; 128],
 }
 
 impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
@@ -37,6 +38,7 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
             next_event_time,
             ignore_hack,
             last_delta,
+            playing_notes: [Option::<usize>::default(); 128],
         }
     }
     fn has_next(self: &Self) -> bool {
@@ -58,7 +60,6 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
         self: &mut Self,
         midi_event: &midly::MidiMessage,
         notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
-        dest_note: &mut usize,
     ) {
         match midi_event {
             midly::MidiMessage::NoteOn { key, vel: _ } => {
@@ -67,13 +68,20 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
                     self.ignore_hack = key_as_u32;
 
                     let note_init = SoundSourceNoteInit::new((*key).into(), 0);
-                    notes.channels[*dest_note] = Note::<PLAY_FREQUENCY>::new(&note_init);
-                    *dest_note = 1 - *dest_note;
+                    let dst = notes.alloc();
+
+                    notes.channels[dst] = Note::<PLAY_FREQUENCY>::new(&note_init);
+                    self.playing_notes[key_as_u32 as usize] = Some(dst)
                 }
             }
-            midly::MidiMessage::NoteOff { key: _, vel: _ } => {
+            midly::MidiMessage::NoteOff { key, vel: _ } => {
+                let key_as_u32: u8 = (*key).into();
+                if let Some(playing_note) = self.playing_notes[key_as_u32 as usize] {
+
+                    notes.channels[playing_note].trigger_note_off();
+                    self.playing_notes[key_as_u32 as usize] = None;
+                }
                 self.ignore_hack = 0;
-                notes.channels[1 - *dest_note].trigger_note_off();
             }
             _ => {}
         }
@@ -83,13 +91,12 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
         self: &mut Self,
         track_event: &midly::TrackEventKind,
         notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
-        dest_note: &mut usize,
     ) {
         match track_event {
             midly::TrackEventKind::Midi {
                 message,
                 channel: _,
-            } => self.handle_midi_event(&message, notes, dest_note),
+            } => self.handle_midi_event(&message, notes),
             _ => {}
         }
     }
@@ -98,13 +105,12 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
         self: &mut Self,
         events: &'a midly::Track<'a>,
         notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
-        dest_note: &mut usize,
     ) {
         if !self.active {
             return;
         }
         while self.current_time == self.next_event_time {
-            self.handle_track_event(&(events[self.current_event_idx]).kind, notes, dest_note);
+            self.handle_track_event(&(events[self.current_event_idx]).kind, notes);
             self.go_to_next_event(events);
             if !self.active {
                 return;
@@ -115,7 +121,7 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
         }
         self.current_remainder = self.current_remainder + 1;
         // TODO, adjust properly.
-        if (self.current_remainder) % 127 == 0 {
+        if (self.current_remainder) % 31 == 0 {
             self.current_time = self.current_time + 1;
         }
     }
@@ -124,24 +130,21 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
 pub struct Midi<const PLAY_FREQUENCY: u32> {
     track: MidiTrack<PLAY_FREQUENCY>,
     amp_adder: AmpAdder<PLAY_FREQUENCY, 5>,
-    dest_note: usize,
 }
 
 impl<const PLAY_FREQUENCY: u32> Midi<PLAY_FREQUENCY> {
     pub fn new(smf: &Smf) -> Self {
         let track = MidiTrack::new(&smf.tracks[0]);
         let amp_adder = AmpAdder::<PLAY_FREQUENCY, 5>::default();
-        let dest_note = 0;
         Self {
             track,
             amp_adder,
-            dest_note,
         }
     }
     pub fn get_next(self: &mut Self, smf: &Smf) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
         self.track
-            .update::<5>(&smf.tracks[0], &mut self.amp_adder, &mut self.dest_note);
+            .update::<5>(&smf.tracks[0], &mut self.amp_adder);
         result
     }
 
