@@ -25,7 +25,7 @@ pub trait SoundSourceCore<const PLAY_FREQUENCY: u32> {
     /// Effective tells the source source to wind down gracefully :)
     /// Note off is the midi term.
     ///
-    fn trigger_note_off(self: &mut Self);
+    fn trigger_note_off(self: &mut Self) {}
 
     /// Reset an oscillator
     ///

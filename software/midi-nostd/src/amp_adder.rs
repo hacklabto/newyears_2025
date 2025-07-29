@@ -1,3 +1,4 @@
+use crate::free_list::FreeList;
 use crate::note::Note;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
@@ -6,6 +7,7 @@ use crate::sound_source_core::SoundSourceCore;
 /// Amp Adder
 ///
 pub struct AmpAdder<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> {
+    pub free_list: FreeList<NUM_CHANNELS>,
     pub channels: [Note<PLAY_FREQUENCY>; NUM_CHANNELS],
 }
 
@@ -14,12 +16,17 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> Default
 {
     fn default() -> Self {
         Self {
+            free_list: { FreeList::<NUM_CHANNELS>::default() },
             channels: { core::array::from_fn(|_idx| Note::<PLAY_FREQUENCY>::default()) },
         }
     }
 }
 
-impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS> {}
+impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS> {
+    fn alloc(self: &mut Self) -> usize {
+        self.free_list.alloc()
+    }
+}
 
 impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_FREQUENCY>
     for AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>
@@ -30,14 +37,16 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
         return Self::default();
     }
 
-    fn trigger_note_off(self: &mut Self) {}
-
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let mut output: SoundSampleI32 = SoundSampleI32::ZERO;
 
-        for entry in &mut self.channels {
+        for i in 0..NUM_CHANNELS {
+            let entry = &mut (self.channels[i]);
             let this_source: SoundSampleI32 = entry.get_next();
             output = output + this_source;
+            if self.free_list.is_active(i) && !entry.has_next() {
+                self.free_list.free(i);
+            }
         }
         output.clip()
     }
@@ -45,8 +54,6 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
     fn has_next(self: &Self) -> bool {
         true
     }
-
-    fn reset_oscillator(self: &mut Self) {}
 }
 
 #[cfg(test)]

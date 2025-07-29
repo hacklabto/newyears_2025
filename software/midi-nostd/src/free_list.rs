@@ -1,17 +1,11 @@
-pub trait FreeList {
-    fn alloc(self: &mut Self) -> usize;
-    fn free(self: &mut Self, item_to_free: usize);
-    fn is_active(self: &Self, idx: usize) -> bool;
-}
-
-pub struct FreeListImpl<const N: usize> {
+pub struct FreeList<const N: usize> {
     active_list: [bool; N],
     free_list: [Option<usize>; N],
     free_list_head: Option<usize>,
 }
 
-impl<const N: usize> FreeList for FreeListImpl<N> {
-    fn alloc(self: &mut Self) -> usize {
+impl<const N: usize> FreeList<N> {
+    pub fn alloc(self: &mut Self) -> usize {
         let allocated_item = self
             .free_list_head
             .expect("Unhandled out of sound pool error");
@@ -20,18 +14,18 @@ impl<const N: usize> FreeList for FreeListImpl<N> {
         self.active_list[allocated_item] = true;
         allocated_item
     }
-    fn free(self: &mut Self, item_to_free: usize) {
+    pub fn free(self: &mut Self, item_to_free: usize) {
         assert!(self.free_list[item_to_free].is_none());
         self.free_list[item_to_free] = self.free_list_head;
         self.free_list_head = Some(item_to_free);
         self.active_list[item_to_free] = false;
     }
-    fn is_active(self: &Self, idx: usize) -> bool {
+    pub fn is_active(self: &Self, idx: usize) -> bool {
         self.active_list[idx]
     }
 }
 
-impl<const N: usize> Default for FreeListImpl<N> {
+impl<const N: usize> Default for FreeList<N> {
     fn default() -> Self {
         let active_list: [bool; N] = core::array::from_fn(|_idx| false);
         let free_list: [Option<usize>; N] =
@@ -51,7 +45,7 @@ mod free_list_tests {
     use crate::free_list::*;
     #[test]
     fn free_list_should_alloc_and_free() {
-        let mut free_list: FreeListImpl<3> = FreeListImpl::default();
+        let mut free_list: FreeList<3> = FreeList::default();
         for idx in 0..3 {
             assert_eq!(false, free_list.is_active(idx));
         }
