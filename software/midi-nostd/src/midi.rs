@@ -62,15 +62,15 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
             midly::MidiMessage::NoteOn { key, vel: _ } => {
                 let key_as_u32: u8 = (*key).into();
 
-                    let note_init = SoundSourceNoteInit::new((*key).into(), 0);
-                    let dst = if let Some(playing_note) = self.playing_notes[key_as_u32 as usize] {
-                        playing_note
-                    } else {
-                        notes.alloc()
-                    };
+                let note_init = SoundSourceNoteInit::new((*key).into(), 0);
+                let dst = if let Some(playing_note) = self.playing_notes[key_as_u32 as usize] {
+                    playing_note
+                } else {
+                    notes.alloc()
+                };
 
-                    notes.channels[dst] = Note::<PLAY_FREQUENCY>::new(&note_init);
-                    self.playing_notes[key_as_u32 as usize] = Some(dst)
+                notes.channels[dst] = Note::<PLAY_FREQUENCY>::new(&note_init);
+                self.playing_notes[key_as_u32 as usize] = Some(dst)
             }
             midly::MidiMessage::NoteOff { key, vel: _ } => {
                 let key_as_u32: u8 = (*key).into();
@@ -136,7 +136,9 @@ impl<const PLAY_FREQUENCY: u32> Midi<PLAY_FREQUENCY> {
     }
     pub fn get_next(self: &mut Self, smf: &Smf) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
-        self.track.update::<15>(&smf.tracks[0], &mut self.amp_adder);
+        for track in &smf.tracks {
+            self.track.update::<15>(track, &mut self.amp_adder);
+        }
         result
     }
 
