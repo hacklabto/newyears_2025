@@ -44,7 +44,7 @@ fn run() -> Result<(), pa::Error> {
 
     let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
         .expect("It's inlined data, so it better work, gosh darn it");
-    let mut midi = Midi::<24000>::new(&smf);
+    let mut midi = Midi::<24000, 16>::new(&smf);
 
     let pa = pa::PortAudio::new()?;
 

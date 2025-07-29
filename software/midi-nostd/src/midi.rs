@@ -5,7 +5,7 @@ use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 use midly::Smf;
 
-pub struct MidiTrack<const PLAY_FREQUENCY: u32> {
+pub struct MidiTrack<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
     active: bool,
     current_event_idx: usize,
     current_time: u32,
@@ -15,7 +15,7 @@ pub struct MidiTrack<const PLAY_FREQUENCY: u32> {
     playing_notes: [Option<usize>; 128],
 }
 
-impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
+impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY, MAX_NOTES> {
     pub fn new<'a>(events: &'a midly::Track<'a>) -> Self {
         let active = events.len() != 0;
         let current_event_idx: usize = 0;
@@ -97,10 +97,10 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
         }
     }
 
-    pub fn update<'a, const NUM_CHANNELS: usize>(
+    pub fn update<'a>(
         self: &mut Self,
         events: &'a midly::Track<'a>,
-        notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
+        notes: &mut AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
     ) {
         if !self.active {
             return;
@@ -123,21 +123,21 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
     }
 }
 
-pub struct Midi<const PLAY_FREQUENCY: u32> {
-    track: MidiTrack<PLAY_FREQUENCY>,
-    amp_adder: AmpAdder<PLAY_FREQUENCY, 15>,
+pub struct Midi<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
+    track: MidiTrack<PLAY_FREQUENCY, MAX_NOTES>,
+    amp_adder: AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
 }
 
-impl<const PLAY_FREQUENCY: u32> Midi<PLAY_FREQUENCY> {
+impl<const PLAY_FREQUENCY: u32, const MAX_NOTES:usize> Midi<PLAY_FREQUENCY, MAX_NOTES> {
     pub fn new(smf: &Smf) -> Self {
         let track = MidiTrack::new(&smf.tracks[0]);
-        let amp_adder = AmpAdder::<PLAY_FREQUENCY, 15>::default();
+        let amp_adder = AmpAdder::<PLAY_FREQUENCY, MAX_NOTES>::default();
         Self { track, amp_adder }
     }
     pub fn get_next(self: &mut Self, smf: &Smf) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
         for track in &smf.tracks {
-            self.track.update::<15>(track, &mut self.amp_adder);
+            self.track.update(track, &mut self.amp_adder);
         }
         result
     }
