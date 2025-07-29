@@ -59,10 +59,10 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
     ) {
         match midi_event {
-            midly::MidiMessage::NoteOn { key, vel: _ } => {
+            midly::MidiMessage::NoteOn { key, vel } => {
                 let key_as_u32: u8 = (*key).into();
 
-                let note_init = SoundSourceNoteInit::new((*key).into(), 0);
+                let note_init = SoundSourceNoteInit::new((*key).into(), 0, (*vel).into());
                 let dst = if let Some(playing_note) = self.playing_notes[key_as_u32 as usize] {
                     playing_note
                 } else {

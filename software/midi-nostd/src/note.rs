@@ -7,11 +7,16 @@ use crate::sound_source_core::SoundSourceCore;
 pub struct SoundSourceNoteInit {
     pub key: u8,
     pub instrument: u8,
+    pub velocity: u8,
 }
 
 impl SoundSourceNoteInit {
-    pub fn new(key: u8, instrument: u8) -> Self {
-        return Self { key, instrument };
+    pub fn new(key: u8, instrument: u8, velocity: u8) -> Self {
+        return Self {
+            key,
+            instrument,
+            velocity,
+        };
     }
 }
 

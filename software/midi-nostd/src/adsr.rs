@@ -6,15 +6,6 @@ use crate::sound_source_core::SoundSourceCore;
 const ADSR_FRACTION_DENOMINATOR: i64 = 0x8000000;
 type AdsrFraction = I32Fraction<{ ADSR_FRACTION_DENOMINATOR as i32 }>;
 
-#[derive(Clone, PartialEq, Debug)]
-pub struct SoundSourceAdsrInit {}
-
-impl SoundSourceAdsrInit {
-    pub fn new() -> Self {
-        return Self {};
-    }
-}
-
 ///
 /// ADSR envelope
 ///
@@ -27,6 +18,7 @@ pub struct CoreAdsr<
 > {
     time_since_state_start: i32, // units are 1/PLAY_FREQUENCY
     last_sound: AdsrFraction,
+    volume: i32,
 }
 
 impl<
@@ -97,9 +89,9 @@ impl<
         const R: i32,
     > SoundSourceCore<PLAY_FREQUENCY> for CoreAdsr<PLAY_FREQUENCY, A, D, SUSTAIN_VOLUME, R>
 {
-    type InitValuesType = SoundSourceAdsrInit;
+    type InitValuesType = i32;
 
-    fn new(_init_values: &Self::InitValuesType) -> Self {
+    fn new(init_volume: &Self::InitValuesType) -> Self {
         let time_since_state_start = 0;
 
         let last_sound = if A != 0 {
@@ -113,6 +105,7 @@ impl<
         Self {
             time_since_state_start,
             last_sound,
+            volume: *init_volume,
         }
     }
 
@@ -140,7 +133,8 @@ impl<
             SoundSampleI32::ZERO
         };
         self.time_since_state_start = self.time_since_state_start + 1;
-        scale.pos_clip()
+        let volume_adjusted_scale = SoundSampleI32::new_i32((self.volume * scale.to_i32()) >> 15);
+        volume_adjusted_scale.pos_clip()
     }
 
     fn has_next(self: &Self) -> bool {
@@ -158,7 +152,7 @@ mod tests {
 
     #[test]
     fn basic_adsr_test() {
-        let adsr_init = SoundSourceAdsrInit::new();
+        let adsr_init: i32 = 0x8000;
 
         let mut adsr = CoreAdsr::<1000, 2, 4, 50, 8>::new(&adsr_init);
 
@@ -207,7 +201,7 @@ mod tests {
     }
     #[test]
     fn no_attack_adsr_test() {
-        let adsr_init = SoundSourceAdsrInit::new();
+        let adsr_init: i32 = 0x8000;
 
         const D_RANGE: i32 = 1000;
 

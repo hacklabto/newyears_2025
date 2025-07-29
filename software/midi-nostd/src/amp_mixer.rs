@@ -41,7 +41,6 @@ impl<
 #[cfg(test)]
 mod tests {
     use crate::adsr::CoreAdsr;
-    use crate::adsr::SoundSourceAdsrInit;
     use crate::amp_mixer::*;
     use crate::midi_notes::FREQUENCY_MULTIPLIER;
     use crate::oscillator::CoreOscillator;
@@ -58,7 +57,7 @@ mod tests {
     fn basic_amp_mixer_test() {
         let oscillator_init = SoundSourceOscillatorInit::new(FREQUENCY_MULTIPLIER); // 1 hz
 
-        let adsr_init = SoundSourceAdsrInit::new();
+        let adsr_init: i32 = 0x8000;
 
         let mut amp_mixer = OscilatorAdsrCore::<1000>::new(&(oscillator_init, adsr_init));
 

@@ -1,5 +1,4 @@
 use crate::adsr::CoreAdsr;
-use crate::adsr::SoundSourceAdsrInit;
 use crate::amp_mixer::AmpMixerCore;
 use crate::double_oscillator::DoubleOscillator;
 use crate::filter::Filter;
@@ -55,7 +54,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for GuitarAcoust
         let frequency_2 = midi_note_to_freq(init_values.key + 10);
         let oscillator_init_1 = SoundSourceOscillatorInit::new(frequency_1);
         let oscillator_init_2 = SoundSourceOscillatorInit::new(frequency_2);
-        let adsr_init = SoundSourceAdsrInit::new();
+        let adsr_init = (init_values.velocity as i32) << 8;
         let core = GuitarAcousticFiltered::<PLAY_FREQUENCY>::new(&(
             (oscillator_init_1, oscillator_init_2),
             adsr_init,
