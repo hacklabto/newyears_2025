@@ -11,7 +11,6 @@ pub struct MidiTrack<const PLAY_FREQUENCY: u32> {
     current_time: u32,
     current_remainder: u32,
     next_event_time: u32,
-    ignore_hack: u8,
     last_delta: u32,
     playing_notes: [Option<usize>; 128],
 }
@@ -27,7 +26,6 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
         } else {
             0
         };
-        let ignore_hack = 0;
         let last_delta = 0;
 
         Self {
@@ -36,7 +34,6 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
             current_time,
             current_remainder,
             next_event_time,
-            ignore_hack,
             last_delta,
             playing_notes: [Option::<usize>::default(); 128],
         }
@@ -64,24 +61,23 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
         match midi_event {
             midly::MidiMessage::NoteOn { key, vel: _ } => {
                 let key_as_u32: u8 = (*key).into();
-                if key_as_u32 != self.ignore_hack || self.last_delta != 0 {
-                    self.ignore_hack = key_as_u32;
 
                     let note_init = SoundSourceNoteInit::new((*key).into(), 0);
-                    let dst = notes.alloc();
+                    let dst = if let Some(playing_note) = self.playing_notes[key_as_u32 as usize] {
+                        playing_note
+                    } else {
+                        notes.alloc()
+                    };
 
                     notes.channels[dst] = Note::<PLAY_FREQUENCY>::new(&note_init);
                     self.playing_notes[key_as_u32 as usize] = Some(dst)
-                }
             }
             midly::MidiMessage::NoteOff { key, vel: _ } => {
                 let key_as_u32: u8 = (*key).into();
                 if let Some(playing_note) = self.playing_notes[key_as_u32 as usize] {
-
                     notes.channels[playing_note].trigger_note_off();
                     self.playing_notes[key_as_u32 as usize] = None;
                 }
-                self.ignore_hack = 0;
             }
             _ => {}
         }
@@ -129,22 +125,18 @@ impl<const PLAY_FREQUENCY: u32> MidiTrack<PLAY_FREQUENCY> {
 
 pub struct Midi<const PLAY_FREQUENCY: u32> {
     track: MidiTrack<PLAY_FREQUENCY>,
-    amp_adder: AmpAdder<PLAY_FREQUENCY, 5>,
+    amp_adder: AmpAdder<PLAY_FREQUENCY, 15>,
 }
 
 impl<const PLAY_FREQUENCY: u32> Midi<PLAY_FREQUENCY> {
     pub fn new(smf: &Smf) -> Self {
         let track = MidiTrack::new(&smf.tracks[0]);
-        let amp_adder = AmpAdder::<PLAY_FREQUENCY, 5>::default();
-        Self {
-            track,
-            amp_adder,
-        }
+        let amp_adder = AmpAdder::<PLAY_FREQUENCY, 15>::default();
+        Self { track, amp_adder }
     }
     pub fn get_next(self: &mut Self, smf: &Smf) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
-        self.track
-            .update::<5>(&smf.tracks[0], &mut self.amp_adder);
+        self.track.update::<15>(&smf.tracks[0], &mut self.amp_adder);
         result
     }
 
