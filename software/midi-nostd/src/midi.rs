@@ -117,7 +117,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         }
         self.current_remainder = self.current_remainder + 1;
         // TODO, adjust properly.
-        if (self.current_remainder) % 63 == 0 {
+        if (self.current_remainder) % 32 == 0 {
             self.current_time = self.current_time + 1;
         }
     }
@@ -153,7 +153,9 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
     pub fn get_next(self: &mut Self, smf: &Smf) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
         for i in 0..self.num_tracks {
-            self.tracks[i].update(&smf.tracks[i], &mut self.amp_adder);
+            if i != 10 {
+                self.tracks[i].update(&smf.tracks[i], &mut self.amp_adder);
+            }
         }
         result
     }

@@ -109,6 +109,7 @@ impl<
         }
     }
 
+    #[inline]
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let scale: SoundSampleI32 = if self.time_since_state_start < Self::A_END {
             let rval = SoundSampleI32::new_i32(self.last_sound.int_part);

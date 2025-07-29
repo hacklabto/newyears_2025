@@ -21,6 +21,7 @@ impl<const DENOMINATOR: i32> I32Fraction<DENOMINATOR> {
             numerator_part,
         }
     }
+    #[inline]
     pub const fn add(self: &mut Self, other: &Self) {
         self.int_part += other.int_part;
         self.numerator_part += other.numerator_part;

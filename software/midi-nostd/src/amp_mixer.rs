@@ -24,6 +24,7 @@ impl<
         Self { source_0, source_1 }
     }
 
+    #[inline]
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         self.source_0.get_next() * self.source_1.get_next()
     }

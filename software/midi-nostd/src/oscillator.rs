@@ -93,10 +93,12 @@ impl<
     // function exits.
     //
 
+    #[inline]
     fn get_next_table(&self, table: &[i32; WAVE_TABLE_SIZE]) -> SoundSampleI32 {
         SoundSampleI32::new_i32(table[self.table_idx as usize]) * Self::VOLUME_SCALE
     }
 
+    #[inline]
     fn get_next_pulse_entry(&self) -> SoundSampleI32 {
         if self.table_idx < Self::PULSE_WIDTH_CUTOFF {
             Self::PULSE_MAX
@@ -131,9 +133,11 @@ impl<
         }
     }
 
+    #[inline]
     fn has_next(self: &Self) -> bool {
         true
     }
+    #[inline]
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let rval = if Self::OSCILATOR_TYPE_ENUM == OscillatorType::PulseWidth {
             self.get_next_pulse_entry()
