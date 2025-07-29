@@ -123,27 +123,47 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
     }
 }
 
-pub struct Midi<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
-    track: MidiTrack<PLAY_FREQUENCY, MAX_NOTES>,
+pub struct Midi<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize> {
+    num_tracks: usize,
+    tracks: [MidiTrack<PLAY_FREQUENCY, MAX_NOTES>; MAX_TRACKS],
     amp_adder: AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
 }
 
-impl<const PLAY_FREQUENCY: u32, const MAX_NOTES:usize> Midi<PLAY_FREQUENCY, MAX_NOTES> {
+impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
+    Midi<PLAY_FREQUENCY, MAX_NOTES, MAX_TRACKS>
+{
     pub fn new(smf: &Smf) -> Self {
-        let track = MidiTrack::new(&smf.tracks[0]);
+        let num_tracks = smf.tracks.len();
+        let tracks: [MidiTrack<PLAY_FREQUENCY, MAX_NOTES>; MAX_TRACKS] =
+            core::array::from_fn(|idx| {
+                let smf_idx = if idx < num_tracks {
+                    idx
+                } else {
+                    num_tracks - 1
+                };
+                MidiTrack::<PLAY_FREQUENCY, MAX_NOTES>::new(&smf.tracks[smf_idx])
+            });
         let amp_adder = AmpAdder::<PLAY_FREQUENCY, MAX_NOTES>::default();
-        Self { track, amp_adder }
+        Self {
+            num_tracks,
+            tracks,
+            amp_adder,
+        }
     }
     pub fn get_next(self: &mut Self, smf: &Smf) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
-        for track in &smf.tracks {
-            self.track.update(track, &mut self.amp_adder);
+        for i in 0..self.num_tracks {
+            self.tracks[i].update(&smf.tracks[i], &mut self.amp_adder);
         }
         result
     }
 
     pub fn has_next(self: &Self) -> bool {
-        self.track.has_next()
+        let mut has_next: bool = false;
+        for i in 0..self.num_tracks {
+            has_next = has_next || self.tracks[i].has_next()
+        }
+        has_next
     }
 }
 
@@ -156,7 +176,7 @@ mod tests {
     fn basic_midi_test() {
         let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
             .expect("It's inlined data, so it better work, gosh darn it");
-        let mut midi = Midi::<24000>::new(&smf);
+        let mut midi = Midi::<24000, 32, 16>::new(&smf);
 
         assert_eq!(0, midi.get_next(&smf).to_i32());
         //assert_eq!(8192, midi.get_next(&smf).to_i32());
