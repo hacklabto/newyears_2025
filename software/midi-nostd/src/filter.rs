@@ -318,6 +318,12 @@ mod tests {
 
     #[test]
     fn filter_behavior_400() {
+        //
+        // The filters are not giving me the behavior I'm hoping for, in the sense
+        // that 400 and 1600 should be the cut off frequency, and I'd expect the
+        // 1/sqrt(2) reduction in amplitude, and I'm getting much more than that.
+        // 1/6.5.  And it's consistent in my two test cases.  So, probably a bug.
+        //
         type Oscillator = CoreOscillator<24000, 50, 100, { OscillatorType::Sine as usize }>;
         type FilteredOscillator = Filter<24000, Oscillator, 400>;
 
@@ -355,6 +361,55 @@ mod tests {
         assert_eq!((20779, 1600), get_avg_amplitude(&mut oscillator_1600));
         assert_eq!(
             (318, 1596),
+            get_avg_amplitude(&mut filtered_oscillator_1600)
+        );
+    }
+
+    #[test]
+    fn filter_behavior_1600() {
+        type Oscillator = CoreOscillator<24000, 50, 100, { OscillatorType::Sine as usize }>;
+        type FilteredOscillator = Filter<24000, Oscillator, 1600>;
+
+        let mut oscillator_50 = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_50 = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
+        // Unfiltered amplitude should be about 32768*(2/pi), or 20861.
+        assert_eq!((20859, 50), get_avg_amplitude(&mut oscillator_50));
+        assert_eq!((20580, 50), get_avg_amplitude(&mut filtered_oscillator_50));
+
+        let mut oscillator_100 = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_100 = FilteredOscillator::new(100 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20859, 100), get_avg_amplitude(&mut oscillator_100));
+        assert_eq!(
+            (19803, 100),
+            get_avg_amplitude(&mut filtered_oscillator_100)
+        );
+
+        let mut oscillator_200 = Oscillator::new(200 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_200 = FilteredOscillator::new(200 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20859, 200), get_avg_amplitude(&mut oscillator_200));
+        assert_eq!(
+            (17379, 200),
+            get_avg_amplitude(&mut filtered_oscillator_200)
+        );
+
+        let mut oscillator_400 = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_400 = FilteredOscillator::new(400 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20832, 400), get_avg_amplitude(&mut oscillator_400));
+        assert_eq!(
+            (12468, 400),
+            get_avg_amplitude(&mut filtered_oscillator_400)
+        );
+
+        let mut oscillator_800 = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_800 = FilteredOscillator::new(800 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20779, 800), get_avg_amplitude(&mut oscillator_800));
+        assert_eq!((7028, 800), get_avg_amplitude(&mut filtered_oscillator_800));
+
+        let mut oscillator_1600 = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_1600 = FilteredOscillator::new(1600 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20779, 1600), get_avg_amplitude(&mut oscillator_1600));
+        assert_eq!(
+            (3209, 1600),
             get_avg_amplitude(&mut filtered_oscillator_1600)
         );
     }
