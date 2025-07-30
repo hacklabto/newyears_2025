@@ -53,7 +53,7 @@ pub const fn lowpass_butterworth(cutoff: i64, sample: i64) -> (i64, i64, i64) {
     let small_point = 5;
     let small: i64 = 1i64 << (31 - small_point);
     if cutoff * 5 > sample {
-        return (one, 0, 0);
+        return (one, -one, 0);
     }
     let tan_fraction: i64 = one * cutoff / sample; // range 0 to 1/5
     let k: i64 = const_tan(tan_fraction); // range 0 to ~.73

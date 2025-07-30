@@ -132,7 +132,7 @@ pub struct Midi<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRA
 impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
     Midi<PLAY_FREQUENCY, MAX_NOTES, MAX_TRACKS>
 {
-    pub fn new(smf: &Smf) -> Self {
+    pub fn new(smf: &Smf, divider: i32) -> Self {
         let num_tracks = smf.tracks.len();
         let tracks: [MidiTrack<PLAY_FREQUENCY, MAX_NOTES>; MAX_TRACKS] =
             core::array::from_fn(|idx| {
@@ -143,13 +143,30 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
                 };
                 MidiTrack::<PLAY_FREQUENCY, MAX_NOTES>::new(&smf.tracks[smf_idx])
             });
-        let amp_adder = AmpAdder::<PLAY_FREQUENCY, MAX_NOTES>::default();
+        let amp_adder = AmpAdder::<PLAY_FREQUENCY, MAX_NOTES>::new(divider);
         Self {
             num_tracks,
             tracks,
             amp_adder,
         }
     }
+
+    pub fn get_loudest_sample(self: &mut Self, smf: &Smf) -> i32 {
+        let mut loudest: i32 = 0;
+        let mut count: u32 = 0;
+        while self.has_next() && count < 200000 {
+            let sample = self.get_next(&smf).to_i32();
+            let abs_sample = if sample < 0 { -sample } else { sample };
+            loudest = if abs_sample > loudest {
+                abs_sample
+            } else {
+                loudest
+            };
+            count = count + 1;
+        }
+        loudest
+    }
+
     pub fn get_next(self: &mut Self, smf: &Smf) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
         for i in 0..self.num_tracks {

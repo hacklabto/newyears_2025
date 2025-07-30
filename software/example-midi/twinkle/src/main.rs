@@ -36,6 +36,14 @@ fn main() {
     }
 }
 
+fn get_loudest(smf: &Smf) -> i32 {
+    println!("sampling midi");
+    let mut midi = Midi::<24000, 128, 32>::new(&smf, 1);
+    let rval = midi.get_loudest_sample(smf);
+    println!("done midi");
+    rval
+}
+
 fn run() -> Result<(), pa::Error> {
     println!(
         "Midi STD Test.  SR = {}, BufSize = {}",
@@ -44,7 +52,9 @@ fn run() -> Result<(), pa::Error> {
 
     let smf = midly::Smf::parse(include_bytes!("../assets/vivaldi.mid"))
         .expect("It's inlined data, so it better work, gosh darn it");
-    let mut midi = Midi::<24000, 128, 32>::new(&smf);
+    let loudest = get_loudest(&smf);
+    println!("Loudest sample was {}", loudest);
+    let mut midi = Midi::<24000, 128, 32>::new(&smf, (2 * loudest / 0x8000) + 1);
 
     /*
     for i in 0..960000 {
