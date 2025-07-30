@@ -80,9 +80,73 @@ pub const fn lowpass_butterworth(cutoff: i64, sample: i64) -> (i64, i64, i64) {
     }
 }
 
+pub struct Filter<
+    const PLAY_FREQUENCY: u32,
+    Source: SoundSourceCore<PLAY_FREQUENCY>,
+    const CUTOFF_FREQUENCY: i64,
+> {
+    source: Source,
+    z1: i64,
+    z2: i64,
+}
+
+impl<
+        const PLAY_FREQUENCY: u32,
+        Source: SoundSourceCore<PLAY_FREQUENCY>,
+        const CUTOFF_FREQUENCY: i64,
+    > Filter<PLAY_FREQUENCY, Source, CUTOFF_FREQUENCY>
+{
+    const B0: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).0;
+    const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).1;
+    const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).2;
+}
+
+impl<
+        const PLAY_FREQUENCY: u32,
+        Source: SoundSourceCore<PLAY_FREQUENCY>,
+        const CUTOFF_FREQUENCY: i64,
+    > SoundSourceCore<PLAY_FREQUENCY> for Filter<PLAY_FREQUENCY, Source, CUTOFF_FREQUENCY>
+{
+    type InitValuesType = Source::InitValuesType;
+
+    fn new(init_values: Self::InitValuesType) -> Self {
+        let source = Source::new(init_values);
+        let z1 = 0;
+        let z2 = 0;
+        return Self { source, z1, z2 };
+    }
+
+    fn get_next(self: &mut Self) -> SoundSampleI32 {
+        let raw_value = self.source.get_next().to_i32();
+        let input = (raw_value as i64) << 16; // 31 bits of decimal precision
+        let output: i64 = ((input * Self::B0) >> 31)
+            + self.z1
+            + ((self.z1 * Self::B1) >> 31)
+            + ((self.z2 * Self::B2) >> 31);
+        self.z2 = self.z1;
+        self.z1 = output;
+        let output_i32 = (output >> 16) as i32;
+        SoundSampleI32::new_i32(output_i32)
+    }
+
+    fn has_next(self: &Self) -> bool {
+        if !self.source.has_next() {
+            self.z1 < -0x400 || self.z1 > 0x400
+        } else {
+            true
+        }
+    }
+
+    fn trigger_note_off(self: &mut Self) {
+        self.source.trigger_note_off();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::filter::*;
+    use crate::midi_notes::FREQUENCY_MULTIPLIER;
+    use crate::oscillator::*;
     use std::f64::consts::PI;
 
     fn fixp_to_float(i: i64) -> f64 {
@@ -102,13 +166,19 @@ mod tests {
         let actual_int = const_tan(target_int);
         let actual = (actual_int as f64) / one_fixp;
         assert_eq!(
-            (actual, expected, true),
-            (actual, expected, is_fairly_accurate(actual, expected))
+            (CUTOFF, actual, expected, true),
+            (
+                CUTOFF,
+                actual,
+                expected,
+                is_fairly_accurate(actual, expected)
+            )
         )
     }
 
     #[test]
     fn const_tan_accuracy() {
+        const_tan_accuracy_test_case::<400, 24000>();
         const_tan_accuracy_test_case::<150, 24000>();
         const_tan_accuracy_test_case::<40, 24000>();
     }
@@ -224,66 +294,68 @@ mod tests {
             )
         );
     }
-}
 
-pub struct Filter<
-    const PLAY_FREQUENCY: u32,
-    Source: SoundSourceCore<PLAY_FREQUENCY>,
-    const CUTOFF_FREQUENCY: i64,
-> {
-    source: Source,
-    z1: i64,
-    z2: i64,
-}
+    fn get_avg_amplitude<T>(source: &mut T) -> (i32, i32)
+    where
+        T: SoundSourceCore<24000>,
+    {
+        let mut amplitude_sum: i32 = 0;
+        let mut switches: i32 = 0;
+        let mut last = 0;
+        let samples = 24000;
 
-impl<
-        const PLAY_FREQUENCY: u32,
-        Source: SoundSourceCore<PLAY_FREQUENCY>,
-        const CUTOFF_FREQUENCY: i64,
-    > Filter<PLAY_FREQUENCY, Source, CUTOFF_FREQUENCY>
-{
-    const B0: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).0;
-    const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).1;
-    const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).2;
-}
-
-impl<
-        const PLAY_FREQUENCY: u32,
-        Source: SoundSourceCore<PLAY_FREQUENCY>,
-        const CUTOFF_FREQUENCY: i64,
-    > SoundSourceCore<PLAY_FREQUENCY> for Filter<PLAY_FREQUENCY, Source, CUTOFF_FREQUENCY>
-{
-    type InitValuesType = Source::InitValuesType;
-
-    fn new(init_values: Self::InitValuesType) -> Self {
-        let source = Source::new(init_values);
-        let z1 = 0;
-        let z2 = 0;
-        return Self { source, z1, z2 };
-    }
-
-    fn get_next(self: &mut Self) -> SoundSampleI32 {
-        let raw_value = self.source.get_next().to_i32();
-        let input = (raw_value as i64) << 16; // 31 bits of decimal precision
-        let output: i64 = ((input * Self::B0) >> 31)
-            + self.z1
-            + ((self.z1 * Self::B1) >> 31)
-            + ((self.z2 * Self::B2) >> 31);
-        self.z2 = self.z1;
-        self.z1 = output;
-        let output_i32 = (output >> 16) as i32;
-        SoundSampleI32::new_i32(output_i32)
-    }
-
-    fn has_next(self: &Self) -> bool {
-        if !self.source.has_next() {
-            self.z1 < -0x400 || self.z1 > 0x400
-        } else {
-            true
+        for _ in 0..samples {
+            let sample = source.get_next().to_i32();
+            let abs_sample = if sample > 0 { sample } else { -sample };
+            amplitude_sum += abs_sample;
+            if last >= 0 && sample < 0 {
+                switches = switches + 1
+            }
+            last = sample
         }
+        (amplitude_sum / samples, switches)
     }
 
-    fn trigger_note_off(self: &mut Self) {
-        self.source.trigger_note_off();
+    #[test]
+    fn filter_behavior_400() {
+        type Oscillator = CoreOscillator<24000, 50, 100, { OscillatorType::Sine as usize }>;
+        type FilteredOscillator = Filter<24000, Oscillator, 400>;
+
+        let mut oscillator_50 = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_50 = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
+        // Unfiltered amplitude should be about 32768*(2/pi), or 20861.
+        assert_eq!((20859, 50), get_avg_amplitude(&mut oscillator_50));
+        assert_eq!((17648, 50), get_avg_amplitude(&mut filtered_oscillator_50));
+
+        let mut oscillator_100 = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_100 = FilteredOscillator::new(100 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20859, 100), get_avg_amplitude(&mut oscillator_100));
+        assert_eq!(
+            (12856, 100),
+            get_avg_amplitude(&mut filtered_oscillator_100)
+        );
+
+        let mut oscillator_200 = Oscillator::new(200 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_200 = FilteredOscillator::new(200 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20859, 200), get_avg_amplitude(&mut oscillator_200));
+        assert_eq!((7251, 200), get_avg_amplitude(&mut filtered_oscillator_200));
+
+        let mut oscillator_400 = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_400 = FilteredOscillator::new(400 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20832, 400), get_avg_amplitude(&mut oscillator_400));
+        assert_eq!((3223, 400), get_avg_amplitude(&mut filtered_oscillator_400));
+
+        let mut oscillator_800 = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_800 = FilteredOscillator::new(800 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20779, 800), get_avg_amplitude(&mut oscillator_800));
+        assert_eq!((1109, 799), get_avg_amplitude(&mut filtered_oscillator_800));
+
+        let mut oscillator_1600 = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_1600 = FilteredOscillator::new(1600 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20779, 1600), get_avg_amplitude(&mut oscillator_1600));
+        assert_eq!(
+            (318, 1596),
+            get_avg_amplitude(&mut filtered_oscillator_1600)
+        );
     }
 }

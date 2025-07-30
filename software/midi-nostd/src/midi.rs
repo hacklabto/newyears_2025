@@ -195,7 +195,7 @@ mod tests {
     fn basic_midi_test() {
         let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
             .expect("It's inlined data, so it better work, gosh darn it");
-        let mut midi = Midi::<24000, 32, 16>::new(&smf);
+        let mut midi = Midi::<24000, 32, 16>::new(&smf, 1);
 
         assert_eq!(0, midi.get_next(&smf).to_i32());
         //assert_eq!(8192, midi.get_next(&smf).to_i32());

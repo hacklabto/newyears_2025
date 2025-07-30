@@ -46,7 +46,6 @@ mod tests {
     use crate::midi_notes::FREQUENCY_MULTIPLIER;
     use crate::oscillator::CoreOscillator;
     use crate::oscillator::OscillatorType;
-    use crate::oscillator::SoundSourceOscillatorInit;
 
     type OscilatorAdsrCore<const PLAY_FREQUENCY: u32> = AmpMixerCore<
         PLAY_FREQUENCY,
@@ -56,11 +55,11 @@ mod tests {
 
     #[test]
     fn basic_amp_mixer_test() {
-        let oscillator_init = SoundSourceOscillatorInit::new(FREQUENCY_MULTIPLIER); // 1 hz
+        let frequency: u32 = 1 * FREQUENCY_MULTIPLIER; // 1 hz
 
         let adsr_init: i32 = 0x8000;
 
-        let mut amp_mixer = OscilatorAdsrCore::<1000>::new((oscillator_init, adsr_init));
+        let mut amp_mixer = OscilatorAdsrCore::<1000>::new((frequency, adsr_init));
 
         // Should mirror the ADSR test, about about half volume because I set the oscilator to half
         // volume.

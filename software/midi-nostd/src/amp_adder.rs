@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn basic_amp_adder_test() {
-        let mut amp_adder = AmpAdder::<24000, 2>::default();
+        let mut amp_adder = AmpAdder::<24000, 2>::new(1);
 
         assert_eq!(0, amp_adder.get_next().to_i32());
         assert_eq!(0, amp_adder.get_next().to_i32());
