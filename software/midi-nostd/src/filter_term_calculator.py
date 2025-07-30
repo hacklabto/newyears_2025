@@ -34,7 +34,7 @@ def init_lowpass_butterworth(cutoff_hz: float, sample_rate: float) -> tuple[floa
 # --- Example Usage ---
 if __name__ == "__main__":
     sample_rate = 24000.0  # Common audio sample rate
-    cutoff_frequency = 2000.0 # 40 Hz
+    cutoff_frequency = 150.0 # 40 Hz
 
     print(f"--- 12 dB/octave Filter Coefficients ---")
     print(f"A single biquad section (Cutoff: {cutoff_frequency} Hz, Sample Rate: {sample_rate} Hz)")
