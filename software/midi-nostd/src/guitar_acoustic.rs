@@ -23,13 +23,8 @@ type GuitarAcousticOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
     CoreAdsr<PLAY_FREQUENCY, 0, 1700, 0, 1700>,
 >;
 
-type GuitarAcousticFiltered<const PLAY_FREQUENCY: u32> = Filter<
-    PLAY_FREQUENCY,
-    GuitarAcousticOscillatorAdsr<PLAY_FREQUENCY>,
-    106278871,
-    813063803,
-    -919342675,
->;
+type GuitarAcousticFiltered<const PLAY_FREQUENCY: u32> =
+    Filter<PLAY_FREQUENCY, GuitarAcousticOscillatorAdsr<PLAY_FREQUENCY>, 1000>;
 
 ///
 /// GuitarAcoustic.  Now sort of a proof of concept.

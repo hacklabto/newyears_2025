@@ -51,7 +51,7 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
             }
         }
 
-        output = SoundSampleI32::new_i32(output.to_i32() / 16);
+        output = SoundSampleI32::new_i32(output.to_i32() / 32);
         if output.to_i32() > 0x8000 || output.to_i32() < -0x8000 {
             println!("clip {}", output.to_i32());
         }
