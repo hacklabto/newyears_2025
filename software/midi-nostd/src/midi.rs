@@ -69,7 +69,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
                     notes.alloc()
                 };
 
-                notes.channels[dst] = Note::<PLAY_FREQUENCY>::new(&note_init);
+                notes.channels[dst] = Note::<PLAY_FREQUENCY>::new(note_init);
                 self.playing_notes[key_as_u32 as usize] = Some(dst)
             }
             midly::MidiMessage::NoteOff { key, vel: _ } => {

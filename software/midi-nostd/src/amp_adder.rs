@@ -33,7 +33,7 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
 {
     type InitValuesType = u32;
 
-    fn new(_init_values: &Self::InitValuesType) -> Self {
+    fn new(_init_values: Self::InitValuesType) -> Self {
         return Self::default();
     }
 

@@ -18,9 +18,9 @@ impl<
 {
     type InitValuesType = (MixSource0::InitValuesType, MixSource1::InitValuesType);
 
-    fn new(init_values: &Self::InitValuesType) -> Self {
-        let source_0 = MixSource0::new(&(init_values.0));
-        let source_1 = MixSource1::new(&(init_values.1));
+    fn new(init_values: Self::InitValuesType) -> Self {
+        let source_0 = MixSource0::new(init_values.0);
+        let source_1 = MixSource1::new(init_values.1);
         Self { source_0, source_1 }
     }
 
@@ -60,7 +60,7 @@ mod tests {
 
         let adsr_init: i32 = 0x8000;
 
-        let mut amp_mixer = OscilatorAdsrCore::<1000>::new(&(oscillator_init, adsr_init));
+        let mut amp_mixer = OscilatorAdsrCore::<1000>::new((oscillator_init, adsr_init));
 
         // Should mirror the ADSR test, about about half volume because I set the oscilator to half
         // volume.

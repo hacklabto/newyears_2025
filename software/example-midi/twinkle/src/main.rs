@@ -44,7 +44,7 @@ fn run() -> Result<(), pa::Error> {
 
     let smf = midly::Smf::parse(include_bytes!("../assets/vivaldi.mid"))
         .expect("It's inlined data, so it better work, gosh darn it");
-    let mut midi = Midi::<24000, 64, 32>::new(&smf);
+    let mut midi = Midi::<24000, 128, 32>::new(&smf);
 
     /*
     for i in 0..960000 {

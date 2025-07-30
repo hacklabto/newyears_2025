@@ -64,8 +64,8 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
         }
     }
 
-    fn new(init_values: &Self::InitValuesType) -> Self {
-        let pcore = Piano::<PLAY_FREQUENCY>::new(&init_values);
+    fn new(init_values: Self::InitValuesType) -> Self {
+        let pcore = Piano::<PLAY_FREQUENCY>::new(init_values);
         let core = NoteEnum::<PLAY_FREQUENCY>::PianoEnum { pcore };
         return Self { core };
     }

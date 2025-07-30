@@ -23,8 +23,8 @@ impl<
 {
     type InitValuesType = Source::InitValuesType;
 
-    fn new(init_values: &Self::InitValuesType) -> Self {
-        let source = Source::new(&init_values);
+    fn new(init_values: Self::InitValuesType) -> Self {
+        let source = Source::new(init_values);
         let z1 = 0;
         let z2 = 0;
         return Self { source, z1, z2 };

@@ -91,7 +91,7 @@ impl<
 {
     type InitValuesType = i32;
 
-    fn new(init_volume: &Self::InitValuesType) -> Self {
+    fn new(init_volume: Self::InitValuesType) -> Self {
         let time_since_state_start = 0;
 
         let last_sound = if A != 0 {
@@ -105,7 +105,7 @@ impl<
         Self {
             time_since_state_start,
             last_sound,
-            volume: *init_volume,
+            volume: init_volume,
         }
     }
 
@@ -155,7 +155,7 @@ mod tests {
     fn basic_adsr_test() {
         let adsr_init: i32 = 0x8000;
 
-        let mut adsr = CoreAdsr::<1000, 2, 4, 50, 8>::new(&adsr_init);
+        let mut adsr = CoreAdsr::<1000, 2, 4, 50, 8>::new(adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
         assert_eq!(true, adsr.has_next());
@@ -206,7 +206,7 @@ mod tests {
 
         const D_RANGE: i32 = 1000;
 
-        let mut adsr = CoreAdsr::<10000, 0, 100, 50, 8>::new(&adsr_init);
+        let mut adsr = CoreAdsr::<10000, 0, 100, 50, 8>::new(adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
         assert_eq!(true, adsr.has_next());
