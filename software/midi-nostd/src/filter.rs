@@ -42,7 +42,11 @@ impl<
     }
 
     fn has_next(self: &Self) -> bool {
-        self.source.has_next()
+        if !self.source.has_next() {
+            self.z1 < -0x200 || self.z1 > 0x200
+        } else {
+            true
+        }
     }
 
     fn trigger_note_off(self: &mut Self) {

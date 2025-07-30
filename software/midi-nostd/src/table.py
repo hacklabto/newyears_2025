@@ -7,10 +7,21 @@ def do_sine( wave_range ):
     return math.sin(wave_range * math.pi * 2.0) 
 
 def do_sawtooth( wave_range ):
-    return wave_range * 2 - 1
+    rval = wave_range * 2;
+    if rval > 1:
+        rval = rval - 2
+    return rval
 
 def do_triangle( wave_range ):
-    return wave_range * 4.0 -1 if wave_range < .5 else (1.0-wave_range) * 4.0 - 1
+    rval = 0;
+    if wave_range < .25:
+        rval = wave_range * 4.0;
+    elif wave_range < .75:
+        rval = 1.0 - (wave_range-.25) * 4.0;
+    else:
+        rval = (wave_range - 1) * 4.0;
+
+    return rval
 
 def do_table_entry( wave_function, idx ):
     wave_range = idx / 1024.0

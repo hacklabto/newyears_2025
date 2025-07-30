@@ -41,15 +41,20 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
         let mut output: SoundSampleI32 = SoundSampleI32::ZERO;
 
         for i in 0..NUM_CHANNELS {
-            let entry = &mut (self.channels[i]);
-            let this_source: SoundSampleI32 = entry.get_next();
-            output = output + this_source;
-            if self.free_list.is_active(i) && !entry.has_next() {
-                self.free_list.free(i);
+            if self.free_list.is_active(i) {
+                let entry = &mut (self.channels[i]);
+                if !entry.has_next() {
+                    self.free_list.free(i);
+                }
+                let this_source: SoundSampleI32 = entry.get_next();
+                output = output + this_source;
             }
         }
 
         output = SoundSampleI32::new_i32(output.to_i32() / 16);
+        if output.to_i32() > 0x8000 || output.to_i32() < -0x8000 {
+            println!("clip {}", output.to_i32());
+        }
         output.clip()
     }
 
