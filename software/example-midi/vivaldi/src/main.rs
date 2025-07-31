@@ -24,7 +24,7 @@ fn run() -> Result<(), pa::Error> {
         SAMPLE_RATE, FRAMES_PER_BUFFER
     );
 
-    let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
+    let smf = midly::Smf::parse(include_bytes!("../assets/vivaldi.mid"))
         .expect("It's inlined data, so its expected to parse");
     let mut midi = Midi::<24000, 128, 32>::new(&smf);
 
@@ -59,7 +59,7 @@ fn run() -> Result<(), pa::Error> {
     stream.stop()?;
     stream.close()?;
 
-    println!("Midi Playback Example Finished.");
+    println!("Midi playback finished.");
 
     Ok(())
 }
