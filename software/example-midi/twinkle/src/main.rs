@@ -10,7 +10,6 @@ use midly::Smf;
 use portaudio as pa;
 
 const CHANNELS: i32 = 2;
-const NUM_SECONDS: i32 = 1000;
 const SAMPLE_RATE: f64 = 24_000.0;
 const FRAMES_PER_BUFFER: u32 = 64;
 
@@ -51,16 +50,10 @@ fn run() -> Result<(), pa::Error> {
     );
 
     let smf = midly::Smf::parse(include_bytes!("../assets/vivaldi.mid"))
-        .expect("It's inlined data, so it better work, gosh darn it");
+        .expect("It's inlined data, so its expected to work");
     let loudest = get_loudest(&smf);
     println!("Loudest sample was {}", loudest);
     let mut midi = Midi::<24000, 128, 32>::new(&smf, (loudest / 0x8000) + 1);
-
-    /*
-    for i in 0..960000 {
-        let current = midi.get_next(&smf);
-    }
-    */
 
     let pa = pa::PortAudio::new()?;
 
@@ -68,7 +61,6 @@ fn run() -> Result<(), pa::Error> {
         pa.default_output_stream_settings(CHANNELS, SAMPLE_RATE, FRAMES_PER_BUFFER)?;
     // we won't output out of range samples so don't bother clipping them.
     settings.flags = pa::StreamFlags::CLIP_OFF;
-    let mut sent_count: u32 = 0;
 
     // This routine will be called by the PortAudio engine when audio is needed. It may called at
     // interrupt level on some machines so don't do anything that could mess up the system like
@@ -76,34 +68,25 @@ fn run() -> Result<(), pa::Error> {
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         let mut idx = 0;
         for _ in 0..frames {
-            let current = midi.get_next(&smf).clip();
-            let converted: f32 = (current.to_i32() as f32) / 32768.0;
-            buffer[idx] = converted;
-            buffer[idx + 1] = converted;
+            let current = (midi.get_next(&smf).clip().to_i32() as f32) / 32768.0;
+            buffer[idx] = current;
+            buffer[idx + 1] = current;
             idx += 2;
-            sent_count = sent_count + 1;
-            /*
-            if sent_count == 3000 {
-                let mut msgs = SoundSourceMsgs::default();
-                msgs.append(SoundSourceMsg::new(
-                    adsr_id.clone(),
-                    SoundSourceId::get_top_id(),
-                    SoundSourceKey::ReleaseAdsr,
-                    SoundSourceValue::default(),
-                ));
-                all_pools.process_and_clear_msgs(&mut msgs);
-            }
-                */
         }
-        pa::Continue
+        if midi.has_next() {
+            pa::Continue
+        } else {
+            pa::Complete
+        }
     };
 
     let mut stream = pa.open_non_blocking_stream(settings, callback)?;
 
     stream.start()?;
 
-    println!("Play for {} seconds.", NUM_SECONDS);
-    pa.sleep(NUM_SECONDS * 1_000);
+    while stream.is_active()? {
+        pa.sleep(100);
+    }
 
     stream.stop()?;
     stream.close()?;
