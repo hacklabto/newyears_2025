@@ -3,11 +3,13 @@
 pub mod adsr;
 pub mod amp_adder;
 pub mod amp_mixer;
+pub mod cello;
 pub mod double_oscillator;
 pub mod electric_piano;
 pub mod filter;
 pub mod free_list;
 pub mod guitar_acoustic;
+pub mod lfo_amplitude;
 pub mod midi;
 pub mod midi_notes;
 pub mod note;
