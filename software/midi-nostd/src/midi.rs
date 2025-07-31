@@ -85,6 +85,9 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         channels: &mut Channels,
     ) {
         let channel: usize = channel_u8 as usize;
+        if channel == 10 {
+            return;
+        }
         match midi_event {
             midly::MidiMessage::NoteOn { key, vel } => {
                 let key_as_u32: u8 = (*key).into();

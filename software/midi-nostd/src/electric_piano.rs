@@ -23,7 +23,7 @@ type ElectricPianoOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
 >;
 
 type ElectricPianoFiltered<const PLAY_FREQUENCY: u32> =
-    Filter<PLAY_FREQUENCY, ElectricPianoOscillatorAdsr<PLAY_FREQUENCY>, 200>;
+    Filter<PLAY_FREQUENCY, ElectricPianoOscillatorAdsr<PLAY_FREQUENCY>, 1000>;
 
 pub struct ElectricPiano<const PLAY_FREQUENCY: u32> {
     core: ElectricPianoFiltered<PLAY_FREQUENCY>,
