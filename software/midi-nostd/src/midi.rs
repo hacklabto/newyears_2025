@@ -231,7 +231,7 @@ pub struct Midi<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRA
 impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
     Midi<PLAY_FREQUENCY, MAX_NOTES, MAX_TRACKS>
 {
-    pub fn new(smf: &Smf, divider: i32) -> Self {
+    pub fn new_internal(smf: &Smf, divider: i32) -> Self {
         let num_tracks = smf.tracks.len();
         let tracks: [MidiTrack<PLAY_FREQUENCY, MAX_NOTES>; MAX_TRACKS] =
             core::array::from_fn(|idx| {
@@ -260,33 +260,35 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
         }
     }
 
-    pub fn get_loudest_sample(self: &mut Self, smf: &Smf) -> i32 {
+    pub fn get_loudest_sample(smf: &Smf) -> i32 {
+        let mut fast_forward_midi_player = Midi::<24, MAX_NOTES, MAX_TRACKS>::new_internal(&smf, 1);
         let mut loudest: i32 = 0;
-        let mut count: u32 = 0;
-        while self.has_next() && count < 4000 {
-            let sample = self.get_next(&smf).to_i32();
+        while fast_forward_midi_player.has_next() {
+            let sample = fast_forward_midi_player.get_next(&smf).to_i32();
             let abs_sample = if sample < 0 { -sample } else { sample };
             loudest = if abs_sample > loudest {
                 abs_sample
             } else {
                 loudest
             };
-            count = count + 1;
         }
         loudest
+    }
+
+    pub fn new(smf: &Smf) -> Self {
+        let loudest = Self::get_loudest_sample(smf);
+        Midi::<PLAY_FREQUENCY, MAX_NOTES, MAX_TRACKS>::new_internal(&smf, loudest / 0x8000 + 1)
     }
 
     pub fn get_next(self: &mut Self, smf: &Smf) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
         for i in 0..self.num_tracks {
-            if i != 10 {
-                self.tracks[i].update(
-                    &smf.tracks[i],
-                    &mut self.amp_adder,
-                    &mut self.channels,
-                    &mut self.tempo,
-                );
-            }
+            self.tracks[i].update(
+                &smf.tracks[i],
+                &mut self.amp_adder,
+                &mut self.channels,
+                &mut self.tempo,
+            );
         }
         result
     }
@@ -309,7 +311,7 @@ mod tests {
     fn basic_midi_test() {
         let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
             .expect("It's inlined data, so it better work, gosh darn it");
-        let mut midi = Midi::<24000, 32, 16>::new(&smf, 1);
+        let mut midi = Midi::<24000, 32, 16>::new_internal(&smf, 1);
 
         assert_eq!(0, midi.get_next(&smf).to_i32());
         //assert_eq!(8192, midi.get_next(&smf).to_i32());
