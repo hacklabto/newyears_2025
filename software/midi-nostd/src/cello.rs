@@ -55,7 +55,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Cello<PLAY_F
 
     fn new(init_values: Self::InitValuesType) -> Self {
         let frequency_1 = midi_note_to_freq(init_values.key);
-        let frequency_2 = midi_note_to_freq(init_values.key + 16);
+        let frequency_2 = midi_note_to_freq(init_values.key);
         let adsr_init = (init_values.velocity as i32) << 8;
         let core = CelloFiltered::<PLAY_FREQUENCY>::new(((frequency_1, frequency_2), adsr_init));
         return Self { core };

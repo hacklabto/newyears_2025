@@ -5,6 +5,7 @@ use crate::piano::Piano;
 use crate::silence::Silence;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
+use crate::violin::Violin;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SoundSourceNoteInit {
@@ -39,6 +40,9 @@ pub enum NoteEnum<const PLAY_FREQUENCY: u32> {
     CelloEnum {
         pcore: Cello<PLAY_FREQUENCY>,
     },
+    ViolinEnum {
+        pcore: Violin<PLAY_FREQUENCY>,
+    },
     Unassigned,
 }
 
@@ -67,6 +71,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
             NoteEnum::GuitarAcousticEnum { pcore } => pcore.get_next(),
             NoteEnum::SilenceEnum { pcore } => pcore.get_next(),
             NoteEnum::CelloEnum { pcore } => pcore.get_next(),
+            NoteEnum::ViolinEnum { pcore } => pcore.get_next(),
             NoteEnum::Unassigned => SoundSampleI32::ZERO,
         }
     }
@@ -78,6 +83,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
             NoteEnum::GuitarAcousticEnum { pcore } => pcore.has_next(),
             NoteEnum::SilenceEnum { pcore } => pcore.has_next(),
             NoteEnum::CelloEnum { pcore } => pcore.has_next(),
+            NoteEnum::ViolinEnum { pcore } => pcore.has_next(),
             NoteEnum::Unassigned => false,
         }
     }
@@ -87,8 +93,10 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
 
         let core = match instrument {
             0 => {
-                let pcore = Piano::<PLAY_FREQUENCY>::new(init_values);
-                NoteEnum::<PLAY_FREQUENCY>::PianoEnum { pcore }
+                //let pcore = Piano::<PLAY_FREQUENCY>::new(init_values);
+                //NoteEnum::<PLAY_FREQUENCY>::PianoEnum { pcore }
+                let pcore = Violin::<PLAY_FREQUENCY>::new(init_values);
+                NoteEnum::<PLAY_FREQUENCY>::ViolinEnum { pcore }
             }
             6 => {
                 let pcore = ElectricPiano::<PLAY_FREQUENCY>::new(init_values);
@@ -102,8 +110,8 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
             40 => {
                 // Violin
                 println!("violin");
-                let pcore = Silence::<PLAY_FREQUENCY>::new(init_values);
-                NoteEnum::<PLAY_FREQUENCY>::SilenceEnum { pcore }
+                let pcore = Violin::<PLAY_FREQUENCY>::new(init_values);
+                NoteEnum::<PLAY_FREQUENCY>::ViolinEnum { pcore }
             }
             42 => {
                 // Cello
@@ -132,6 +140,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
             NoteEnum::GuitarAcousticEnum { pcore } => pcore.trigger_note_off(),
             NoteEnum::SilenceEnum { pcore } => pcore.trigger_note_off(),
             NoteEnum::CelloEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::ViolinEnum { pcore } => pcore.trigger_note_off(),
             NoteEnum::Unassigned => {}
         }
     }
