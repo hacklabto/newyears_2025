@@ -1,6 +1,43 @@
+// Frequency filter using fixed point math.
+
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
+//
+// Fixed point table of tan values.
+//
+// The tan table is here so I can compute my frequency co-efficients at compile
+// time, which makes the rest of the code a bit more management.  Computing
+// float values in Rust, at compile time, is still an ongoing research topic.
+// Philosphically, the compiler problem is that you don't want compilers on
+// different machines to produce different results because the float implementation
+// changes (float results are definately 100% compiler/ machine/ optimization
+// level dependent in C/ C++/ Rust).
+//
+// Values can be mapping back to floating point by dividing by (1<<31).  The 31 was
+// chosen so two i64s can be multiplied and I have have a few bits of head room.
+// So, first value non zero value, 6588417, maps to 6588417/2^31, or .0030679...
+//
+// The original function I was interested in is
+//
+// tan(pi * filter_frequency / playback_frequency)
+//
+// So table entries map to 2^10 * filter_frequency / playback_frequency
+//
+// i.e.,  if filter_frequency / playback_frequency is 0.1, then I need to
+// compute tan( pi * .1 ), and the table entry I want is .1 * 2^10, or
+// 102.
+//
+// There are only 204 table entries - I'm only supporting angles from 0 to
+// about (204/1024) * pi, or about .2 * pi.  What that means is that the
+// cut-off frequency for the filter can't be more than about 20% of the
+// playback frequency, and the result of the tan call is always from
+// about 0 to .73, which is a managable fixed point number
+//
+// Linear interpolation is done improve the function's accuracy.  The
+// current accuracy is about 6 digits, which seems good enough, in that
+// the Filters I'm getting seem to behave properly.
+//
 const TAN_TABLE: [i64; 204] = [
     0, 6588417, 13176960, 19765750, 26354912, 32944570, 39534849, 46125872, 52717764, 59310649,
     65904651, 72499895, 79096506, 85694607, 92294325, 98895783, 105499106, 112104420, 118711851,
@@ -30,32 +67,73 @@ const TAN_TABLE: [i64; 204] = [
     1542191307,
 ];
 
+//
+// Multiply two fixed point numbers with 31 bits of precision.
+// Works well as long as but numbers are under 1, otherwise
+// overflows.  Rust debug will check for overflows.
+//
+#[inline]
 pub const fn fixp_mul(a: i64, b: i64) -> i64 {
     (a * b) >> 31
 }
 
-pub const fn fixp_div(a: i64, b: i64) -> i64 {
-    (a << 31) / b
+//
+// Divide two fixed point numbers with 31 bits of precision.
+// The numerator is shifted up to improve the precision of
+// the result.  Again, breaks if the numerator represents
+// a number above 2.
+//
+#[inline]
+pub const fn fixp_div(numerator: i64, denominator: i64) -> i64 {
+    (numerator << 31) / denominator
 }
 
+// Constant time fixed point tan computation.
+//
 pub const fn const_tan(a: i64) -> i64 {
+    // 2^10 = 1024 = Pi * angle in the table.  The table does only support angles to .2*pi
+    //
     let tan_table_bits = 10;
+
+    // a is 31 bit fixed point, so I need to divide by 2^31 and multiply by 2^10.
+    // to get the table entry.  Or divide by 2^21.  Or shift by 31-10.
+    //
     let tan_table_idx = (a >> (31 - tan_table_bits)) as usize;
+
+    // Pull out the two table entries for linear interpolation
+    //
     let e0 = TAN_TABLE[tan_table_idx];
     let e1 = TAN_TABLE[tan_table_idx + 1];
+
+    // Now I need to get the last 21 bits of the angle, mask it off, and shift
+    // it so it's a 31 bit fixed point number.
+    //
+    // 31 - tan_table_bits = 21, (2^21-1) gives me my mask, and a number from
+    // 0 to 2^21-1.  Shifting left by 10 multiplies that to 0^31-1, which
+    // represents a fixed point number from [0..1)
+    //
     let fraction = (a & ((1i64 << (31 - tan_table_bits)) - 1)) << tan_table_bits;
+
+    // And do the linear interpoltion.
     let one: i64 = 1i64 << 31;
     fixp_mul(e0, one - fraction) + fixp_mul(e1, fraction)
 }
 
-pub const fn lowpass_butterworth(cutoff: i64, sample: i64) -> (i64, i64, i64, i64, i64) {
+//
+// Compute butterworth filter co-efficients for a 2nd order filter at compile time.
+// Returns (B0, B1, B2, A0, A1).
+//
+pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i64, i64, i64, i64) {
     let one: i64 = 1i64 << 31;
-    let small_point = 5;
-    let small: i64 = 1i64 << (31 - small_point);
-    if cutoff * 5 > sample {
+    if cutoff_freq * 5 > sample_freq {
+        //
+        // I only support a cut-off frequency that's 20% the samople frequency.
+        // If you want something faster, the filter will treat this value as
+        // a pass through.
+        //
         return (0, 0, 0, 0, 0);
     }
-    let tan_fraction: i64 = one * cutoff / sample; // range 0 to 1/5
+    let tan_fraction: i64 = one * cutoff_freq / sample_freq; // range 0 to 1/5
     let k: i64 = const_tan(tan_fraction); // range 0 to ~.73
     let sqrt2: i64 = 3037000500i64; // range 0 to ~1.42
     let k_squared: i64 = fixp_mul(k, k); // range 0 to ~.54
@@ -65,12 +143,22 @@ pub const fn lowpass_butterworth(cutoff: i64, sample: i64) -> (i64, i64, i64, i6
     let a2_numerator: i64 = one - fixp_mul(sqrt2, k) + k_squared; // range 1 to .53.
     let a2: i64 = fixp_div(a2_numerator, a0_denom);
 
+    // I'm did a special case for very small k values to try to get
+    // a bit more accuracy for very low frequency filters.
+    //
+    let small_point = 5;
+    let small: i64 = 1i64 << (31 - small_point);
     if k > small {
         let b0: i64 = fixp_div(k_squared, a0_denom);
         let b1: i64 = fixp_div(k_squared * 2, a0_denom);
         let b2: i64 = fixp_div(k_squared, a0_denom);
         return (b0, b1, b2, a1, a2);
     } else {
+        //
+        // k is under 1/2^5 (small_point=5).  Shift it up before the divide
+        // to take advantage of the extra head room for a more accurate
+        // k^2 computation.  Remember to shift back down by 10.
+        //
         let k_shift = k << small_point;
         let k_squared_shift: i64 = fixp_mul(k_shift, k_shift); // range 0 to ~.54
         let b0: i64 = fixp_div(k_squared_shift, a0_denom) >> (small_point * 2);
@@ -97,9 +185,17 @@ impl<
     > Filter<PLAY_FREQUENCY, Source, CUTOFF_FREQUENCY>
 {
     const ONE: i64 = 1i64 << 31;
+
+    // Extract filter co-coefficients at compile time.
     const B0: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).0;
     const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).1;
-    //const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).2;
+    // B2 is the same as B0, so I just use the B0 term in the filter.
+    // const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).2;
+
+    // In the filter we subtract A1 * input, but.... A1 is a value from -1 to -2.
+    // Added one to remap it to 0 to -1 because I actually do need the extra bit
+    // of head room.  The oscillator pair can produce values from 0 to 2.
+    //
     const A1_P1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).3 + Self::ONE;
     const A2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).4;
 }
@@ -121,18 +217,39 @@ impl<
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         if Self::B0 == 0 {
+            // Special case,
+            //
+            // If the filter frequency is more than 20% of the playback frequency,
+            // just do a pass-through.  See the filter co-efficient code for the
+            // other side of that logic.
+            //
             self.source.get_next()
         } else {
             let raw_value = self.source.get_next().to_i32();
-            let input = (raw_value as i64) << 16; // 31 bits of decimal precision
-            let b1_input_term = (input * Self::B1) >> 31;
+            // raw_value starts as fix point with 15 decimal bits.  Shift by
+            // 16 to get a 64 bit fixed point with 31 decimal bits.
+            let input = (raw_value as i64) << 16;
+
+            // Compute input * B0, input * B1, input * B2.
+            //
+            let b1_input_term = fixp_mul(input, Self::B1);
+            // B0 = B1/2, B2 = B1/2, so just take the b1 input term and divide by 2
             let b0_input_term = b1_input_term >> 1;
             let b2_input_term = b0_input_term;
 
+            //
+            // Compute output, output * a1, output * a2
+            //
+            // For the a1 term, I added 1 to A1 to get an extra bit of head
+            // room so the fixed point multiply doesn't overflow (A1_P1 being
+            // A1 Plus 1).  Pay an extra subtract to unwind that.
+            //
             let output: i64 = b0_input_term + self.d1;
-            let a1_output_term = ((output * Self::A1_P1) >> 31) - output;
-            let a2_output_term = (output * Self::A2) >> 31;
+            let a1_output_term = fixp_mul(output, Self::A1_P1) - output;
+            let a2_output_term = fixp_mul(output, Self::A2);
 
+            // Record d1 and d2, then return the output
+            //
             self.d1 = self.d2 + b1_input_term - a1_output_term;
             self.d2 = b2_input_term - a2_output_term;
             let output_i32 = (output >> 16) as i32;
@@ -142,6 +259,11 @@ impl<
 
     fn has_next(self: &Self) -> bool {
         if !self.source.has_next() {
+            //
+            // If the source we're drawing from has finished,
+            // (i.e., the note is done), stopping right away will cause a
+            // click.  I found this works.
+            //
             self.d1 < -0x400 || self.d1 > 0x400
         } else {
             true
@@ -160,15 +282,24 @@ mod tests {
     use crate::oscillator::*;
     use std::f64::consts::PI;
 
+    // Helper to convert 31 bit fixed point to float
+    //
     fn fixp_to_float(i: i64) -> f64 {
         (i as f64) / ((1i64 << 31) as f64)
     }
 
-    fn is_fairly_accurate(actual: f64, expected: f64) -> bool {
+    //
+    // Helper to figure out if the actual is close to expected
+    // (within 5 digits)
+    //
+    fn is_close(actual: f64, expected: f64) -> bool {
         let accuracy = actual / expected;
         accuracy > 0.99999 && accuracy < 1.00001
     }
 
+    //
+    // Test a tangent test case.  TODO - better ways to do this.
+    //
     fn const_tan_accuracy_test_case<const CUTOFF: u32, const FREQ: u32>() {
         let target: f64 = (CUTOFF as f64) / (FREQ as f64);
         let expected = (PI * target).tan();
@@ -176,14 +307,10 @@ mod tests {
         let target_int = (target * one_fixp) as i64;
         let actual_int = const_tan(target_int);
         let actual = (actual_int as f64) / one_fixp;
+        let worked = is_close(actual, expected);
         assert_eq!(
             (CUTOFF, actual, expected, true),
-            (
-                CUTOFF,
-                actual,
-                expected,
-                is_fairly_accurate(actual, expected)
-            )
+            (CUTOFF, actual, expected, worked)
         )
     }
 
@@ -198,6 +325,8 @@ mod tests {
     fn filter_params_150hz() {
         let params = lowpass_butterworth(150, 24000);
 
+        // Reference values from the Python script
+        //
         let b0_expected = 0.0003750696;
         let b1_expected = 0.0007501392;
         let b2_expected = 0.0003750696;
@@ -212,49 +341,31 @@ mod tests {
 
         assert_eq!(
             (b0_actual, b0_expected, true),
-            (
-                b0_actual,
-                b0_expected,
-                is_fairly_accurate(b0_actual, b0_expected)
-            )
+            (b0_actual, b0_expected, is_close(b0_actual, b0_expected))
         );
         assert_eq!(
             (b1_actual, b1_expected, true),
-            (
-                b1_actual,
-                b1_expected,
-                is_fairly_accurate(b1_actual, b1_expected)
-            )
+            (b1_actual, b1_expected, is_close(b1_actual, b1_expected))
         );
         assert_eq!(
             (b2_actual, b2_expected, true),
-            (
-                b2_actual,
-                b2_expected,
-                is_fairly_accurate(b2_actual, b2_expected)
-            )
+            (b2_actual, b2_expected, is_close(b2_actual, b2_expected))
         );
         assert_eq!(
             (a1_actual, a1_expected, true),
-            (
-                a1_actual,
-                a1_expected,
-                is_fairly_accurate(a1_actual, a1_expected)
-            )
+            (a1_actual, a1_expected, is_close(a1_actual, a1_expected))
         );
         assert_eq!(
             (a2_actual, a2_expected, true),
-            (
-                a2_actual,
-                a2_expected,
-                is_fairly_accurate(a2_actual, a2_expected)
-            )
+            (a2_actual, a2_expected, is_close(a2_actual, a2_expected))
         );
     }
     #[test]
     fn filter_params_40hz() {
         let params = lowpass_butterworth(40, 24000);
 
+        // Reference values from the Python script
+        //
         let b0_expected = 0.0000272138;
         let b1_expected = 0.0000544276;
         let b2_expected = 0.0000272138;
@@ -269,49 +380,31 @@ mod tests {
 
         assert_eq!(
             (b0_actual, b0_expected, true),
-            (
-                b0_actual,
-                b0_expected,
-                is_fairly_accurate(b0_actual, b0_expected)
-            )
+            (b0_actual, b0_expected, is_close(b0_actual, b0_expected))
         );
         assert_eq!(
             (b1_actual, b1_expected, true),
-            (
-                b1_actual,
-                b1_expected,
-                is_fairly_accurate(b1_actual, b1_expected)
-            )
+            (b1_actual, b1_expected, is_close(b1_actual, b1_expected))
         );
         assert_eq!(
             (b2_actual, b2_expected, true),
-            (
-                b2_actual,
-                b2_expected,
-                is_fairly_accurate(b2_actual, b2_expected)
-            )
+            (b2_actual, b2_expected, is_close(b2_actual, b2_expected))
         );
         assert_eq!(
             (a1_actual, a1_expected, true),
-            (
-                a1_actual,
-                a1_expected,
-                is_fairly_accurate(a1_actual, a1_expected)
-            )
+            (a1_actual, a1_expected, is_close(a1_actual, a1_expected))
         );
         assert_eq!(
             (a2_actual, a2_expected, true),
-            (
-                a2_actual,
-                a2_expected,
-                is_fairly_accurate(a2_actual, a2_expected)
-            )
+            (a2_actual, a2_expected, is_close(a2_actual, a2_expected))
         );
     }
     #[test]
     fn filter_params_400hz() {
         let params = lowpass_butterworth(400, 24000);
 
+        // Reference values from the Python script
+        //
         let b0_expected = 0.0025505352;
         let b1_expected = 0.0051010703;
         let b2_expected = 0.0025505352;
@@ -326,46 +419,30 @@ mod tests {
 
         assert_eq!(
             (b0_actual, b0_expected, true),
-            (
-                b0_actual,
-                b0_expected,
-                is_fairly_accurate(b0_actual, b0_expected)
-            )
+            (b0_actual, b0_expected, is_close(b0_actual, b0_expected))
         );
         assert_eq!(
             (b1_actual, b1_expected, true),
-            (
-                b1_actual,
-                b1_expected,
-                is_fairly_accurate(b1_actual, b1_expected)
-            )
+            (b1_actual, b1_expected, is_close(b1_actual, b1_expected))
         );
         assert_eq!(
             (b2_actual, b2_expected, true),
-            (
-                b2_actual,
-                b2_expected,
-                is_fairly_accurate(b2_actual, b2_expected)
-            )
+            (b2_actual, b2_expected, is_close(b2_actual, b2_expected))
         );
         assert_eq!(
             (a1_actual, a1_expected, true),
-            (
-                a1_actual,
-                a1_expected,
-                is_fairly_accurate(a1_actual, a1_expected)
-            )
+            (a1_actual, a1_expected, is_close(a1_actual, a1_expected))
         );
         assert_eq!(
             (a2_actual, a2_expected, true),
-            (
-                a2_actual,
-                a2_expected,
-                is_fairly_accurate(a2_actual, a2_expected)
-            )
+            (a2_actual, a2_expected, is_close(a2_actual, a2_expected))
         );
     }
 
+    //
+    // Helper function to get the average amplitude of some sound source.
+    // Used to figure out if the filter is actually working.
+    //
     fn get_avg_amplitude<T>(source: &mut T) -> (i32, i32)
     where
         T: SoundSourceCore<24000>,
@@ -389,57 +466,45 @@ mod tests {
 
     #[test]
     fn filter_behavior_400() {
-        //
-        // The filters are not giving me the behavior I'm hoping for, in the sense
-        // that 400 and 1600 should be the cut off frequency, and I'd expect the
-        // 1/sqrt(2) reduction in amplitude, and I'm getting much more than that.
-        // 1/6.5.  And it's consistent in my two test cases.  So, probably a bug.
-        //
         type Oscillator = CoreOscillator<24000, 50, 100, { OscillatorType::Sine as usize }>;
         type FilteredOscillator = Filter<24000, Oscillator, 400>;
 
-        let mut oscillator_50 = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_50 = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
-        // Unfiltered amplitude should be about 32768*(2/pi), or 20861.
-        assert_eq!((20859, 50), get_avg_amplitude(&mut oscillator_50));
-        assert_eq!((20856, 50), get_avg_amplitude(&mut filtered_oscillator_50));
+        let mut sine_50hz = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_50hz = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
 
-        let mut oscillator_100 = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_100 = FilteredOscillator::new(100 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20859, 100), get_avg_amplitude(&mut oscillator_100));
-        assert_eq!(
-            (20816, 100),
-            get_avg_amplitude(&mut filtered_oscillator_100)
-        );
+        // Unfiltered amplitude should be about 2/pi, or 20861 in 31 bit fixed point.
+        // 50hz is below the 400hz cut off, so the average filtered amplitude should be similar.
+        //
+        assert_eq!((20859, 50), get_avg_amplitude(&mut sine_50hz));
+        assert_eq!((20856, 50), get_avg_amplitude(&mut filtered_sine_50hz));
 
-        let mut oscillator_200 = Oscillator::new(200 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_200 = FilteredOscillator::new(200 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20859, 200), get_avg_amplitude(&mut oscillator_200));
-        assert_eq!(
-            (20234, 200),
-            get_avg_amplitude(&mut filtered_oscillator_200)
-        );
+        let mut sine_100hz = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_100hz = FilteredOscillator::new(100 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20859, 100), get_avg_amplitude(&mut sine_100hz));
+        assert_eq!((20816, 100), get_avg_amplitude(&mut filtered_sine_100hz));
 
-        let mut oscillator_400 = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_400 = FilteredOscillator::new(400 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20832, 400), get_avg_amplitude(&mut oscillator_400));
-        assert_eq!(
-            (14732, 400),
-            get_avg_amplitude(&mut filtered_oscillator_400)
-        );
+        let mut sine_200hz = Oscillator::new(200 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_200hz = FilteredOscillator::new(200 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20859, 200), get_avg_amplitude(&mut sine_200hz));
+        assert_eq!((20234, 200), get_avg_amplitude(&mut filtered_sine_200hz));
 
-        let mut oscillator_800 = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_800 = FilteredOscillator::new(800 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20779, 800), get_avg_amplitude(&mut oscillator_800));
-        assert_eq!((5043, 800), get_avg_amplitude(&mut filtered_oscillator_800));
+        // This is the cut-off frequency.  The filtered average amplitude should be 1/sqrt(2)
+        // of the original average amplitude, or 70.71%.  We're getting 70.72%.
+        //
+        let mut sine_400hz = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_400hz = FilteredOscillator::new(400 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20832, 400), get_avg_amplitude(&mut sine_400hz));
+        assert_eq!((14732, 400), get_avg_amplitude(&mut filtered_sine_400hz));
 
-        let mut oscillator_1600 = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_1600 = FilteredOscillator::new(1600 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20779, 1600), get_avg_amplitude(&mut oscillator_1600));
-        assert_eq!(
-            (1268, 1598),
-            get_avg_amplitude(&mut filtered_oscillator_1600)
-        );
+        let mut sine_800hz = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_800hz = FilteredOscillator::new(800 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20779, 800), get_avg_amplitude(&mut sine_800hz));
+        assert_eq!((5043, 800), get_avg_amplitude(&mut filtered_sine_800hz));
+
+        let mut sine_1600hz = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_1600hz = FilteredOscillator::new(1600 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20779, 1600), get_avg_amplitude(&mut sine_1600hz));
+        assert_eq!((1268, 1598), get_avg_amplitude(&mut filtered_sine_1600hz));
     }
 
     #[test]
@@ -447,51 +512,42 @@ mod tests {
         type Oscillator = CoreOscillator<24000, 50, 100, { OscillatorType::Sine as usize }>;
         type FilteredOscillator = Filter<24000, Oscillator, 1600>;
 
-        let mut oscillator_50 = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_50 = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
-        // Unfiltered amplitude should be about 32768*(2/pi), or 20861.
-        assert_eq!((20859, 50), get_avg_amplitude(&mut oscillator_50));
-        assert_eq!((20860, 50), get_avg_amplitude(&mut filtered_oscillator_50));
+        let mut sine_50hz = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_50hz = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
 
-        let mut oscillator_100 = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_100 = FilteredOscillator::new(100 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20859, 100), get_avg_amplitude(&mut oscillator_100));
-        assert_eq!(
-            (20860, 100),
-            get_avg_amplitude(&mut filtered_oscillator_100)
-        );
+        // Unfiltered amplitude should be about 2/pi, or 20861 in 31 bit fixed point.
+        // 50hz is below the 1600hz cut off, so the average filtered amplitude should be similar.
+        //
+        assert_eq!((20859, 50), get_avg_amplitude(&mut sine_50hz));
+        assert_eq!((20860, 50), get_avg_amplitude(&mut filtered_sine_50hz));
 
-        let mut oscillator_200 = Oscillator::new(200 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_200 = FilteredOscillator::new(200 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20859, 200), get_avg_amplitude(&mut oscillator_200));
-        assert_eq!(
-            (20861, 200),
-            get_avg_amplitude(&mut filtered_oscillator_200)
-        );
+        let mut sine_100hz = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_100hz = FilteredOscillator::new(100 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20859, 100), get_avg_amplitude(&mut sine_100hz));
+        assert_eq!((20860, 100), get_avg_amplitude(&mut filtered_sine_100hz));
 
-        let mut oscillator_400 = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_400 = FilteredOscillator::new(400 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20832, 400), get_avg_amplitude(&mut oscillator_400));
-        assert_eq!(
-            (20821, 400),
-            get_avg_amplitude(&mut filtered_oscillator_400)
-        );
+        let mut sine_200hz = Oscillator::new(200 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_200hz = FilteredOscillator::new(200 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20859, 200), get_avg_amplitude(&mut sine_200hz));
+        assert_eq!((20861, 200), get_avg_amplitude(&mut filtered_sine_200hz));
 
-        let mut oscillator_800 = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_800 = FilteredOscillator::new(800 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20779, 800), get_avg_amplitude(&mut oscillator_800));
-        assert_eq!(
-            (20298, 800),
-            get_avg_amplitude(&mut filtered_oscillator_800)
-        );
+        let mut sine_400hz = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_400hz = FilteredOscillator::new(400 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20832, 400), get_avg_amplitude(&mut sine_400hz));
+        assert_eq!((20821, 400), get_avg_amplitude(&mut filtered_sine_400hz));
 
-        let mut oscillator_1600 = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_1600 = FilteredOscillator::new(1600 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20779, 1600), get_avg_amplitude(&mut oscillator_1600));
-        assert_eq!(
-            (14779, 1600),
-            get_avg_amplitude(&mut filtered_oscillator_1600)
-        );
+        let mut sine_800hz = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_800hz = FilteredOscillator::new(800 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20779, 800), get_avg_amplitude(&mut sine_800hz));
+        assert_eq!((20298, 800), get_avg_amplitude(&mut filtered_sine_800hz));
+
+        // This is the cut-off frequency.  The filtered average amplitude should be 1/sqrt(2)
+        // of the original average amplitude, or 70.71%.  We're getting 71.12%.
+        //
+        let mut sine_1600hz = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_1600hz = FilteredOscillator::new(1600 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20779, 1600), get_avg_amplitude(&mut sine_1600hz));
+        assert_eq!((14779, 1600), get_avg_amplitude(&mut filtered_sine_1600hz));
     }
     #[test]
     fn filter_behavior_24000() {
@@ -499,19 +555,20 @@ mod tests {
         type Oscillator = CoreOscillator<24000, 50, 100, { OscillatorType::Sine as usize }>;
         type FilteredOscillator = Filter<24000, Oscillator, 24000>;
 
-        let mut oscillator_50 = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_50 = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
-        // Unfiltered amplitude should be about 32768*(2/pi), or 20861.
-        assert_eq!((20859, 50), get_avg_amplitude(&mut oscillator_50));
-        assert_eq!((20859, 50), get_avg_amplitude(&mut filtered_oscillator_50));
+        let mut sine_50hz = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_50hz = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
 
-        // A silly oscillator for a silly filter.
-        let mut oscillator_22000 = Oscillator::new(22000 * FREQUENCY_MULTIPLIER);
-        let mut filtered_oscillator_22000 = FilteredOscillator::new(22000 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20373, 2000), get_avg_amplitude(&mut oscillator_22000));
-        assert_eq!(
-            (20373, 2000),
-            get_avg_amplitude(&mut filtered_oscillator_22000)
-        );
+        // The average amplitude should match, it's a pass through
+        //
+        assert_eq!((20859, 50), get_avg_amplitude(&mut sine_50hz));
+        assert_eq!((20859, 50), get_avg_amplitude(&mut filtered_sine_50hz));
+
+        // A silly oscillator for a silly filter.  The measured frequency is 2000
+        // hz because of aliasing.
+        //
+        let mut sine_22000hz = Oscillator::new(22000 * FREQUENCY_MULTIPLIER);
+        let mut filtered_sine_22000hz = FilteredOscillator::new(22000 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20373, 2000), get_avg_amplitude(&mut sine_22000hz));
+        assert_eq!((20373, 2000), get_avg_amplitude(&mut filtered_sine_22000hz));
     }
 }
