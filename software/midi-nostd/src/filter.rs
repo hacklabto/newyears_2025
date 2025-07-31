@@ -53,7 +53,7 @@ pub const fn lowpass_butterworth(cutoff: i64, sample: i64) -> (i64, i64, i64, i6
     let small_point = 5;
     let small: i64 = 1i64 << (31 - small_point);
     if cutoff * 5 > sample {
-        return (one, 0, 0, 0, 0);
+        return (0, 0, 0, 0, 0);
     }
     let tan_fraction: i64 = one * cutoff / sample; // range 0 to 1/5
     let k: i64 = const_tan(tan_fraction); // range 0 to ~.73
@@ -97,7 +97,7 @@ impl<
     > Filter<PLAY_FREQUENCY, Source, CUTOFF_FREQUENCY>
 {
     const ONE: i64 = 1i64 << 31;
-    //const B0: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).0;
+    const B0: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).0;
     const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).1;
     //const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).2;
     const A1_P1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).3 + Self::ONE;
@@ -120,6 +120,10 @@ impl<
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
+        if Self::B0 == 0 {
+            self.source.get_next()
+        }
+        else {
         let raw_value = self.source.get_next().to_i32();
         let input = (raw_value as i64) << 16; // 31 bits of decimal precision
         let b1_input_term = (input * Self::B1) >> 31;
@@ -134,6 +138,7 @@ impl<
         self.d2 = b2_input_term - a2_output_term;
         let output_i32 = (output >> 16) as i32;
         SoundSampleI32::new_i32(output_i32)
+        }
     }
 
     fn has_next(self: &Self) -> bool {
@@ -489,4 +494,23 @@ mod tests {
             get_avg_amplitude(&mut filtered_oscillator_1600)
         );
     }
+    #[test]
+    fn filter_behavior_24000() {
+        // This should give us a simple pass through.
+        type Oscillator = CoreOscillator<24000, 50, 100, { OscillatorType::Sine as usize }>;
+        type FilteredOscillator = Filter<24000, Oscillator, 24000>;
+
+        let mut oscillator_50 = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_50 = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
+        // Unfiltered amplitude should be about 32768*(2/pi), or 20861.
+        assert_eq!((20859, 50), get_avg_amplitude(&mut oscillator_50));
+        assert_eq!((20859, 50), get_avg_amplitude(&mut filtered_oscillator_50));
+
+        // A silly oscillator for a silly filter.
+        let mut oscillator_22000 = Oscillator::new(22000 * FREQUENCY_MULTIPLIER);
+        let mut filtered_oscillator_22000 = FilteredOscillator::new(22000 * FREQUENCY_MULTIPLIER);
+        assert_eq!((20373, 2000), get_avg_amplitude(&mut oscillator_22000));
+        assert_eq!((20373, 2000), get_avg_amplitude(&mut filtered_oscillator_22000));
+    }
 }
+
