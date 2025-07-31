@@ -38,7 +38,7 @@ fn main() {
 
 fn get_loudest(smf: &Smf) -> i32 {
     println!("sampling midi");
-    let mut midi = Midi::<24000, 128, 32>::new(&smf, 1);
+    let mut midi = Midi::<48, 128, 32>::new(&smf, 1);
     let rval = midi.get_loudest_sample(smf);
     println!("done midi");
     rval
@@ -54,7 +54,7 @@ fn run() -> Result<(), pa::Error> {
         .expect("It's inlined data, so it better work, gosh darn it");
     let loudest = get_loudest(&smf);
     println!("Loudest sample was {}", loudest);
-    let mut midi = Midi::<24000, 128, 32>::new(&smf, (2 * loudest / 0x8000) + 1);
+    let mut midi = Midi::<24000, 128, 32>::new(&smf, (loudest / 0x8000) + 1);
 
     /*
     for i in 0..960000 {
@@ -76,7 +76,7 @@ fn run() -> Result<(), pa::Error> {
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         let mut idx = 0;
         for _ in 0..frames {
-            let current = midi.get_next(&smf);
+            let current = midi.get_next(&smf).clip();
             let converted: f32 = (current.to_i32() as f32) / 32768.0;
             buffer[idx] = converted;
             buffer[idx + 1] = converted;

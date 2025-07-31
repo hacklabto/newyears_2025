@@ -29,7 +29,11 @@ impl<const PLAY_FREQUENCY: u32> MidiTime<PLAY_FREQUENCY> {
         let midi_events_per_second: u32 = (1000000u64 * (self.ticks_per_quarter_note as u64)
             / (self.current_ms_per_quarter_note as u64))
             as u32;
-        self.midi_event_update_rate = U32Fraction::new(0, midi_events_per_second);
+        let midi_events_per_sample = midi_events_per_second / PLAY_FREQUENCY;
+        let midi_events_per_sample_remainder = midi_events_per_second % PLAY_FREQUENCY;
+
+        self.midi_event_update_rate =
+            U32Fraction::new(midi_events_per_sample, midi_events_per_sample_remainder);
     }
     fn set_ms_per_quarter_note(self: &mut Self, current_ms_per_quarter_note: u32) {
         self.current_ms_per_quarter_note = current_ms_per_quarter_note;
@@ -196,7 +200,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         if !self.active {
             return;
         }
-        while self.current_time.int_part == self.next_event_time {
+        while self.current_time.int_part >= self.next_event_time {
             self.handle_track_event(
                 &(events[self.current_event_idx]).kind,
                 notes,
@@ -208,7 +212,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
                 return;
             }
             let delta: u32 = events[self.current_event_idx].delta.into();
-            self.next_event_time = self.current_time.int_part + delta;
+            self.next_event_time = self.next_event_time + delta;
             self.last_delta = delta;
         }
 
@@ -259,7 +263,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
     pub fn get_loudest_sample(self: &mut Self, smf: &Smf) -> i32 {
         let mut loudest: i32 = 0;
         let mut count: u32 = 0;
-        while self.has_next() && count < 200000 {
+        while self.has_next() && count < 4000 {
             let sample = self.get_next(&smf).to_i32();
             let abs_sample = if sample < 0 { -sample } else { sample };
             loudest = if abs_sample > loudest {
