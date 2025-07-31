@@ -10,12 +10,12 @@ use midly::Smf;
 use portaudio as pa;
 
 const CHANNELS: i32 = 2;
-const NUM_SECONDS: i32 = 130;
+const NUM_SECONDS: i32 = 1000;
 const SAMPLE_RATE: f64 = 24_000.0;
 const FRAMES_PER_BUFFER: u32 = 64;
 
 fn midly_exploration() {
-    let smf = Smf::parse(include_bytes!("../assets/twinkle.mid")).unwrap();
+    let smf = Smf::parse(include_bytes!("../assets/vivaldi.mid")).unwrap();
 
     for (i, track) in smf.tracks.iter().enumerate() {
         println!("track {} has {} events", i, track.len());

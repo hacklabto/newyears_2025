@@ -12,8 +12,32 @@ pub struct MidiTrack<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
     current_remainder: u32,
     next_event_time: u32,
     last_delta: u32,
-    current_program: u8,
-    playing_notes: [Option<usize>; 128],
+}
+
+pub struct Channel {
+    pub current_program: u8,
+    pub playing_notes: [Option<usize>; 128],
+}
+
+impl Default for Channel {
+    fn default() -> Self {
+        Self {
+            current_program: 0,
+            playing_notes: [Option::<usize>::default(); 128],
+        }
+    }
+}
+
+pub struct Channels {
+    pub channels: [Channel; 16],
+}
+
+impl Default for Channels {
+    fn default() -> Self {
+        Self {
+            channels: core::array::from_fn(|_idx| Channel::default()),
+        }
+    }
 }
 
 impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY, MAX_NOTES> {
@@ -36,8 +60,6 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
             current_remainder,
             next_event_time,
             last_delta,
-            current_program: 0,
-            playing_notes: [Option::<usize>::default(); 128],
         }
     }
     fn has_next(self: &Self) -> bool {
@@ -58,32 +80,42 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
     pub fn handle_midi_event<const NUM_CHANNELS: usize>(
         self: &mut Self,
         midi_event: &midly::MidiMessage,
+        channel_u8: u8,
         notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
+        channels: &mut Channels,
     ) {
+        let channel: usize = channel_u8 as usize;
         match midi_event {
             midly::MidiMessage::NoteOn { key, vel } => {
                 let key_as_u32: u8 = (*key).into();
 
-                let note_init =
-                    SoundSourceNoteInit::new((*key).into(), self.current_program, (*vel).into());
-                let dst = if let Some(playing_note) = self.playing_notes[key_as_u32 as usize] {
+                let note_init = SoundSourceNoteInit::new(
+                    (*key).into(),
+                    channels.channels[channel].current_program,
+                    (*vel).into(),
+                );
+                let dst = if let Some(playing_note) =
+                    channels.channels[channel].playing_notes[key_as_u32 as usize]
+                {
                     playing_note
                 } else {
                     notes.alloc()
                 };
 
                 notes.channels[dst] = Note::<PLAY_FREQUENCY>::new(note_init);
-                self.playing_notes[key_as_u32 as usize] = Some(dst)
+                channels.channels[channel].playing_notes[key_as_u32 as usize] = Some(dst)
             }
             midly::MidiMessage::NoteOff { key, vel: _ } => {
                 let key_as_u32: u8 = (*key).into();
-                if let Some(playing_note) = self.playing_notes[key_as_u32 as usize] {
+                if let Some(playing_note) =
+                    channels.channels[channel].playing_notes[key_as_u32 as usize]
+                {
                     notes.channels[playing_note].trigger_note_off();
-                    self.playing_notes[key_as_u32 as usize] = None;
+                    channels.channels[channel].playing_notes[key_as_u32 as usize] = None;
                 }
             }
             midly::MidiMessage::ProgramChange { program } => {
-                self.current_program = (*program).into();
+                channels.channels[channel].current_program = (*program).into();
             }
             _ => {}
         }
@@ -93,12 +125,12 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         self: &mut Self,
         track_event: &midly::TrackEventKind,
         notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
+        channels: &mut Channels,
     ) {
         match track_event {
-            midly::TrackEventKind::Midi {
-                message,
-                channel: _,
-            } => self.handle_midi_event(&message, notes),
+            midly::TrackEventKind::Midi { message, channel } => {
+                self.handle_midi_event(&message, (*channel).into(), notes, channels)
+            }
             _ => {}
         }
     }
@@ -107,12 +139,13 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         self: &mut Self,
         events: &'a midly::Track<'a>,
         notes: &mut AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
+        channels: &mut Channels,
     ) {
         if !self.active {
             return;
         }
         while self.current_time == self.next_event_time {
-            self.handle_track_event(&(events[self.current_event_idx]).kind, notes);
+            self.handle_track_event(&(events[self.current_event_idx]).kind, notes, channels);
             self.go_to_next_event(events);
             if !self.active {
                 return;
@@ -133,6 +166,7 @@ pub struct Midi<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRA
     num_tracks: usize,
     tracks: [MidiTrack<PLAY_FREQUENCY, MAX_NOTES>; MAX_TRACKS],
     amp_adder: AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
+    channels: Channels,
 }
 
 impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
@@ -154,6 +188,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
             num_tracks,
             tracks,
             amp_adder,
+            channels: Channels::default(),
         }
     }
 
@@ -177,7 +212,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
         let result = self.amp_adder.get_next();
         for i in 0..self.num_tracks {
             if i != 10 {
-                self.tracks[i].update(&smf.tracks[i], &mut self.amp_adder);
+                self.tracks[i].update(&smf.tracks[i], &mut self.amp_adder, &mut self.channels);
             }
         }
         result

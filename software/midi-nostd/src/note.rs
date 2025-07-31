@@ -81,6 +81,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
 
         let core = match instrument {
             0 => {
+                panic!("TODO");
                 let pcore = Piano::<PLAY_FREQUENCY>::new(init_values);
                 NoteEnum::<PLAY_FREQUENCY>::PianoEnum { pcore }
             }
@@ -109,6 +110,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Note<PLAY_FR
                 NoteEnum::<PLAY_FREQUENCY>::SilenceEnum { pcore }
             }
             _ => {
+                panic!("TODO");
                 let pcore = Silence::<PLAY_FREQUENCY>::new(init_values);
                 NoteEnum::<PLAY_FREQUENCY>::SilenceEnum { pcore }
             }
