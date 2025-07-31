@@ -6,6 +6,46 @@ use crate::sound_source_core::SoundSourceCore;
 use midly::Smf;
 use midly::Timing;
 
+pub struct MidiTime {
+    current_ms_per_quarter_note: u32,
+    ticks_per_quarter_note: u32,
+    midi_events_per_second: u32,
+}
+
+impl MidiTime {
+    fn compute_midi_events_per_second(self: &mut Self) {
+        // We are being called PLAY_FREQUENCY times a second.
+        // one quarter note = current_ms_per_qn / 1 000 000 seconds
+        // 1 tick = (current_ms_per_qn / 1 000 000 seconds) / ticks_per_qn
+        // midi events / second = (1 000 000 * ticks_per_qn ) / current_ms_per_qn
+        // TODO, rethink timing a bit.
+        //
+        // I probably want a meta data class of some kind for things like the timing
+        // updates.  Also, I want to handle the case where the playback is slower
+        // than the midi playback, so I can fast forward through the track to get
+        // a good maximum output voltage.
+        //
+        self.midi_events_per_second = (1000000u64 * (self.ticks_per_quarter_note as u64)
+            / (self.current_ms_per_quarter_note as u64))
+            as u32;
+    }
+    fn set_ms_per_quarter_note(self: &mut Self, current_ms_per_quarter_note: u32) {
+        self.current_ms_per_quarter_note = current_ms_per_quarter_note;
+        self.compute_midi_events_per_second();
+    }
+
+    pub fn new(current_ms_per_quarter_note: u32, ticks_per_quarter_note: u32) -> Self {
+        let midi_events_per_second = 0; // place holder
+        let mut rval = Self {
+            current_ms_per_quarter_note,
+            ticks_per_quarter_note,
+            midi_events_per_second,
+        };
+        rval.compute_midi_events_per_second();
+        rval
+    }
+}
+
 pub struct MidiTrack<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
     active: bool,
     current_event_idx: usize,
@@ -130,7 +170,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         track_event: &midly::TrackEventKind,
         notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
         channels: &mut Channels,
-        current_ms_to_qn: &mut u32,
+        tempo: &mut MidiTime,
     ) {
         match track_event {
             midly::TrackEventKind::Midi { message, channel } => {
@@ -139,7 +179,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
             midly::TrackEventKind::Meta(message) => match message {
                 midly::MetaMessage::Tempo(ms_per_qn_midly) => {
                     let ms_per_qn: u32 = (*ms_per_qn_midly).into();
-                    *current_ms_to_qn = ms_per_qn as u32;
+                    tempo.set_ms_per_quarter_note(ms_per_qn as u32);
                 }
                 _ => {}
             },
@@ -152,8 +192,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         events: &'a midly::Track<'a>,
         notes: &mut AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
         channels: &mut Channels,
-        current_ms_per_qn: &mut u32,
-        ticks_per_qn: u32,
+        tempo: &mut MidiTime,
     ) {
         if !self.active {
             return;
@@ -163,7 +202,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
                 &(events[self.current_event_idx]).kind,
                 notes,
                 channels,
-                current_ms_per_qn,
+                tempo,
             );
             self.go_to_next_event(events);
             if !self.active {
@@ -173,24 +212,10 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
             self.next_event_time = self.current_time + delta;
             self.last_delta = delta;
         }
-        self.current_remainder = self.current_remainder + 1;
 
-        // We are being called PLAY_FREQUENCY times a second.
-        // one quarter note = current_ms_per_qn / 1 000 000 seconds
-        // 1 tick = (current_ms_per_qn / 1 000 000 seconds) / ticks_per_qn
-        // midi events / second = (1 000 000 * ticks_per_qn ) / current_ms_per_qn
-        // TODO, rethink timing a bit.
-        //
-        // I probably want a meta data class of some kind for things like the timing
-        // updates.  Also, I want to handle the case where the playback is slower
-        // than the midi playback, so I can fast forward through the track to get
-        // a good maximum output voltage.
-        //
-        let midi_events_per_second =
-            1000000u64 * (ticks_per_qn as u64) / (*current_ms_per_qn as u64);
-        let divider = PLAY_FREQUENCY / (midi_events_per_second as u32);
-
-        if (self.current_remainder) % divider == 0 {
+        self.current_remainder = self.current_remainder + tempo.midi_events_per_second;
+        if self.current_remainder > PLAY_FREQUENCY {
+            self.current_remainder -= PLAY_FREQUENCY;
             self.current_time = self.current_time + 1;
         }
     }
@@ -201,8 +226,7 @@ pub struct Midi<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRA
     tracks: [MidiTrack<PLAY_FREQUENCY, MAX_NOTES>; MAX_TRACKS],
     amp_adder: AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
     channels: Channels,
-    ticks_per_qn: u32,
-    ms_per_qn: u32,
+    tempo: MidiTime,
 }
 
 impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
@@ -226,16 +250,14 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
             Timing::Timecode(_, _) => todo!(),
         };
         let tpqn_u16: u16 = tpqn_midly.into();
-        let ticks_per_qn: u32 = tpqn_u16 as u32;
-        let ms_per_qn: u32 = 500000;
+        let tempo = MidiTime::new(500000, tpqn_u16 as u32);
 
         Self {
             num_tracks,
             tracks,
             amp_adder,
             channels: Channels::default(),
-            ticks_per_qn,
-            ms_per_qn,
+            tempo,
         }
     }
 
@@ -263,8 +285,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
                     &smf.tracks[i],
                     &mut self.amp_adder,
                     &mut self.channels,
-                    &mut self.ms_per_qn,
-                    self.ticks_per_qn,
+                    &mut self.tempo,
                 );
             }
         }
