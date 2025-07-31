@@ -96,10 +96,11 @@ impl<
         const CUTOFF_FREQUENCY: i64,
     > Filter<PLAY_FREQUENCY, Source, CUTOFF_FREQUENCY>
 {
+    const ONE: i64 = 1i64 << 31;
     const B0: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).0;
     const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).1;
     const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).2;
-    const A1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).3;
+    const A1_P1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).3 + Self::ONE;
     const A2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).4;
 }
 
@@ -118,26 +119,12 @@ impl<
         return Self { source, d1, d2 };
     }
 
-    /*
-    fn get_next(self: &mut Self) -> SoundSampleI32 {
-        let raw_value = self.source.get_next().to_i32();
-        let input = (raw_value as i64) << 16; // 31 bits of decimal precision
-        let output: i64 = ((input * Self::B0) >> 31)
-            + self.d1
-            + ((self.d1 * Self::B1) >> 31)
-            + ((self.d2 * Self::B2) >> 31);
-        self.d2 = self.d1;
-        self.d1 = output;
-        let output_i32 = (output >> 16) as i32;
-        SoundSampleI32::new_i32(output_i32)
-    }
-    */
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let raw_value = self.source.get_next().to_i32();
         let input = (raw_value as i64) << 16; // 31 bits of decimal precision
         let output: i64 = ((input * Self::B0) >> 31) + self.d1;
         let d1_t0 = (input * Self::B1) >> 31;
-        let d1_t1 = (output * Self::A1) >> 31;
+        let d1_t1 = ((output * Self::A1_P1) >> 31) - output;
         self.d1 = self.d2 + d1_t0 - d1_t1;
         let d2_t0 = (input * Self::B2) >> 31;
         let d2_t1 = (output * Self::A2) >> 31;

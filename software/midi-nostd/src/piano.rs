@@ -23,7 +23,7 @@ type PianoOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
 >;
 
 type PianoFiltered<const PLAY_FREQUENCY: u32> =
-    Filter<PLAY_FREQUENCY, PianoOscillatorAdsr<PLAY_FREQUENCY>, 400>;
+    Filter<PLAY_FREQUENCY, PianoOscillatorAdsr<PLAY_FREQUENCY>, 200>;
 
 ///
 /// Piano.  Now sort of a proof of concept.
