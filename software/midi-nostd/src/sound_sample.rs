@@ -44,6 +44,30 @@ impl<const DENOMINATOR: i32> I32Fraction<DENOMINATOR> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct U32Fraction<const DENOMINATOR: u32> {
+    pub int_part: u32,
+    pub numerator_part: u32,
+}
+
+impl<const DENOMINATOR: u32> U32Fraction<DENOMINATOR> {
+    pub const fn new(int_part: u32, numerator_part: u32) -> Self {
+        Self {
+            int_part,
+            numerator_part,
+        }
+    }
+    #[inline]
+    pub const fn add(self: &mut Self, other: &Self) {
+        self.int_part += other.int_part;
+        self.numerator_part += other.numerator_part;
+        if self.numerator_part > DENOMINATOR {
+            self.int_part = self.int_part + 1;
+            self.numerator_part -= DENOMINATOR;
+        }
+    }
+}
+
 ///
 /// Concrete implementation of Sound Sample using fixed point
 ///

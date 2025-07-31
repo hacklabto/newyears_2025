@@ -2,17 +2,18 @@ use crate::amp_adder::AmpAdder;
 use crate::note::Note;
 use crate::note::SoundSourceNoteInit;
 use crate::sound_sample::SoundSampleI32;
+use crate::sound_sample::U32Fraction;
 use crate::sound_source_core::SoundSourceCore;
 use midly::Smf;
 use midly::Timing;
 
-pub struct MidiTime {
+pub struct MidiTime<const PLAY_FREQUENCY: u32> {
     current_ms_per_quarter_note: u32,
     ticks_per_quarter_note: u32,
-    midi_events_per_second: u32,
+    midi_event_update_rate: U32Fraction<PLAY_FREQUENCY>,
 }
 
-impl MidiTime {
+impl<const PLAY_FREQUENCY: u32> MidiTime<PLAY_FREQUENCY> {
     fn compute_midi_events_per_second(self: &mut Self) {
         // We are being called PLAY_FREQUENCY times a second.
         // one quarter note = current_ms_per_qn / 1 000 000 seconds
@@ -25,9 +26,10 @@ impl MidiTime {
         // than the midi playback, so I can fast forward through the track to get
         // a good maximum output voltage.
         //
-        self.midi_events_per_second = (1000000u64 * (self.ticks_per_quarter_note as u64)
+        let midi_events_per_second: u32 = (1000000u64 * (self.ticks_per_quarter_note as u64)
             / (self.current_ms_per_quarter_note as u64))
             as u32;
+        self.midi_event_update_rate = U32Fraction::new(0, midi_events_per_second);
     }
     fn set_ms_per_quarter_note(self: &mut Self, current_ms_per_quarter_note: u32) {
         self.current_ms_per_quarter_note = current_ms_per_quarter_note;
@@ -35,11 +37,10 @@ impl MidiTime {
     }
 
     pub fn new(current_ms_per_quarter_note: u32, ticks_per_quarter_note: u32) -> Self {
-        let midi_events_per_second = 0; // place holder
         let mut rval = Self {
             current_ms_per_quarter_note,
             ticks_per_quarter_note,
-            midi_events_per_second,
+            midi_event_update_rate: U32Fraction::new(0, 0),
         };
         rval.compute_midi_events_per_second();
         rval
@@ -49,8 +50,9 @@ impl MidiTime {
 pub struct MidiTrack<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
     active: bool,
     current_event_idx: usize,
-    current_time: u32,
-    current_remainder: u32,
+    current_time: U32Fraction<PLAY_FREQUENCY>,
+    //current_time: u32,
+    //current_remainder: u32,
     next_event_time: u32,
     last_delta: u32,
 }
@@ -85,8 +87,6 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
     pub fn new<'a>(events: &'a midly::Track<'a>) -> Self {
         let active = events.len() != 0;
         let current_event_idx: usize = 0;
-        let current_time: u32 = 0;
-        let current_remainder: u32 = 0;
         let next_event_time: u32 = if active {
             events[current_event_idx].delta.into()
         } else {
@@ -97,8 +97,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         Self {
             active,
             current_event_idx,
-            current_time,
-            current_remainder,
+            current_time: U32Fraction::<PLAY_FREQUENCY>::new(0, 0),
             next_event_time,
             last_delta,
         }
@@ -170,7 +169,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         track_event: &midly::TrackEventKind,
         notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
         channels: &mut Channels,
-        tempo: &mut MidiTime,
+        tempo: &mut MidiTime<PLAY_FREQUENCY>,
     ) {
         match track_event {
             midly::TrackEventKind::Midi { message, channel } => {
@@ -192,12 +191,12 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
         events: &'a midly::Track<'a>,
         notes: &mut AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
         channels: &mut Channels,
-        tempo: &mut MidiTime,
+        tempo: &mut MidiTime<PLAY_FREQUENCY>,
     ) {
         if !self.active {
             return;
         }
-        while self.current_time == self.next_event_time {
+        while self.current_time.int_part == self.next_event_time {
             self.handle_track_event(
                 &(events[self.current_event_idx]).kind,
                 notes,
@@ -209,15 +208,11 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
                 return;
             }
             let delta: u32 = events[self.current_event_idx].delta.into();
-            self.next_event_time = self.current_time + delta;
+            self.next_event_time = self.current_time.int_part + delta;
             self.last_delta = delta;
         }
 
-        self.current_remainder = self.current_remainder + tempo.midi_events_per_second;
-        if self.current_remainder > PLAY_FREQUENCY {
-            self.current_remainder -= PLAY_FREQUENCY;
-            self.current_time = self.current_time + 1;
-        }
+        self.current_time.add(&tempo.midi_event_update_rate);
     }
 }
 
@@ -226,7 +221,7 @@ pub struct Midi<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRA
     tracks: [MidiTrack<PLAY_FREQUENCY, MAX_NOTES>; MAX_TRACKS],
     amp_adder: AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
     channels: Channels,
-    tempo: MidiTime,
+    tempo: MidiTime<PLAY_FREQUENCY>,
 }
 
 impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
