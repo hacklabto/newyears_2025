@@ -48,12 +48,12 @@ pub const fn const_tan(a: i64) -> i64 {
     fixp_mul(e0, one - fraction) + fixp_mul(e1, fraction)
 }
 
-pub const fn lowpass_butterworth(cutoff: i64, sample: i64) -> (i64, i64, i64) {
+pub const fn lowpass_butterworth(cutoff: i64, sample: i64) -> (i64, i64, i64, i64, i64) {
     let one: i64 = 1i64 << 31;
     let small_point = 5;
     let small: i64 = 1i64 << (31 - small_point);
     if cutoff * 5 > sample {
-        return (one, -one, 0);
+        return (one, 0, 0, 0, 0);
     }
     let tan_fraction: i64 = one * cutoff / sample; // range 0 to 1/5
     let k: i64 = const_tan(tan_fraction); // range 0 to ~.73
@@ -69,14 +69,14 @@ pub const fn lowpass_butterworth(cutoff: i64, sample: i64) -> (i64, i64, i64) {
         let b0: i64 = fixp_div(k_squared, a0_denom);
         let b1: i64 = fixp_div(k_squared * 2, a0_denom);
         let b2: i64 = fixp_div(k_squared, a0_denom);
-        return (b0, b1 - a1 - one, b2 - a2);
+        return (b0, b1, b2, a1, a2);
     } else {
         let k_shift = k << small_point;
         let k_squared_shift: i64 = fixp_mul(k_shift, k_shift); // range 0 to ~.54
         let b0: i64 = fixp_div(k_squared_shift, a0_denom) >> (small_point * 2);
         let b1: i64 = fixp_div(k_squared_shift * 2, a0_denom) >> (small_point * 2);
         let b2: i64 = fixp_div(k_squared_shift, a0_denom) >> (small_point * 2);
-        return (b0, b1 - a1 - one, b2 - a2);
+        return (b0, b1, b2, a1, a2);
     }
 }
 
@@ -86,8 +86,8 @@ pub struct Filter<
     const CUTOFF_FREQUENCY: i64,
 > {
     source: Source,
-    z1: i64,
-    z2: i64,
+    d1: i64,
+    d2: i64,
 }
 
 impl<
@@ -99,6 +99,8 @@ impl<
     const B0: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).0;
     const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).1;
     const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).2;
+    const A1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).3;
+    const A2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).4;
 }
 
 impl<
@@ -111,27 +113,42 @@ impl<
 
     fn new(init_values: Self::InitValuesType) -> Self {
         let source = Source::new(init_values);
-        let z1 = 0;
-        let z2 = 0;
-        return Self { source, z1, z2 };
+        let d1 = 0;
+        let d2 = 0;
+        return Self { source, d1, d2 };
     }
 
+    /*
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let raw_value = self.source.get_next().to_i32();
         let input = (raw_value as i64) << 16; // 31 bits of decimal precision
         let output: i64 = ((input * Self::B0) >> 31)
-            + self.z1
-            + ((self.z1 * Self::B1) >> 31)
-            + ((self.z2 * Self::B2) >> 31);
-        self.z2 = self.z1;
-        self.z1 = output;
+            + self.d1
+            + ((self.d1 * Self::B1) >> 31)
+            + ((self.d2 * Self::B2) >> 31);
+        self.d2 = self.d1;
+        self.d1 = output;
+        let output_i32 = (output >> 16) as i32;
+        SoundSampleI32::new_i32(output_i32)
+    }
+    */
+    fn get_next(self: &mut Self) -> SoundSampleI32 {
+        let raw_value = self.source.get_next().to_i32();
+        let input = (raw_value as i64) << 16; // 31 bits of decimal precision
+        let output: i64 = ((input * Self::B0) >> 31) + self.d1;
+        let d1_t0 = (input * Self::B1) >> 31;
+        let d1_t1 = (output * Self::A1) >> 31;
+        self.d1 = self.d2 + d1_t0 - d1_t1;
+        let d2_t0 = (input * Self::B2) >> 31;
+        let d2_t1 = (output * Self::A2) >> 31;
+        self.d2 = d2_t0 - d2_t1;
         let output_i32 = (output >> 16) as i32;
         SoundSampleI32::new_i32(output_i32)
     }
 
     fn has_next(self: &Self) -> bool {
         if !self.source.has_next() {
-            self.z1 < -0x400 || self.z1 > 0x400
+            self.d1 < -0x400 || self.d1 > 0x400
         } else {
             true
         }
@@ -188,12 +205,16 @@ mod tests {
         let params = lowpass_butterworth(150, 24000);
 
         let b0_expected = 0.0003750696;
-        let b1_expected = 0.9452277970;
-        let b2_expected = -0.9456028666;
+        let b1_expected = 0.0007501392;
+        let b2_expected = 0.0003750696;
+        let a1_expected = -1.9444776578;
+        let a2_expected = 0.9459779362;
 
         let b0_actual = fixp_to_float(params.0);
         let b1_actual = fixp_to_float(params.1);
         let b2_actual = fixp_to_float(params.2);
+        let a1_actual = fixp_to_float(params.3);
+        let a2_actual = fixp_to_float(params.4);
 
         assert_eq!(
             (b0_actual, b0_expected, true),
@@ -217,6 +238,22 @@ mod tests {
                 b2_actual,
                 b2_expected,
                 is_fairly_accurate(b2_actual, b2_expected)
+            )
+        );
+        assert_eq!(
+            (a1_actual, a1_expected, true),
+            (
+                a1_actual,
+                a1_expected,
+                is_fairly_accurate(a1_actual, a1_expected)
+            )
+        );
+        assert_eq!(
+            (a2_actual, a2_expected, true),
+            (
+                a2_actual,
+                a2_expected,
+                is_fairly_accurate(a2_actual, a2_expected)
             )
         );
     }
@@ -225,12 +262,16 @@ mod tests {
         let params = lowpass_butterworth(40, 24000);
 
         let b0_expected = 0.0000272138;
-        let b1_expected = 0.9852450855;
-        let b2_expected = -0.9852722993;
+        let b1_expected = 0.0000544276;
+        let b2_expected = 0.0000272138;
+        let a1_expected = -1.9851906579;
+        let a2_expected = 0.9852995131;
 
         let b0_actual = fixp_to_float(params.0);
         let b1_actual = fixp_to_float(params.1);
         let b2_actual = fixp_to_float(params.2);
+        let a1_actual = fixp_to_float(params.3);
+        let a2_actual = fixp_to_float(params.4);
 
         assert_eq!(
             (b0_actual, b0_expected, true),
@@ -254,6 +295,22 @@ mod tests {
                 b2_actual,
                 b2_expected,
                 is_fairly_accurate(b2_actual, b2_expected)
+            )
+        );
+        assert_eq!(
+            (a1_actual, a1_expected, true),
+            (
+                a1_actual,
+                a1_expected,
+                is_fairly_accurate(a1_actual, a1_expected)
+            )
+        );
+        assert_eq!(
+            (a2_actual, a2_expected, true),
+            (
+                a2_actual,
+                a2_expected,
+                is_fairly_accurate(a2_actual, a2_expected)
             )
         );
     }
@@ -262,12 +319,16 @@ mod tests {
         let params = lowpass_butterworth(400, 24000);
 
         let b0_expected = 0.0025505352;
-        let b1_expected = 0.8572475557;
-        let b2_expected = -0.8597980909;
+        let b1_expected = 0.0051010703;
+        let b2_expected = 0.0025505352;
+        let a1_expected = -1.8521464854;
+        let a2_expected = 0.8623486260;
 
         let b0_actual = fixp_to_float(params.0);
         let b1_actual = fixp_to_float(params.1);
         let b2_actual = fixp_to_float(params.2);
+        let a1_actual = fixp_to_float(params.3);
+        let a2_actual = fixp_to_float(params.4);
 
         assert_eq!(
             (b0_actual, b0_expected, true),
@@ -291,6 +352,22 @@ mod tests {
                 b2_actual,
                 b2_expected,
                 is_fairly_accurate(b2_actual, b2_expected)
+            )
+        );
+        assert_eq!(
+            (a1_actual, a1_expected, true),
+            (
+                a1_actual,
+                a1_expected,
+                is_fairly_accurate(a1_actual, a1_expected)
+            )
+        );
+        assert_eq!(
+            (a2_actual, a2_expected, true),
+            (
+                a2_actual,
+                a2_expected,
+                is_fairly_accurate(a2_actual, a2_expected)
             )
         );
     }
@@ -331,36 +408,42 @@ mod tests {
         let mut filtered_oscillator_50 = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
         // Unfiltered amplitude should be about 32768*(2/pi), or 20861.
         assert_eq!((20859, 50), get_avg_amplitude(&mut oscillator_50));
-        assert_eq!((17648, 50), get_avg_amplitude(&mut filtered_oscillator_50));
+        assert_eq!((20856, 50), get_avg_amplitude(&mut filtered_oscillator_50));
 
         let mut oscillator_100 = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
         let mut filtered_oscillator_100 = FilteredOscillator::new(100 * FREQUENCY_MULTIPLIER);
         assert_eq!((20859, 100), get_avg_amplitude(&mut oscillator_100));
         assert_eq!(
-            (12856, 100),
+            (20816, 100),
             get_avg_amplitude(&mut filtered_oscillator_100)
         );
 
         let mut oscillator_200 = Oscillator::new(200 * FREQUENCY_MULTIPLIER);
         let mut filtered_oscillator_200 = FilteredOscillator::new(200 * FREQUENCY_MULTIPLIER);
         assert_eq!((20859, 200), get_avg_amplitude(&mut oscillator_200));
-        assert_eq!((7251, 200), get_avg_amplitude(&mut filtered_oscillator_200));
+        assert_eq!(
+            (20234, 200),
+            get_avg_amplitude(&mut filtered_oscillator_200)
+        );
 
         let mut oscillator_400 = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
         let mut filtered_oscillator_400 = FilteredOscillator::new(400 * FREQUENCY_MULTIPLIER);
         assert_eq!((20832, 400), get_avg_amplitude(&mut oscillator_400));
-        assert_eq!((3223, 400), get_avg_amplitude(&mut filtered_oscillator_400));
+        assert_eq!(
+            (14732, 400),
+            get_avg_amplitude(&mut filtered_oscillator_400)
+        );
 
         let mut oscillator_800 = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
         let mut filtered_oscillator_800 = FilteredOscillator::new(800 * FREQUENCY_MULTIPLIER);
         assert_eq!((20779, 800), get_avg_amplitude(&mut oscillator_800));
-        assert_eq!((1109, 799), get_avg_amplitude(&mut filtered_oscillator_800));
+        assert_eq!((5043, 800), get_avg_amplitude(&mut filtered_oscillator_800));
 
         let mut oscillator_1600 = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
         let mut filtered_oscillator_1600 = FilteredOscillator::new(1600 * FREQUENCY_MULTIPLIER);
         assert_eq!((20779, 1600), get_avg_amplitude(&mut oscillator_1600));
         assert_eq!(
-            (318, 1596),
+            (1268, 1598),
             get_avg_amplitude(&mut filtered_oscillator_1600)
         );
     }
@@ -374,13 +457,13 @@ mod tests {
         let mut filtered_oscillator_50 = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
         // Unfiltered amplitude should be about 32768*(2/pi), or 20861.
         assert_eq!((20859, 50), get_avg_amplitude(&mut oscillator_50));
-        assert_eq!((20580, 50), get_avg_amplitude(&mut filtered_oscillator_50));
+        assert_eq!((20860, 50), get_avg_amplitude(&mut filtered_oscillator_50));
 
         let mut oscillator_100 = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
         let mut filtered_oscillator_100 = FilteredOscillator::new(100 * FREQUENCY_MULTIPLIER);
         assert_eq!((20859, 100), get_avg_amplitude(&mut oscillator_100));
         assert_eq!(
-            (19803, 100),
+            (20860, 100),
             get_avg_amplitude(&mut filtered_oscillator_100)
         );
 
@@ -388,7 +471,7 @@ mod tests {
         let mut filtered_oscillator_200 = FilteredOscillator::new(200 * FREQUENCY_MULTIPLIER);
         assert_eq!((20859, 200), get_avg_amplitude(&mut oscillator_200));
         assert_eq!(
-            (17379, 200),
+            (20861, 200),
             get_avg_amplitude(&mut filtered_oscillator_200)
         );
 
@@ -396,20 +479,23 @@ mod tests {
         let mut filtered_oscillator_400 = FilteredOscillator::new(400 * FREQUENCY_MULTIPLIER);
         assert_eq!((20832, 400), get_avg_amplitude(&mut oscillator_400));
         assert_eq!(
-            (12468, 400),
+            (20821, 400),
             get_avg_amplitude(&mut filtered_oscillator_400)
         );
 
         let mut oscillator_800 = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
         let mut filtered_oscillator_800 = FilteredOscillator::new(800 * FREQUENCY_MULTIPLIER);
         assert_eq!((20779, 800), get_avg_amplitude(&mut oscillator_800));
-        assert_eq!((7028, 800), get_avg_amplitude(&mut filtered_oscillator_800));
+        assert_eq!(
+            (20298, 800),
+            get_avg_amplitude(&mut filtered_oscillator_800)
+        );
 
         let mut oscillator_1600 = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
         let mut filtered_oscillator_1600 = FilteredOscillator::new(1600 * FREQUENCY_MULTIPLIER);
         assert_eq!((20779, 1600), get_avg_amplitude(&mut oscillator_1600));
         assert_eq!(
-            (3209, 1600),
+            (14779, 1600),
             get_avg_amplitude(&mut filtered_oscillator_1600)
         );
     }
