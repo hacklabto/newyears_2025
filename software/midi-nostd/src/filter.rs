@@ -122,22 +122,21 @@ impl<
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         if Self::B0 == 0 {
             self.source.get_next()
-        }
-        else {
-        let raw_value = self.source.get_next().to_i32();
-        let input = (raw_value as i64) << 16; // 31 bits of decimal precision
-        let b1_input_term = (input * Self::B1) >> 31;
-        let b0_input_term = b1_input_term >> 1;
-        let b2_input_term = b0_input_term;
+        } else {
+            let raw_value = self.source.get_next().to_i32();
+            let input = (raw_value as i64) << 16; // 31 bits of decimal precision
+            let b1_input_term = (input * Self::B1) >> 31;
+            let b0_input_term = b1_input_term >> 1;
+            let b2_input_term = b0_input_term;
 
-        let output: i64 = b0_input_term + self.d1;
-        let a1_output_term = ((output * Self::A1_P1) >> 31) - output;
-        let a2_output_term = (output * Self::A2) >> 31;
+            let output: i64 = b0_input_term + self.d1;
+            let a1_output_term = ((output * Self::A1_P1) >> 31) - output;
+            let a2_output_term = (output * Self::A2) >> 31;
 
-        self.d1 = self.d2 + b1_input_term - a1_output_term;
-        self.d2 = b2_input_term - a2_output_term;
-        let output_i32 = (output >> 16) as i32;
-        SoundSampleI32::new_i32(output_i32)
+            self.d1 = self.d2 + b1_input_term - a1_output_term;
+            self.d2 = b2_input_term - a2_output_term;
+            let output_i32 = (output >> 16) as i32;
+            SoundSampleI32::new_i32(output_i32)
         }
     }
 
@@ -510,7 +509,9 @@ mod tests {
         let mut oscillator_22000 = Oscillator::new(22000 * FREQUENCY_MULTIPLIER);
         let mut filtered_oscillator_22000 = FilteredOscillator::new(22000 * FREQUENCY_MULTIPLIER);
         assert_eq!((20373, 2000), get_avg_amplitude(&mut oscillator_22000));
-        assert_eq!((20373, 2000), get_avg_amplitude(&mut filtered_oscillator_22000));
+        assert_eq!(
+            (20373, 2000),
+            get_avg_amplitude(&mut filtered_oscillator_22000)
+        );
     }
 }
-

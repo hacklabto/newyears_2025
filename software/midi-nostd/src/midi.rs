@@ -12,6 +12,7 @@ pub struct MidiTrack<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
     current_remainder: u32,
     next_event_time: u32,
     last_delta: u32,
+    current_program: u8,
     playing_notes: [Option<usize>; 128],
 }
 
@@ -35,6 +36,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
             current_remainder,
             next_event_time,
             last_delta,
+            current_program: 0,
             playing_notes: [Option::<usize>::default(); 128],
         }
     }
@@ -62,7 +64,8 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
             midly::MidiMessage::NoteOn { key, vel } => {
                 let key_as_u32: u8 = (*key).into();
 
-                let note_init = SoundSourceNoteInit::new((*key).into(), 0, (*vel).into());
+                let note_init =
+                    SoundSourceNoteInit::new((*key).into(), self.current_program, (*vel).into());
                 let dst = if let Some(playing_note) = self.playing_notes[key_as_u32 as usize] {
                     playing_note
                 } else {
@@ -78,6 +81,9 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
                     notes.channels[playing_note].trigger_note_off();
                     self.playing_notes[key_as_u32 as usize] = None;
                 }
+            }
+            midly::MidiMessage::ProgramChange { program } => {
+                self.current_program = (*program).into();
             }
             _ => {}
         }
