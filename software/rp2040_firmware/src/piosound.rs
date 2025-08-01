@@ -15,8 +15,6 @@ use midly::Smf;
 use pio::InstructionOperands;
 type NewYearsMidi = Midi<24000, 16, 8>;
 
-const AUDIO: &[u8] = include_bytes!("../assets/ode.bin");
-
 const TARGET_PLAYBACK: u64 = 72_000;
 const PWM_TOP: u64 = 256;
 const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
@@ -84,21 +82,15 @@ static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
 pub struct AudioPlayback<'d> {
     midi: &'d mut NewYearsMidi,
     smf: &'d Smf<'d>,
-    audio_iter: &'d mut dyn Iterator<Item = &'d u8>,
     clear_count: u32,
 }
 
 impl<'d> AudioPlayback<'d> {
-    pub fn new(
-        audio_iter: &'d mut dyn Iterator<Item = &'d u8>,
-        midi: &'d mut NewYearsMidi,
-        smf: &'d Smf,
-    ) -> Self {
+    pub fn new(midi: &'d mut NewYearsMidi, smf: &'d Smf) -> Self {
         let clear_count: u32 = 0;
         Self {
             midi,
             smf,
-            audio_iter,
             clear_count,
         }
     }
@@ -299,9 +291,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&smf);
 
-        let mut iter = AUDIO.iter();
-
-        let mut playback_state: AudioPlayback = AudioPlayback::new(&mut iter, &mut midi, &smf);
+        let mut playback_state: AudioPlayback = AudioPlayback::new(&mut midi, &smf);
 
         while !playback_state.is_done() {
             // Start DMA transfer
