@@ -11,6 +11,9 @@ use fixed::traits::ToFixed;
 use fixed_macro::types::U56F8;
 use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
+use midly::Smf;
+use midi_nostd::midi::Midi;
+type NewYearsMidi = Midi::<24000, 16, 8>;
 
 const AUDIO: &[u8] = include_bytes!("../assets/ode.bin");
 
@@ -79,14 +82,20 @@ type SoundDmaType = SoundDma<3, 9600>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
 
 pub struct AudioPlayback<'d> {
+    //midi: &'d mut NewYearsMidi,
+    //smf: &'d Smf<'d>,
     audio_iter: &'d mut dyn Iterator<Item = &'d u8>,
     clear_count: u32,
 }
 
 impl<'d> AudioPlayback<'d> {
-    pub fn new(audio_iter: &'d mut dyn Iterator<Item = &'d u8>) -> Self {
+    pub fn new(audio_iter: &'d mut dyn Iterator<Item = &'d u8>,
+        //midi: &'d mut NewYearsMidi, smf: &'d Smf
+        ) -> Self {
         let clear_count: u32 = 0;
         Self {
+            //midi,
+            //smf,
             audio_iter,
             clear_count,
         }
@@ -287,8 +296,19 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     }
 
     pub async fn play_sound(&mut self) {
+        let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
+            .expect("It's inlined data, so its expected to parse");
+
+        let mut val:i32 = 0;
+        {
+            // Enabling these two lines will kill the sound.
+            // let mut midi = NewYearsMidi::new(&smf);
+            // val = midi.get_next(&smf).to_i32();
+        }
+
         let mut iter = AUDIO.iter();
-        let mut playback_state: AudioPlayback = AudioPlayback::new(&mut iter);
+
+        let mut playback_state: AudioPlayback = AudioPlayback::new(&mut iter); //, &mut midi, &smf);
 
         while !playback_state.is_done() {
             // Start DMA transfer
@@ -298,6 +318,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             // Wakes up when "DMA finished transfering" interrupt occurs.
             dma_buffer_in_flight.await;
         }
-        self.set_level(0x80);
+        //self.set_level(0x80);
+        self.set_level((val & 0xff) as u8);
     }
 }

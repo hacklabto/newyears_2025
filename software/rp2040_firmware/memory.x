@@ -4,7 +4,7 @@ MEMORY {
     RAM   : ORIGIN = 0x20000000, LENGTH = 256K
 }
 
-_stack_size = 0x10000;
+_stack_size = 0x1d000;
 
 EXTERN(BOOT2_FIRMWARE)
 
