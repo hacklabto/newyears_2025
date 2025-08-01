@@ -55,22 +55,25 @@ pub struct MidiTrack<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
     active: bool,
     current_event_idx: usize,
     current_time: U32Fraction<PLAY_FREQUENCY>,
-    //current_time: u32,
-    //current_remainder: u32,
     next_event_time: u32,
     last_delta: u32,
 }
 
 pub struct Channel {
     pub current_program: u8,
-    pub playing_notes: [Option<usize>; 128],
+    pub playing_notes: [u8; 128],
+}
+
+impl Channel {
+    const UNUSED: u8 = 0xff;
 }
 
 impl Default for Channel {
+
     fn default() -> Self {
         Self {
             current_program: 0,
-            playing_notes: [Option::<usize>::default(); 128],
+            playing_notes: [Self::UNUSED; 128],
         }
     }
 }
@@ -141,24 +144,28 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
                     channels.channels[channel].current_program,
                     (*vel).into(),
                 );
-                let dst = if let Some(playing_note) =
-                    channels.channels[channel].playing_notes[key_as_u32 as usize]
+                let playing_note =
+                    channels.channels[channel].playing_notes[key_as_u32 as usize];
+                let dst = if playing_note != Channel::UNUSED
                 {
-                    playing_note
+                    playing_note as usize
                 } else {
                     notes.alloc()
                 };
+                assert!( dst < (Channel::UNUSED as usize));
 
                 notes.channels[dst] = Note::<PLAY_FREQUENCY>::new(note_init);
-                channels.channels[channel].playing_notes[key_as_u32 as usize] = Some(dst)
+                channels.channels[channel].playing_notes[key_as_u32 as usize] = dst as u8;
             }
             midly::MidiMessage::NoteOff { key, vel: _ } => {
                 let key_as_u32: u8 = (*key).into();
-                if let Some(playing_note) =
-                    channels.channels[channel].playing_notes[key_as_u32 as usize]
+                let playing_note =
+                    channels.channels[channel].playing_notes[key_as_u32 as usize];
+
+                if playing_note != Channel::UNUSED
                 {
-                    notes.channels[playing_note].trigger_note_off();
-                    channels.channels[channel].playing_notes[key_as_u32 as usize] = None;
+                    notes.channels[playing_note as usize].trigger_note_off();
+                    channels.channels[channel].playing_notes[key_as_u32 as usize] = Channel::UNUSED;
                 }
             }
             midly::MidiMessage::ProgramChange { program } => {
@@ -276,6 +283,11 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
     }
 
     pub fn new(smf: &Smf) -> Self {
+        //
+        // Limit to 255 (not 256) notes to save space in the midi data
+        // structure.  On embedded platforms memory is often limited
+        //
+        assert!(MAX_NOTES < 0xff);
         let loudest = Self::get_loudest_sample(smf);
         Midi::<PLAY_FREQUENCY, MAX_NOTES, MAX_TRACKS>::new_internal(&smf, loudest / 0x8000 + 1)
     }

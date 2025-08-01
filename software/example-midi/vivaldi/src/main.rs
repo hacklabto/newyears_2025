@@ -26,7 +26,10 @@ fn run() -> Result<(), pa::Error> {
 
     let smf = midly::Smf::parse(include_bytes!("../assets/vivaldi.mid"))
         .expect("It's inlined data, so its expected to parse");
-    let mut midi = Midi::<24000, 128, 32>::new(&smf);
+
+    type MyMidi = Midi::<24000, 64, 32>;
+    println!("Midi structure is currently using {} bytes", std::mem::size_of::<MyMidi>());
+    let mut midi = MyMidi::new(&smf);
 
     let pa = pa::PortAudio::new()?;
 
