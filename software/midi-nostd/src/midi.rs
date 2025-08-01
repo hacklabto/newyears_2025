@@ -1,5 +1,4 @@
 use crate::amp_adder::AmpAdder;
-use crate::note::Note;
 use crate::note::SoundSourceNoteInit;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_sample::U32Fraction;
@@ -69,7 +68,6 @@ impl Channel {
 }
 
 impl Default for Channel {
-
     fn default() -> Self {
         Self {
             current_program: 0,
@@ -144,27 +142,23 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
                     channels.channels[channel].current_program,
                     (*vel).into(),
                 );
-                let playing_note =
-                    channels.channels[channel].playing_notes[key_as_u32 as usize];
-                let dst = if playing_note != Channel::UNUSED
-                {
+                let playing_note = channels.channels[channel].playing_notes[key_as_u32 as usize];
+                let dst = if playing_note != Channel::UNUSED {
                     playing_note as usize
                 } else {
                     notes.alloc()
                 };
-                assert!( dst < (Channel::UNUSED as usize));
+                assert!(dst < (Channel::UNUSED as usize));
 
-                notes.channels[dst] = Note::<PLAY_FREQUENCY>::new(note_init);
+                notes.new_note_at(dst, note_init);
                 channels.channels[channel].playing_notes[key_as_u32 as usize] = dst as u8;
             }
             midly::MidiMessage::NoteOff { key, vel: _ } => {
                 let key_as_u32: u8 = (*key).into();
-                let playing_note =
-                    channels.channels[channel].playing_notes[key_as_u32 as usize];
+                let playing_note = channels.channels[channel].playing_notes[key_as_u32 as usize];
 
-                if playing_note != Channel::UNUSED
-                {
-                    notes.channels[playing_note as usize].trigger_note_off();
+                if playing_note != Channel::UNUSED {
+                    notes.trigger_note_off_at(playing_note as usize);
                     channels.channels[channel].playing_notes[key_as_u32 as usize] = Channel::UNUSED;
                 }
             }

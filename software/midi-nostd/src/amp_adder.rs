@@ -1,5 +1,6 @@
 use crate::free_list::FreeList;
 use crate::note::Note;
+use crate::note::SoundSourceNoteInit;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
@@ -7,14 +8,22 @@ use crate::sound_source_core::SoundSourceCore;
 /// Amp Adder
 ///
 pub struct AmpAdder<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> {
-    pub free_list: FreeList<NUM_CHANNELS>,
-    pub channels: [Note<PLAY_FREQUENCY>; NUM_CHANNELS],
-    pub divider: i32,
+    free_list: FreeList<NUM_CHANNELS>,
+    channels: [Note<PLAY_FREQUENCY>; NUM_CHANNELS],
+    divider: i32,
 }
 
 impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS> {
     pub fn alloc(self: &mut Self) -> usize {
         self.free_list.alloc()
+    }
+
+    pub fn trigger_note_off_at(self: &mut Self, element: usize) {
+        self.channels[element].trigger_note_off();
+    }
+
+    pub fn new_note_at(self: &mut Self, element: usize, note_init: SoundSourceNoteInit) {
+        self.channels[element] = Note::<PLAY_FREQUENCY>::new(note_init);
     }
 }
 
@@ -45,11 +54,7 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_
             }
         }
 
-        output = SoundSampleI32::new_i32(output.to_i32() / self.divider);
-        //if output.to_i32() > 0x8000 || output.to_i32() < -0x8000 {
-        //    println!("clip {}", output.to_i32());
-        // }
-        output
+        SoundSampleI32::new_i32(output.to_i32() / self.divider)
     }
 
     fn has_next(self: &Self) -> bool {
