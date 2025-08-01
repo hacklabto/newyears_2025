@@ -11,9 +11,8 @@ use fixed::traits::ToFixed;
 use fixed_macro::types::U56F8;
 use gpio::{Level, Output, Pin};
 use midi_nostd::midi::Midi;
-use midly::Smf;
 use pio::InstructionOperands;
-type NewYearsMidi = Midi<24000, 16, 8>;
+type NewYearsMidi<'a> = Midi<'a, 24000, 16, 8>;
 
 const TARGET_PLAYBACK: u64 = 72_000;
 const PWM_TOP: u64 = 256;
@@ -80,19 +79,14 @@ type SoundDmaType = SoundDma<3, 9600>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
 
 pub struct AudioPlayback<'d> {
-    midi: &'d mut NewYearsMidi,
-    smf: &'d Smf<'d>,
+    midi: &'d mut NewYearsMidi<'d>,
     clear_count: u32,
 }
 
 impl<'d> AudioPlayback<'d> {
-    pub fn new(midi: &'d mut NewYearsMidi, smf: &'d Smf) -> Self {
+    pub fn new(midi: &'d mut NewYearsMidi<'d>) -> Self {
         let clear_count: u32 = 0;
-        Self {
-            midi,
-            smf,
-            clear_count,
-        }
+        Self { midi, clear_count }
     }
 
     fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
@@ -106,7 +100,7 @@ impl<'d> AudioPlayback<'d> {
 
         for entry in buffer.iter_mut() {
             if read_on_zero == 0 {
-                value = (((self.midi.get_next(self.smf).to_i32() >> 8) + 0x80) & 0xff) as u8;
+                value = (((self.midi.get_next().to_i32() >> 8) + 0x80) & 0xff) as u8;
             }
             *entry = value as u32;
             read_on_zero = read_on_zero + 1;
@@ -287,11 +281,11 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     }
 
     pub async fn play_sound(&mut self) {
-        let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
+        let (header, tracks) = midly::parse(include_bytes!("../assets/twinkle.mid"))
             .expect("It's inlined data, so its expected to parse");
-        let mut midi = NewYearsMidi::new(&smf);
+        let mut midi = NewYearsMidi::new(&header, tracks);
 
-        let mut playback_state: AudioPlayback = AudioPlayback::new(&mut midi, &smf);
+        let mut playback_state: AudioPlayback = AudioPlayback::new(&mut midi);
 
         while !playback_state.is_done() {
             // Start DMA transfer
