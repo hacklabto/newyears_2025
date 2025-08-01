@@ -1,50 +1,7 @@
 use crate::amp_adder::AmpAdder;
+use crate::midi_time::MidiTime;
 use crate::note::SoundSourceNoteInit;
 use crate::sound_sample::U32Fraction;
-
-pub struct MidiTime<const PLAY_FREQUENCY: u32> {
-    current_ms_per_quarter_note: u32,
-    ticks_per_quarter_note: u32,
-    midi_event_update_rate: U32Fraction<PLAY_FREQUENCY>,
-}
-
-impl<const PLAY_FREQUENCY: u32> MidiTime<PLAY_FREQUENCY> {
-    fn compute_midi_events_per_second(self: &mut Self) {
-        // We are being called PLAY_FREQUENCY times a second.
-        // one quarter note = current_ms_per_qn / 1 000 000 seconds
-        // 1 tick = (current_ms_per_qn / 1 000 000 seconds) / ticks_per_qn
-        // midi events / second = (1 000 000 * ticks_per_qn ) / current_ms_per_qn
-        // TODO, rethink timing a bit.
-        //
-        // I probably want a meta data class of some kind for things like the timing
-        // updates.  Also, I want to handle the case where the playback is slower
-        // than the midi playback, so I can fast forward through the track to get
-        // a good maximum output voltage.
-        //
-        let midi_events_per_second: u32 = (1000000u64 * (self.ticks_per_quarter_note as u64)
-            / (self.current_ms_per_quarter_note as u64))
-            as u32;
-        let midi_events_per_sample = midi_events_per_second / PLAY_FREQUENCY;
-        let midi_events_per_sample_remainder = midi_events_per_second % PLAY_FREQUENCY;
-
-        self.midi_event_update_rate =
-            U32Fraction::new(midi_events_per_sample, midi_events_per_sample_remainder);
-    }
-    fn set_ms_per_quarter_note(self: &mut Self, current_ms_per_quarter_note: u32) {
-        self.current_ms_per_quarter_note = current_ms_per_quarter_note;
-        self.compute_midi_events_per_second();
-    }
-
-    pub fn new(current_ms_per_quarter_note: u32, ticks_per_quarter_note: u32) -> Self {
-        let mut rval = Self {
-            current_ms_per_quarter_note,
-            ticks_per_quarter_note,
-            midi_event_update_rate: U32Fraction::new(0, 0),
-        };
-        rval.compute_midi_events_per_second();
-        rval
-    }
-}
 
 pub struct MidiTrack<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
     active: bool,
@@ -119,7 +76,6 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
     }
 
     pub fn handle_midi_event<const NUM_CHANNELS: usize>(
-        self: &mut Self,
         midi_event: &midly::MidiMessage,
         channel_u8: u8,
         notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
@@ -166,7 +122,6 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
     }
 
     pub fn handle_track_event<'a, const NUM_CHANNELS: usize>(
-        self: &mut Self,
         track_event: &midly::TrackEventKind,
         notes: &mut AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>,
         channels: &mut Channels,
@@ -174,7 +129,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
     ) {
         match track_event {
             midly::TrackEventKind::Midi { message, channel } => {
-                self.handle_midi_event(&message, (*channel).into(), notes, channels)
+                Self::handle_midi_event(&message, (*channel).into(), notes, channels)
             }
             midly::TrackEventKind::Meta(message) => match message {
                 midly::MetaMessage::Tempo(ms_per_qn_midly) => {
@@ -198,7 +153,7 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
             return;
         }
         while self.current_time.int_part >= self.next_event_time {
-            self.handle_track_event(
+            Self::handle_track_event(
                 &(events[self.current_event_idx]).kind,
                 notes,
                 channels,
@@ -213,6 +168,6 @@ impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY
             self.last_delta = delta;
         }
 
-        self.current_time.add(&tempo.midi_event_update_rate);
+        self.current_time.add(tempo.get_update_rate());
     }
 }
