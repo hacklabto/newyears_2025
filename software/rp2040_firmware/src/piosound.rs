@@ -12,7 +12,7 @@ use fixed_macro::types::U56F8;
 use gpio::{Level, Output, Pin};
 use midi_nostd::midi::Midi;
 use pio::InstructionOperands;
-type NewYearsMidi<'a> = Midi<'a, 24000, 16, 8>;
+type NewYearsMidi<'a> = Midi<'a, 8000, 64, 32>;
 
 const TARGET_PLAYBACK: u64 = 72_000;
 const PWM_TOP: u64 = 256;
@@ -104,7 +104,7 @@ impl<'d> AudioPlayback<'d> {
             }
             *entry = value as u32;
             read_on_zero = read_on_zero + 1;
-            if read_on_zero == 3 {
+            if read_on_zero == 9 {
                 read_on_zero = 0;
             }
             if !self.midi.has_next() {
@@ -281,7 +281,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     }
 
     pub async fn play_sound(&mut self) {
-        let (header, tracks) = midly::parse(include_bytes!("../assets/twinkle.mid"))
+        let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 
