@@ -14,6 +14,7 @@ pub mod french_horn;
 pub mod guitar_acoustic;
 pub mod lfo_amplitude;
 pub mod midi;
+pub mod midi_channels;
 pub mod midi_events;
 pub mod midi_notes;
 pub mod midi_time;

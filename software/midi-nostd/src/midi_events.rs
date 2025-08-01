@@ -1,7 +1,7 @@
 use crate::amp_adder::AmpAdder;
+use crate::midi_channels::Channel;
+use crate::midi_channels::Channels;
 use crate::midi_time::MidiTime;
-use crate::midi_track::Channel;
-use crate::midi_track::Channels;
 use crate::note::SoundSourceNoteInit;
 
 pub fn handle_midi_event<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize>(

@@ -1,4 +1,5 @@
 use crate::amp_adder::AmpAdder;
+use crate::midi_channels::Channels;
 use crate::midi_events::*;
 use crate::midi_time::MidiTime;
 use crate::sound_sample::U32Fraction;
@@ -9,36 +10,6 @@ pub struct MidiTrack<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
     current_time: U32Fraction<PLAY_FREQUENCY>,
     next_event_time: u32,
     last_delta: u32,
-}
-
-pub struct Channel {
-    pub current_program: u8,
-    pub playing_notes: [u8; 128],
-}
-
-impl Channel {
-    pub const UNUSED: u8 = 0xff;
-}
-
-impl Default for Channel {
-    fn default() -> Self {
-        Self {
-            current_program: 0,
-            playing_notes: [Self::UNUSED; 128],
-        }
-    }
-}
-
-pub struct Channels {
-    pub channels: [Channel; 16],
-}
-
-impl Default for Channels {
-    fn default() -> Self {
-        Self {
-            channels: core::array::from_fn(|_idx| Channel::default()),
-        }
-    }
 }
 
 impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY, MAX_NOTES> {

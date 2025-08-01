@@ -1,6 +1,6 @@
 use crate::amp_adder::AmpAdder;
+use crate::midi_channels::Channels;
 use crate::midi_time::MidiTime;
-use crate::midi_track::Channels;
 use crate::midi_track::MidiTrack;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
