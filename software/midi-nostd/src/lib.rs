@@ -15,6 +15,7 @@ pub mod guitar_acoustic;
 pub mod lfo_amplitude;
 pub mod midi;
 pub mod midi_notes;
+pub mod midi_track;
 pub mod note;
 pub mod oscillator;
 pub mod piano;
