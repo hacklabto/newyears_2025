@@ -1,10 +1,10 @@
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio;
-use embassy_time::Instant;
-use gpio::{Level, Output, Pin};
 use embassy_rp::pio::{
     Common, Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
 };
+use embassy_time::Instant;
+use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
 
 // The backlight is a 2D array of R,G,B LED triplets per pixel
@@ -205,14 +205,13 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
     pub fn delay() {
         let start_time = Instant::now();
-        while start_time.elapsed().as_millis() < 2 {
-        }
+        while start_time.elapsed().as_millis() < 2 {}
     }
 
     pub fn test_pattern(&mut self) {
         self.test_latch_pin.set_high();
         self.test_clear_pin.set_low();
-        let mut count: u32=0;
+        let mut count: u32 = 0;
         while count < 20 {
             let mut bit_count: u32 = 0;
             while bit_count < 32 {
@@ -228,7 +227,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
                 Self::delay();
                 self.test_clk_pin.set_low();
                 Self::delay();
-                bit_count = bit_count +1;
+                bit_count = bit_count + 1;
             }
             self.test_clear_pin.set_high();
             Self::delay();
@@ -242,7 +241,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             let mut delay_count: u32 = 0;
             while delay_count < 50 {
                 Self::delay();
-                delay_count = delay_count +1;
+                delay_count = delay_count + 1;
             }
             count = count + 1;
         }

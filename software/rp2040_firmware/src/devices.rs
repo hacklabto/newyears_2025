@@ -49,11 +49,7 @@ impl Devices<'_> {
         let pio_sm1 = pio.sm1;
 
         Self {
-            buttons: Buttons::new(
-                p.PIN_12, 
-                p.PIN_14, 
-                p.PIN_13, 
-                p.PIN_15),
+            buttons: Buttons::new(p.PIN_12, p.PIN_14, p.PIN_13, p.PIN_15),
 
             backlight: PioBacklight::new(
                 backlight::Config {
@@ -63,10 +59,10 @@ impl Devices<'_> {
                 },
                 &mut pio_common,
                 pio_sm0,
-                p.PIN_6, // LED_CLK
-                p.PIN_7, // LED_DATA
-                p.PIN_8, // LED_LATCH
-                p.PIN_9, // LED_CLEAR
+                p.PIN_6,  // LED_CLK
+                p.PIN_7,  // LED_DATA
+                p.PIN_8,  // LED_LATCH
+                p.PIN_9,  // LED_CLEAR
                 p.PIN_22, // LED_CLK
                 p.PIN_23, // LED_DATA
                 p.PIN_24, // LED_LATCH
@@ -84,8 +80,7 @@ impl Devices<'_> {
                 p.DMA_CH1,
             ),
             display: create_ssd_display(
-                p.I2C0, 
-                p.PIN_1, // SCL
+                p.I2C0, p.PIN_1, // SCL
                 p.PIN_0, // SDA
             ),
         }

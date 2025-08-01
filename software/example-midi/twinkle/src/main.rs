@@ -27,7 +27,7 @@ fn run() -> Result<(), pa::Error> {
     let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
         .expect("It's inlined data, so its expected to parse");
 
-    type MyMidi = Midi::<24000, 32, 8>;
+    type MyMidi = Midi::<24000, 16, 8>;
     println!("Midi structure is currently using {} bytes", std::mem::size_of::<MyMidi>());
 
     let mut midi = MyMidi::new(&smf);
