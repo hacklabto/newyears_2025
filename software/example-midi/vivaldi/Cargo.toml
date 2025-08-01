@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 
 portaudio = { version = "0.8.0" }
-midly = { version = "0.5.3", default-features = false, features = ["alloc"] }
+midly = { version = "0.5.3", default-features = false }
 midi-nostd = {path = "../../midi-nostd" }
 
 [profile.release]

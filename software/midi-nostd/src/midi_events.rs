@@ -50,19 +50,19 @@ pub fn handle_midi_event<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize>(
     }
 }
 
-pub fn handle_track_event<'a, const PLAY_FREQUENCY: u32, const MAX_NOTES: usize>(
-    track_event: &midly::TrackEventKind,
+pub fn handle_track_event<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize>(
+    track_event: &midly::TrackEvent,
     notes: &mut AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
     channels: &mut Channels,
     tempo: &mut MidiTime<PLAY_FREQUENCY>,
 ) {
-    match track_event {
+    match track_event.kind {
         midly::TrackEventKind::Midi { message, channel } => {
-            handle_midi_event(&message, (*channel).into(), notes, channels)
+            handle_midi_event(&message, channel.into(), notes, channels)
         }
         midly::TrackEventKind::Meta(message) => match message {
             midly::MetaMessage::Tempo(ms_per_qn_midly) => {
-                let ms_per_qn: u32 = (*ms_per_qn_midly).into();
+                let ms_per_qn: u32 = ms_per_qn_midly.into();
                 tempo.set_ms_per_quarter_note(ms_per_qn as u32);
             }
             _ => {}

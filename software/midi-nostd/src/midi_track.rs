@@ -4,70 +4,63 @@ use crate::midi_events::*;
 use crate::midi_time::MidiTime;
 use crate::sound_sample::U32Fraction;
 
-pub struct MidiTrack<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
-    active: bool,
-    current_event_idx: usize,
+pub struct MidiTrack<'a, const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> {
+    last_event: Option<Result<midly::TrackEvent<'a>, midly::Error>>,
+    event_iter: midly::EventIter<'a>,
     current_time: U32Fraction<PLAY_FREQUENCY>,
     next_event_time: u32,
     last_delta: u32,
 }
 
-impl<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize> MidiTrack<PLAY_FREQUENCY, MAX_NOTES> {
-    pub fn new<'a>(events: &'a midly::Track<'a>) -> Self {
-        let active = events.len() != 0;
-        let current_event_idx: usize = 0;
-        let next_event_time: u32 = if active {
-            events[current_event_idx].delta.into()
+impl<'a, const PLAY_FREQUENCY: u32, const MAX_NOTES: usize>
+    MidiTrack<'a, PLAY_FREQUENCY, MAX_NOTES>
+{
+    pub fn new(mut event_iter: midly::EventIter<'a>) -> Self {
+        let last_event = event_iter.next();
+        let next_event_time: u32 = if last_event.is_some() {
+            last_event.as_ref().unwrap().as_ref().unwrap().delta.into()
         } else {
             0
         };
         let last_delta = 0;
 
         Self {
-            active,
-            current_event_idx,
+            event_iter,
+            last_event,
             current_time: U32Fraction::<PLAY_FREQUENCY>::new(0, 0),
             next_event_time,
             last_delta,
         }
     }
     pub fn has_next(self: &Self) -> bool {
-        self.active
+        return !self.last_event.is_none();
     }
 
-    pub fn go_to_next_event<'a>(self: &mut Self, events: &'a midly::Track<'a>) {
-        if !self.active {
+    pub fn go_to_next_event(self: &mut Self) {
+        if !self.has_next() {
             return;
         }
-        self.current_event_idx += 1;
-        if self.current_event_idx >= events.len() {
-            self.active = false;
-            return;
-        }
+        self.last_event = self.event_iter.next();
     }
 
-    pub fn update<'a>(
+    pub fn update(
         self: &mut Self,
-        events: &'a midly::Track<'a>,
         notes: &mut AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
         channels: &mut Channels,
         tempo: &mut MidiTime<PLAY_FREQUENCY>,
     ) {
-        if !self.active {
+        if !self.has_next() {
             return;
         }
         while self.current_time.int_part >= self.next_event_time {
-            handle_track_event(
-                &(events[self.current_event_idx]).kind,
-                notes,
-                channels,
-                tempo,
-            );
-            self.go_to_next_event(events);
-            if !self.active {
+            let track_event = self.last_event.as_ref().unwrap().as_ref().unwrap();
+            handle_track_event(&track_event, notes, channels, tempo);
+            self.go_to_next_event();
+            if !self.has_next() {
                 return;
             }
-            let delta: u32 = events[self.current_event_idx].delta.into();
+            let new_track_event = self.last_event.as_ref().unwrap().as_ref().unwrap();
+            let delta: u32 = new_track_event.delta.into();
             self.next_event_time = self.next_event_time + delta;
             self.last_delta = delta;
         }

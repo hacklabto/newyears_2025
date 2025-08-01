@@ -24,13 +24,16 @@ fn run() -> Result<(), pa::Error> {
         SAMPLE_RATE, FRAMES_PER_BUFFER
     );
 
-    let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
+    let (header, tracks) = midly::parse(include_bytes!("../assets/twinkle.mid"))
         .expect("It's inlined data, so its expected to parse");
 
-    type MyMidi = Midi::<24000, 16, 8>;
-    println!("Midi structure is currently using {} bytes", std::mem::size_of::<MyMidi>());
+    type MyMidi<'a> = Midi<'a, 24000, 16, 8>;
+    println!(
+        "Midi structure is currently using {} bytes",
+        std::mem::size_of::<MyMidi>()
+    );
 
-    let mut midi = MyMidi::new(&smf);
+    let mut midi = MyMidi::new(&header, tracks);
 
     let pa = pa::PortAudio::new()?;
 
@@ -42,7 +45,7 @@ fn run() -> Result<(), pa::Error> {
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         let mut idx = 0;
         for _ in 0..frames {
-            let current = (midi.get_next(&smf).clip().to_i32() as f32) / 32768.0;
+            let current = (midi.get_next().clip().to_i32() as f32) / 32768.0;
             buffer[idx] = current;
             buffer[idx + 1] = current;
             idx += 2;
