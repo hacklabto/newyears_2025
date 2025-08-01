@@ -11,8 +11,9 @@ use fixed::traits::ToFixed;
 use fixed_macro::types::U56F8;
 use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
-
-const AUDIO: &[u8] = include_bytes!("../assets/shortode.bin");
+use midi_nostd::midi::Midi;
+use midly::Smf;
+type NewYearsMidi = Midi::<24000, 128, 32>;
 
 const TARGET_PLAYBACK: u64 = 72_000;
 const PWM_TOP: u64 = 256;
@@ -79,15 +80,17 @@ type SoundDmaType = SoundDma<3, 9600>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
 
 pub struct AudioPlayback<'d> {
-    audio_iter: &'d mut dyn Iterator<Item = &'d u8>,
+    midi: &'d mut NewYearsMidi,
+    smf: &'d Smf<'d>,
     clear_count: u32,
 }
 
 impl<'d> AudioPlayback<'d> {
-    pub fn new(audio_iter: &'d mut dyn Iterator<Item = &'d u8>) -> Self {
+    pub fn new(midi: &'d mut NewYearsMidi, smf: &'d Smf) -> Self {
         let clear_count: u32 = 0;
         Self {
-            audio_iter,
+            midi,
+            smf,
             clear_count,
         }
     }
@@ -103,13 +106,10 @@ impl<'d> AudioPlayback<'d> {
 
         for entry in buffer.iter_mut() {
             if read_on_zero == 0 {
-                let value_maybe = self.audio_iter.next();
-                value = if value_maybe.is_some() {
-                    *value_maybe.unwrap()
-                } else {
-                    self.clear_count = 1;
-                    0x80
-                }
+                let mut value_i32 = (self.midi.get_next(&self.smf).to_i32() >> 8) + 128;
+                value_i32 = if value_i32 < 0 { 0} else {value_i32};
+                value_i32 = if value_i32 > 255 { 255 } else {value_i32};
+                value = value_i32 as u8;
             };
             *entry = value as u32;
             read_on_zero = read_on_zero + 1;
@@ -117,6 +117,10 @@ impl<'d> AudioPlayback<'d> {
                 read_on_zero = 0;
             }
         }
+        if !self.midi.has_next() {
+            self.clear_count = 1;
+        }
+        self.clear_count = 1;
     }
 
     fn is_done(&self) -> bool {
@@ -287,9 +291,22 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     }
 
     pub async fn play_sound(&mut self) {
-        let mut iter = AUDIO.iter();
-        let mut playback_state: AudioPlayback = AudioPlayback::new(&mut iter);
+        let smf = midly::Smf::parse(include_bytes!("../assets/twinkle.mid"))
+            .expect("It's inlined data, so its expected to parse");
 
+        let mut midi = NewYearsMidi::new(&smf);
+
+        //let mut playback_state: AudioPlayback = AudioPlayback::new(&mut midi, &smf);
+        for _ in 0..240000*3 {
+        let mut value_i32 = (midi.get_next(&smf).to_i32() >> 8) + 128;
+
+        value_i32 = if value_i32 < 0 { 0} else {value_i32};
+        value_i32 = if value_i32 > 255 { 255 } else {value_i32};
+        let value: u8 = value_i32 as u8;
+        self.set_level(value);
+        }
+
+                /*
         while !playback_state.is_done() {
             // Start DMA transfer
             let dma_buffer_in_flight = self.send_dma_buffer_to_pio();
@@ -298,6 +315,6 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
             // Wakes up when "DMA finished transfering" interrupt occurs.
             dma_buffer_in_flight.await;
         }
-        self.set_level(0x80);
+        self.set_level(0x80);*/
     }
 }

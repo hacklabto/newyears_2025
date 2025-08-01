@@ -5,11 +5,26 @@ use hackernewyears::menu::MenuBinding;
 use hackernewyears::AnimatingGif;
 use hackernewyears::AnimatingGifs;
 
+extern crate alloc;
+
+use cortex_m_rt::entry;
+use embedded_alloc::LlffHeap as Heap;
+
+// For midly, probably, hopefully.
+#[global_allocator]
+static HEAP: Heap = Heap::empty();
+
 use defmt_rtt as _;
 use panic_probe as _;
 
 #[embassy_executor::main]
 async fn main(_spawner: embassy_executor::Spawner) {
+
+    use core::mem::MaybeUninit;
+    const HEAP_SIZE: usize = 40*1024;
+    static mut HEAP_MEM: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
+    unsafe { HEAP.init(HEAP_MEM.as_ptr() as usize, HEAP_SIZE) }
+
     let p = embassy_rp::init(Default::default());
     let mut devices = hackernewyears::Devices::new(p);
     let animating_gifs = AnimatingGifs::new();
@@ -20,7 +35,7 @@ async fn main(_spawner: embassy_executor::Spawner) {
             .await;
     }
 
-    devices.backlight.test_pattern();
+    //devices.backlight.test_pattern();
 
     let mut current_pos: Option<usize> = None;
     loop {
