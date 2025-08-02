@@ -12,11 +12,17 @@ use fixed_macro::types::U56F8;
 use gpio::{Level, Output, Pin};
 use midi_nostd::midi::Midi;
 use pio::InstructionOperands;
-type NewYearsMidi<'a> = Midi<'a, 24000, 240, 32, 32>;
+// 89 and 3 are factors of 20292.  89*3 has to be a factor of 20292.
+type NewYearsMidi<'a> = Midi<'a, 20292, {89*3}, 32, 32>;
 
-const TARGET_PLAYBACK: u64 = 72_000;
-const PWM_TOP: u64 = 256;
-const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
+const PWM_BITS: u32 = 6;
+const REMAINDER_BITS: u32 = 10 - PWM_BITS;
+const PWM_TOP: u32 = 1<<PWM_BITS;
+const PWM_REMAINDER: usize = 1 << REMAINDER_BITS;
+
+const PWM_TOP_SHIFT: u32 = 17 - PWM_BITS;
+const PWM_REMAINDER_SHIFT: u32 = PWM_TOP_SHIFT - REMAINDER_BITS;
+//const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
 
 pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
     buffer: [[u32; BUFSIZE]; BUFFERS],
@@ -83,6 +89,28 @@ pub struct AudioPlayback<'d> {
     clear_count: u32,
 }
 
+const fn generate_dither_array< const N: usize>() -> [u32; N] {
+    let mut array = [0; N];
+    let mut idx:usize = 0;
+    while idx < N {
+        let mut remainder: u32 = (N as u32)/2;
+        let mut result: u32 = 0;
+        let mut j: usize = 0;
+        while j < N {
+            result = result << 1;
+            remainder = remainder + (idx as u32);
+            if remainder >= N as u32 {
+                remainder -= N as u32;
+                result |= 1;
+            }
+            j = j + 1;
+        }
+        array[idx] = result;
+        idx = idx + 1;
+    }
+    return array
+}
+
 impl<'d> AudioPlayback<'d> {
     pub fn new(midi: &'d mut NewYearsMidi<'d>) -> Self {
         let clear_count: u32 = 0;
@@ -90,8 +118,11 @@ impl<'d> AudioPlayback<'d> {
     }
 
     fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
-        let mut value: u8 = 0;
-        let mut read_on_zero: u8 = 0;
+        let mut value: u32 = 0;
+        let mut read_on_zero: u32 = 0;
+        let mut dither: u32= 0;
+ 
+        const DITHERS: [ u32; PWM_REMAINDER]  = generate_dither_array::<PWM_REMAINDER>();
 
         // For now, copy every audio signal at our 24khz playback speed into
         // the buffer 3x.  That gives an effective PWM frequency of 144k
@@ -101,20 +132,19 @@ impl<'d> AudioPlayback<'d> {
         for entry in buffer.iter_mut() {
             if read_on_zero == 0 {
                 let value_raw: i32 = self.midi.get_next().to_i32();
-                let value_abs: i32 = if value_raw >= 0 { value_raw } else { -value_raw };
-                let value_i32: i32 = (value_abs >> 8);
-                value = if value_i32 < 0 {
-                    0
-                } else if value_i32 > 255 {
-                    255
+                let value_abs: u32 = if value_raw >= 0 { value_raw as u32} else { (-value_raw) as u32 };
+                let value_u32: u32 = value_abs >> PWM_TOP_SHIFT;
+                dither = DITHERS[((value_abs >> PWM_REMAINDER_SHIFT) & ((PWM_REMAINDER as u32) - 1)) as usize];
+                value = if value_u32 >= PWM_TOP {
+                    PWM_TOP-1
                 }
                 else {
-                    value_i32 as u8
+                    value_u32
                 }
             }
-            *entry = value as u32;
+            *entry = value + ((dither >> read_on_zero) & 1);
             read_on_zero = read_on_zero + 1;
-            if read_on_zero == 3 {
+            if read_on_zero == PWM_REMAINDER as u32 {
                 read_on_zero = 0;
             }
             if !self.midi.has_next() {
@@ -213,8 +243,8 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         };
         pio_cfg.fifo_join = FifoJoin::TxOnly;
 
-        pio_cfg.clock_divider =
-            (U56F8!(125_000_000) / (TARGET_PLAYBACK * PWM_CYCLES_PER_READ)).to_fixed();
+        pio_cfg.clock_divider = 1.to_fixed();
+            //(U56F8!(125_000_000) / (TARGET_PLAYBACK * PWM_CYCLES_PER_READ)).to_fixed();
 
         sm.set_config(&pio_cfg);
 
