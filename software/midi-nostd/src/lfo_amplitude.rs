@@ -54,6 +54,10 @@ impl<
         return lfo_oscillation * sound;
     }
 
+    fn update(self: &mut Self) {
+        return self.source.update();
+    }
+
     fn has_next(self: &Self) -> bool {
         return self.source.has_next();
     }

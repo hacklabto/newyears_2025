@@ -153,6 +153,9 @@ impl<
 
         rval
     }
+
+    fn update(self: &mut Self) {}
+
     fn trigger_note_off(self: &mut Self) {
         // does nothing.
     }

@@ -17,7 +17,8 @@ pub struct CoreAdsr<
     const SUSTAIN_VOLUME: u8,
     const R: i32,
 > {
-    time_since_state_start: i32, // units are 1/P_FREQ, U_FREQ
+    cached_adsr: SoundSampleI32,
+    time_since_state_start: i32, // units are 1/P_FREQ
     last_sound: AdsrFraction,
     volume: i32,
 }
@@ -34,9 +35,9 @@ impl<
     const ATTACK_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::MAX;
     const SUSTAIN_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(SUSTAIN_VOLUME);
 
-    const A_TICKS: i32 = time_to_ticks::<P_FREQ>(A);
-    const D_TICKS: i32 = time_to_ticks::<P_FREQ>(D);
-    const R_TICKS: i32 = time_to_ticks::<P_FREQ>(R);
+    const A_TICKS: i32 = time_to_ticks::<U_FREQ>(A);
+    const D_TICKS: i32 = time_to_ticks::<U_FREQ>(D);
+    const R_TICKS: i32 = time_to_ticks::<U_FREQ>(R);
 
     const A_GAIN: AdsrFraction = if Self::A_TICKS != 0 {
         let a_diff: i64 = Self::ATTACK_VOLUME_SCALE.to_i32() as i64;
@@ -79,7 +80,7 @@ impl<
 
     const A_END: i32 = Self::A_TICKS;
     const D_END: i32 = Self::A_END + Self::D_TICKS;
-    const R_START: i32 = time_to_ticks::<P_FREQ>(10000);
+    const R_START: i32 = time_to_ticks::<U_FREQ>(10000);
     const R_END: i32 = Self::R_START + Self::R_TICKS;
 }
 
@@ -109,11 +110,16 @@ impl<
             time_since_state_start,
             last_sound,
             volume: init_volume,
+            cached_adsr: SoundSampleI32::new_i32(0),
         }
     }
 
     #[inline]
     fn get_next(self: &mut Self) -> SoundSampleI32 {
+        self.cached_adsr
+    }
+
+    fn update(self: &mut Self) {
         let scale: SoundSampleI32 = if self.time_since_state_start < Self::A_END {
             let rval = SoundSampleI32::new_i32(self.last_sound.int_part);
             self.last_sound.add(&Self::A_GAIN);
@@ -138,7 +144,7 @@ impl<
         };
         self.time_since_state_start = self.time_since_state_start + 1;
         let volume_adjusted_scale = SoundSampleI32::new_i32((self.volume * scale.to_i32()) >> 15);
-        volume_adjusted_scale.pos_clip()
+        self.cached_adsr = volume_adjusted_scale.pos_clip()
     }
 
     fn has_next(self: &Self) -> bool {

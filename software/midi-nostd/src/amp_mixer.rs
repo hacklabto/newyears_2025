@@ -31,6 +31,11 @@ impl<
         self.source_0.get_next() * self.source_1.get_next()
     }
 
+    fn update(self: &mut Self) {
+        self.source_0.update();
+        self.source_1.update();
+    }
+
     fn has_next(self: &Self) -> bool {
         self.source_0.has_next() && self.source_1.has_next()
     }

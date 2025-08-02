@@ -16,6 +16,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         SoundSampleI32::ZERO
     }
 
+    fn update(self: &mut Self) {}
+
     fn has_next(self: &Self) -> bool {
         false
     }

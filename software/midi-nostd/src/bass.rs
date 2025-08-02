@@ -51,6 +51,10 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         self.core.get_next()
     }
 
+    fn update(self: &mut Self) {
+        self.core.update()
+    }
+
     fn has_next(self: &Self) -> bool {
         self.core.has_next()
     }

@@ -22,9 +22,9 @@ pub trait SoundSourceCore<const P_FREQ: u32, const U_FREQ: u32> {
     ///
     fn get_next(self: &mut Self) -> SoundSampleI32;
 
-    /// Update at a potentially slower rate.
+    /// Update.  Runs much less frequenly than get_next
     ///
-    fn update(self: &mut Self) {}
+    fn update(self: &mut Self);
 
     /// Effective tells the source source to wind down gracefully :)
     /// Note off is the midi term.

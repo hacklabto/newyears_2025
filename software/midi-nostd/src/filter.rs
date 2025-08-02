@@ -260,6 +260,10 @@ impl<
         }
     }
 
+    fn update(self: &mut Self) {
+        self.source.update();
+    }
+
     fn has_next(self: &Self) -> bool {
         if !self.source.has_next() {
             //
