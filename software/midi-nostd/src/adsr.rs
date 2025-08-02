@@ -19,7 +19,6 @@ pub struct CoreAdsr<
     const R: i32,
     Source: OscillatorInterface<P_FREQ, U_FREQ>,
 > {
-    cached_adsr: SoundSampleI32,
     time_since_state_start: i32, // units are 1/P_FREQ
     last_sound: AdsrFraction,
     volume: i32,
@@ -116,14 +115,13 @@ impl<
             time_since_state_start,
             last_sound,
             volume: init_value.1,
-            cached_adsr: SoundSampleI32::new_i32(0),
             source: Source::new(init_value.0),
         }
     }
 
     #[inline]
     fn get_next(self: &mut Self) -> SoundSampleI32 {
-        self.source.get_next() * self.cached_adsr
+        self.source.get_next()
     }
 
     fn update(self: &mut Self) {
@@ -151,7 +149,8 @@ impl<
         };
         self.time_since_state_start = self.time_since_state_start + 1;
         let volume_adjusted_scale = SoundSampleI32::new_i32((self.volume * scale.to_i32()) >> 15);
-        self.cached_adsr = volume_adjusted_scale.pos_clip()
+        self.source
+            .set_amplitude_adjust(volume_adjusted_scale.pos_clip())
     }
 
     fn has_next(self: &Self) -> bool {
