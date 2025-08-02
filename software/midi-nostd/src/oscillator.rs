@@ -7,7 +7,6 @@ use crate::wave_tables::SQUARE_WAVE;
 use crate::wave_tables::TRIANGLE_WAVE;
 
 use crate::wave_tables::WAVE_TABLE_SIZE;
-use crate::wave_tables::WAVE_TABLE_SIZE_U32;
 
 const ALL_WAVE_TABLES: [&[i32; WAVE_TABLE_SIZE]; 4] =
     [&TRIANGLE_WAVE, &SAWTOOTH_WAVE, &SINE_WAVE, &SQUARE_WAVE];
@@ -43,9 +42,7 @@ pub struct CoreOscillator<
     const OSCILLATOR_TYPE: usize,
 > {
     pub table_idx: u32,
-    pub table_remainder: u32,
     pub table_idx_inc: u32,
-    pub table_remainder_inc: u32,
 }
 
 impl<
@@ -56,47 +53,12 @@ impl<
         const OSCILATOR_TYPE: usize,
     > CoreOscillator<P_FREQ, U_FREQ, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
-    const PULSE_WIDTH_CUTOFF: u32 = WAVE_TABLE_SIZE_U32 * (PULSE_WIDTH as u32) / 100;
+    const PULSE_WIDTH_CUTOFF: u32 = ((1u64 << 32) * (PULSE_WIDTH as u64) / 100u64) as u32;
     const VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(VOLUME);
-    const INC_DENOMINATOR: u32 = FREQUENCY_MULTIPLIER * P_FREQ;
     const OSCILATOR_TYPE_ENUM: OscillatorType = OscillatorType::from_usize(OSCILATOR_TYPE);
     const PULSE_MAX: SoundSampleI32 = SoundSampleI32::MAX.const_mul(Self::VOLUME_SCALE);
     const PULSE_MIN: SoundSampleI32 = SoundSampleI32::MIN.const_mul(Self::VOLUME_SCALE);
-
-    // Read sample from table that has the wave's amplitude values
-    //
-    // The basic idea of this function is that we're going through the table
-    // at some rate (i.e., N entries per second, where N might be a fractional
-    // value).  If we go through the table faster, we play the wave back at a
-    // higher frequeny.  Slower gives a lower frequency.
-    //
-    // The rate that we're going through the table is represented by
-    //
-    // self_table_idx_inc + self.table_remainder_inc / inc_denominator
-    //
-    // Where 0 <= self.table_remainder_inc/ inc_demonimator < 1 is always true.
-    //
-    // The position in the table is tracked by self.table_idx, but there's always
-    // some fractional left over value.  That value is tracked by
-    // self.table_remainder, and has a "real" value of
-    //
-    // self.table_remainder / inc_denominator, which is always [0..1) when the
-    // function exits.
-    //
-
-    #[inline]
-    fn get_next_table(&self, table: &[i32; WAVE_TABLE_SIZE]) -> SoundSampleI32 {
-        SoundSampleI32::new_i32(table[self.table_idx as usize]) * Self::VOLUME_SCALE
-    }
-
-    #[inline]
-    fn get_next_pulse_entry(&self) -> SoundSampleI32 {
-        if self.table_idx < Self::PULSE_WIDTH_CUTOFF {
-            Self::PULSE_MAX
-        } else {
-            Self::PULSE_MIN
-        }
-    }
+    const INC_DENOMINATOR: u64 = (FREQUENCY_MULTIPLIER as u64) * (P_FREQ as u64);
 }
 
 impl<
@@ -111,17 +73,9 @@ impl<
     type InitValuesType = u32;
 
     fn new(frequency: Self::InitValuesType) -> Self {
-        let inc_numerator: u32 = frequency * WAVE_TABLE_SIZE_U32;
-
-        let table_idx: u32 = 0;
-        let table_remainder: u32 = Self::INC_DENOMINATOR / 2;
-        let table_idx_inc: u32 = inc_numerator / Self::INC_DENOMINATOR;
-        let table_remainder_inc: u32 = inc_numerator % Self::INC_DENOMINATOR;
         Self {
-            table_idx,
-            table_remainder,
-            table_idx_inc,
-            table_remainder_inc,
+            table_idx: 0,
+            table_idx_inc: (((1u64 << 32) * (frequency as u64)) / Self::INC_DENOMINATOR) as u32,
         }
     }
 
@@ -131,27 +85,18 @@ impl<
     }
     #[inline]
     fn get_next(self: &mut Self) -> SoundSampleI32 {
-        let rval = if Self::OSCILATOR_TYPE_ENUM == OscillatorType::PulseWidth {
-            self.get_next_pulse_entry()
+        self.table_idx = self.table_idx.wrapping_add(self.table_idx_inc);
+
+        if Self::OSCILATOR_TYPE_ENUM == OscillatorType::PulseWidth {
+            if self.table_idx < Self::PULSE_WIDTH_CUTOFF {
+                Self::PULSE_MAX
+            } else {
+                Self::PULSE_MIN
+            }
         } else {
-            self.get_next_table(ALL_WAVE_TABLES[Self::OSCILATOR_TYPE_ENUM as usize])
-        };
-
-        // Update table position and fractional value
-        //
-        self.table_idx += self.table_idx_inc;
-        self.table_remainder += self.table_remainder_inc;
-
-        // If the fractional value represents a number greater than 1, increment
-        // the table index and decease the fractional value so it's [0..1).
-        //
-        if self.table_remainder > Self::INC_DENOMINATOR {
-            self.table_remainder -= Self::INC_DENOMINATOR;
-            self.table_idx += 1;
+            let table = ALL_WAVE_TABLES[Self::OSCILATOR_TYPE_ENUM as usize];
+            SoundSampleI32::new_i32(table[(self.table_idx >> 22) as usize]) * Self::VOLUME_SCALE
         }
-        self.table_idx = self.table_idx & (WAVE_TABLE_SIZE_U32 - 1);
-
-        rval
     }
 
     fn update(self: &mut Self) {}
@@ -161,7 +106,6 @@ impl<
     }
     fn reset_oscillator(self: &mut Self) {
         self.table_idx = 0;
-        self.table_remainder = Self::INC_DENOMINATOR / 2;
     }
 }
 
@@ -244,7 +188,7 @@ mod tests {
             );
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
-        assert_eq!(2600 * 2, transitions);
+        assert_eq!(2600 * 2 - 1, transitions);
 
         // Triangles are half the area squares are.
         assert_eq!(24000 * 0x4000, area);
@@ -258,7 +202,7 @@ mod tests {
             );
 
         let (transitions, area) = sample_core_wave(&mut oscilator);
-        assert_eq!(transitions, 2600 * 2);
+        assert_eq!(2600 * 2 - 1, transitions);
 
         // Triangles are half the area squares are.
         assert_eq!(24000 * 0x2000, area);

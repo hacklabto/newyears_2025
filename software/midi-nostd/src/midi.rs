@@ -154,7 +154,7 @@ mod tests {
             .expect("It's inlined data, so it better work, gosh darn it");
         let mut midi = Midi::<24000, 24000, 32, 16>::new_internal(&header, tracks, 1);
 
-        assert_eq!(117, midi.get_next().to_i32());
+        assert_eq!(119, midi.get_next().to_i32());
         //assert_eq!(8192, midi.get_next(&smf).to_i32());
         //assert_eq!(8719, midi.get_next(&smf).to_i32());
         //assert_eq!(9246, midi.get_next(&smf).to_i32());

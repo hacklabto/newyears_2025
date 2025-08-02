@@ -482,36 +482,36 @@ mod tests {
         // Unfiltered amplitude should be about 2/pi, or 20861 in 31 bit fixed point.
         // 50hz is below the 400hz cut off, so the average filtered amplitude should be similar.
         //
-        assert_eq!((20859, 50), get_avg_amplitude(&mut sine_50hz));
+        assert_eq!((20861, 50), get_avg_amplitude(&mut sine_50hz));
         assert_eq!((20856, 50), get_avg_amplitude(&mut filtered_sine_50hz));
 
         let mut sine_100hz = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_100hz = FilteredOscillator::new(100 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20859, 100), get_avg_amplitude(&mut sine_100hz));
+        assert_eq!((20861, 100), get_avg_amplitude(&mut sine_100hz));
         assert_eq!((20816, 100), get_avg_amplitude(&mut filtered_sine_100hz));
 
         let mut sine_200hz = Oscillator::new(200 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_200hz = FilteredOscillator::new(200 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20859, 200), get_avg_amplitude(&mut sine_200hz));
-        assert_eq!((20234, 200), get_avg_amplitude(&mut filtered_sine_200hz));
+        assert_eq!((20861, 200), get_avg_amplitude(&mut sine_200hz));
+        assert_eq!((20235, 200), get_avg_amplitude(&mut filtered_sine_200hz));
 
         // This is the cut-off frequency.  The filtered average amplitude should be 1/sqrt(2)
         // of the original average amplitude, or 70.71%.  We're getting 70.72%.
         //
         let mut sine_400hz = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_400hz = FilteredOscillator::new(400 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20832, 400), get_avg_amplitude(&mut sine_400hz));
-        assert_eq!((14732, 400), get_avg_amplitude(&mut filtered_sine_400hz));
+        assert_eq!((20862, 400), get_avg_amplitude(&mut sine_400hz));
+        assert_eq!((14735, 400), get_avg_amplitude(&mut filtered_sine_400hz));
 
         let mut sine_800hz = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_800hz = FilteredOscillator::new(800 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20779, 800), get_avg_amplitude(&mut sine_800hz));
-        assert_eq!((5043, 800), get_avg_amplitude(&mut filtered_sine_800hz));
+        assert_eq!((20808, 800), get_avg_amplitude(&mut sine_800hz));
+        assert_eq!((5042, 800), get_avg_amplitude(&mut filtered_sine_800hz));
 
         let mut sine_1600hz = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_1600hz = FilteredOscillator::new(1600 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20779, 1600), get_avg_amplitude(&mut sine_1600hz));
-        assert_eq!((1268, 1598), get_avg_amplitude(&mut filtered_sine_1600hz));
+        assert_eq!((20808, 1600), get_avg_amplitude(&mut sine_1600hz));
+        assert_eq!((1268, 1599), get_avg_amplitude(&mut filtered_sine_1600hz));
     }
 
     #[test]
@@ -525,36 +525,36 @@ mod tests {
         // Unfiltered amplitude should be about 2/pi, or 20861 in 31 bit fixed point.
         // 50hz is below the 1600hz cut off, so the average filtered amplitude should be similar.
         //
-        assert_eq!((20859, 50), get_avg_amplitude(&mut sine_50hz));
+        assert_eq!((20861, 50), get_avg_amplitude(&mut sine_50hz));
         assert_eq!((20860, 50), get_avg_amplitude(&mut filtered_sine_50hz));
 
         let mut sine_100hz = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_100hz = FilteredOscillator::new(100 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20859, 100), get_avg_amplitude(&mut sine_100hz));
+        assert_eq!((20861, 100), get_avg_amplitude(&mut sine_100hz));
         assert_eq!((20860, 100), get_avg_amplitude(&mut filtered_sine_100hz));
 
         let mut sine_200hz = Oscillator::new(200 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_200hz = FilteredOscillator::new(200 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20859, 200), get_avg_amplitude(&mut sine_200hz));
+        assert_eq!((20861, 200), get_avg_amplitude(&mut sine_200hz));
         assert_eq!((20861, 200), get_avg_amplitude(&mut filtered_sine_200hz));
 
         let mut sine_400hz = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_400hz = FilteredOscillator::new(400 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20832, 400), get_avg_amplitude(&mut sine_400hz));
-        assert_eq!((20821, 400), get_avg_amplitude(&mut filtered_sine_400hz));
+        assert_eq!((20862, 400), get_avg_amplitude(&mut sine_400hz));
+        assert_eq!((20838, 400), get_avg_amplitude(&mut filtered_sine_400hz));
 
         let mut sine_800hz = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_800hz = FilteredOscillator::new(800 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20779, 800), get_avg_amplitude(&mut sine_800hz));
-        assert_eq!((20298, 800), get_avg_amplitude(&mut filtered_sine_800hz));
+        assert_eq!((20808, 800), get_avg_amplitude(&mut sine_800hz));
+        assert_eq!((20299, 800), get_avg_amplitude(&mut filtered_sine_800hz));
 
         // This is the cut-off frequency.  The filtered average amplitude should be 1/sqrt(2)
         // of the original average amplitude, or 70.71%.  We're getting 71.12%.
         //
         let mut sine_1600hz = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_1600hz = FilteredOscillator::new(1600 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20779, 1600), get_avg_amplitude(&mut sine_1600hz));
-        assert_eq!((14779, 1600), get_avg_amplitude(&mut filtered_sine_1600hz));
+        assert_eq!((20808, 1600), get_avg_amplitude(&mut sine_1600hz));
+        assert_eq!((14775, 1600), get_avg_amplitude(&mut filtered_sine_1600hz));
     }
     #[test]
     fn filter_behavior_24000() {
@@ -567,15 +567,15 @@ mod tests {
 
         // The average amplitude should match, it's a pass through
         //
-        assert_eq!((20859, 50), get_avg_amplitude(&mut sine_50hz));
-        assert_eq!((20859, 50), get_avg_amplitude(&mut filtered_sine_50hz));
+        assert_eq!((20861, 50), get_avg_amplitude(&mut sine_50hz));
+        assert_eq!((20861, 50), get_avg_amplitude(&mut filtered_sine_50hz));
 
         // A silly oscillator for a silly filter.  The measured frequency is 2000
         // hz because of aliasing.
         //
         let mut sine_22000hz = Oscillator::new(22000 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_22000hz = FilteredOscillator::new(22000 * FREQUENCY_MULTIPLIER);
-        assert_eq!((20373, 2000), get_avg_amplitude(&mut sine_22000hz));
-        assert_eq!((20373, 2000), get_avg_amplitude(&mut filtered_sine_22000hz));
+        assert_eq!((20418, 2001), get_avg_amplitude(&mut sine_22000hz));
+        assert_eq!((20418, 2001), get_avg_amplitude(&mut filtered_sine_22000hz));
     }
 }
