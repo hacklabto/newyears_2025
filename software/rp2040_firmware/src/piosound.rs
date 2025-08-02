@@ -94,10 +94,7 @@ const fn generate_dither_array<const N: usize>() -> [u32; N] {
     let mut idx: usize = 0;
     while idx < N {
         let mut remainder: u32 = (N as u32) / 2;
-        //
-        // Shameful / Clever Optimzation. See dither == 1 in populate_next_dma_buffer_with_audio
-        //
-        let mut result: u32 = 1;
+        let mut result: u32 = 0;
         let mut j: usize = 0;
         while j < N {
             result = result << 1;
@@ -122,18 +119,15 @@ impl<'d> AudioPlayback<'d> {
 
     fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
         let mut value: u32 = 0;
-        let mut dither: u32 = 1;
+        let mut dither: u32 = 0;
+        let mut countdown: u32 = 0;
 
         const DITHERS: [u32; PWM_REMAINDER_USIZE] = generate_dither_array::<PWM_REMAINDER_USIZE>();
 
         for entry in buffer.iter_mut() {
-            //
-            // I'm doing something semi clever here, which makes it semi terrible.  I stuck an
-            // extra bit at the top of my dither table.  Every PWM_REMAINDER iterations through
-            // the loop all the dither bits get consumed, dither = 1, and we get a new value
-            // from the midi player.
-            //
-            if dither == 1 {
+
+            // refill at 0
+            if countdown == 0 {
                 //
                 // We're're here once every PWM_REMAINDER, which is, right now, every 16 iterations.
                 //
@@ -181,12 +175,14 @@ impl<'d> AudioPlayback<'d> {
                 if !self.midi.has_next() {
                     self.clear_count = 1;
                 }
+                countdown = PWM_REMAINDER;
             }
             //
             // Fairly low overhead sound buffer population
             //
             *entry = value + (dither & 1);
             dither = dither >> 1;
+            countdown = countdown - 1;
         }
     }
 
