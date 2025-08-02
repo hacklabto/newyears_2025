@@ -74,7 +74,11 @@ impl<
 
     pub fn get_loudest_sample(header: &midly::Header, track_iter: midly::TrackIter<'a>) -> i32 {
         let mut fast_forward_midi_player =
-            Midi::<24, 24, MAX_NOTES, MAX_TRACKS>::new_internal(header, track_iter.clone(), 1);
+            Midi::<24, 24, MAX_NOTES, MAX_TRACKS, true>::new_internal(
+                header,
+                track_iter.clone(),
+                9,
+            );
         let mut loudest: i32 = 0;
         while fast_forward_midi_player.has_next() {
             let sample = fast_forward_midi_player.get_next().to_i32();

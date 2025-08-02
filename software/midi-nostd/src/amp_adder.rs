@@ -17,7 +17,7 @@ pub struct AmpAdder<
     channels: [Note<P_FREQ, U_FREQ>; NUM_CHANNELS],
     active_channel_list: [usize; NUM_CHANNELS],
     num_active_channels: usize,
-    divider: i32,
+    scale: SoundSampleI32,
 }
 
 impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_SCALEDOWN: bool>
@@ -45,12 +45,13 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_S
         Self {
             free_list: { FreeList::<NUM_CHANNELS>::default() },
             channels: { core::array::from_fn(|_idx| Note::<P_FREQ, U_FREQ>::default()) },
-            divider,
+            scale: SoundSampleI32::new_i32(0x8000 / divider),
             num_active_channels: 0,
             active_channel_list: { core::array::from_fn(|_idx| 0) },
         }
     }
 
+    #[inline(never)]
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let mut output: SoundSampleI32 = SoundSampleI32::ZERO;
 
@@ -63,7 +64,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_S
         if NO_SCALEDOWN {
             output
         } else {
-            SoundSampleI32::new_i32(output.to_i32() / self.divider)
+            output * self.scale
         }
     }
 
