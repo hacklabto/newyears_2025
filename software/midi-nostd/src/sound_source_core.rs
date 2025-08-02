@@ -8,7 +8,7 @@ use crate::sound_sample::SoundSampleI32;
 /// concerned about the amount of runtime the abstractions I was building as part of
 /// a modular syntheisizer are going to use.
 ///
-pub trait SoundSourceCore<const PLAY_FREQUENCY: u32> {
+pub trait SoundSourceCore<const P_FREQ: u32, const U_FREQ: u32> {
     /// Initialize to a none default state.
 
     type InitValuesType;

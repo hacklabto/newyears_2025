@@ -27,7 +27,7 @@ fn run() -> Result<(), pa::Error> {
     let (header, tracks) = midly::parse(include_bytes!("../assets/twinkle.mid"))
         .expect("It's inlined data, so its expected to parse");
 
-    type MyMidi<'a> = Midi<'a, 24000, 16, 8>;
+    type MyMidi<'a> = Midi<'a, 24000, 24000, 16, 8>;
     println!(
         "Midi structure is currently using {} bytes",
         std::mem::size_of::<MyMidi>()

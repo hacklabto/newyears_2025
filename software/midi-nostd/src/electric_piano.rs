@@ -9,27 +9,31 @@ use crate::oscillator::OscillatorType;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
-type ElectricPianoOscillatorPair<const PLAY_FREQUENCY: u32> = DoubleOscillator<
-    PLAY_FREQUENCY,
-    CoreOscillator<PLAY_FREQUENCY, 50, 100, { OscillatorType::SawTooth as usize }>,
-    CoreOscillator<PLAY_FREQUENCY, 5, 100, { OscillatorType::PulseWidth as usize }>,
+type ElectricPianoOscillatorPair<const P_FREQ: u32, const U_FREQ: u32> = DoubleOscillator<
+    P_FREQ,
+    U_FREQ,
+    CoreOscillator<P_FREQ, U_FREQ, 50, 100, { OscillatorType::SawTooth as usize }>,
+    CoreOscillator<P_FREQ, U_FREQ, 5, 100, { OscillatorType::PulseWidth as usize }>,
     true,
 >;
 
-type ElectricPianoOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
-    PLAY_FREQUENCY,
-    ElectricPianoOscillatorPair<PLAY_FREQUENCY>,
-    CoreAdsr<PLAY_FREQUENCY, 0, 5140, 50, 660>,
+type ElectricPianoOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
+    P_FREQ,
+    U_FREQ,
+    ElectricPianoOscillatorPair<P_FREQ, U_FREQ>,
+    CoreAdsr<P_FREQ, U_FREQ, 0, 5140, 50, 660>,
 >;
 
-type ElectricPianoFiltered<const PLAY_FREQUENCY: u32> =
-    Filter<PLAY_FREQUENCY, ElectricPianoOscillatorAdsr<PLAY_FREQUENCY>, 1000>;
+type ElectricPianoFiltered<const P_FREQ: u32, const U_FREQ: u32> =
+    Filter<P_FREQ, U_FREQ, ElectricPianoOscillatorAdsr<P_FREQ, U_FREQ>, 1000>;
 
-pub struct ElectricPiano<const PLAY_FREQUENCY: u32> {
-    core: ElectricPianoFiltered<PLAY_FREQUENCY>,
+pub struct ElectricPiano<const P_FREQ: u32, const U_FREQ: u32> {
+    core: ElectricPianoFiltered<P_FREQ, U_FREQ>,
 }
 
-impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for ElectricPiano<PLAY_FREQUENCY> {
+impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
+    for ElectricPiano<P_FREQ, U_FREQ>
+{
     type InitValuesType = SoundSourceNoteInit;
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
@@ -45,7 +49,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for ElectricPian
         let frequency_2 = midi_note_to_freq(init_values.key + 24 + 9);
         let adsr_init = (init_values.velocity as i32) << 8;
         let core =
-            ElectricPianoFiltered::<PLAY_FREQUENCY>::new(((frequency_1, frequency_2), adsr_init));
+            ElectricPianoFiltered::<P_FREQ, U_FREQ>::new(((frequency_1, frequency_2), adsr_init));
         return Self { core };
     }
 

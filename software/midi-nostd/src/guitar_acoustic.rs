@@ -9,30 +9,34 @@ use crate::oscillator::OscillatorType;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
-type GuitarAcousticOscillatorPair<const PLAY_FREQUENCY: u32> = DoubleOscillator<
-    PLAY_FREQUENCY,
-    CoreOscillator<PLAY_FREQUENCY, 25, 100, { OscillatorType::PulseWidth as usize }>,
-    CoreOscillator<PLAY_FREQUENCY, 10, 90, { OscillatorType::PulseWidth as usize }>,
+type GuitarAcousticOscillatorPair<const P_FREQ: u32, const U_FREQ: u32> = DoubleOscillator<
+    P_FREQ,
+    U_FREQ,
+    CoreOscillator<P_FREQ, U_FREQ, 25, 100, { OscillatorType::PulseWidth as usize }>,
+    CoreOscillator<P_FREQ, U_FREQ, 10, 90, { OscillatorType::PulseWidth as usize }>,
     true,
 >;
 
-type GuitarAcousticOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
-    PLAY_FREQUENCY,
-    GuitarAcousticOscillatorPair<PLAY_FREQUENCY>,
-    CoreAdsr<PLAY_FREQUENCY, 0, 1700, 0, 1700>,
+type GuitarAcousticOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
+    P_FREQ,
+    U_FREQ,
+    GuitarAcousticOscillatorPair<P_FREQ, U_FREQ>,
+    CoreAdsr<P_FREQ, U_FREQ, 0, 1700, 0, 1700>,
 >;
 
-type GuitarAcousticFiltered<const PLAY_FREQUENCY: u32> =
-    Filter<PLAY_FREQUENCY, GuitarAcousticOscillatorAdsr<PLAY_FREQUENCY>, 2000>;
+type GuitarAcousticFiltered<const P_FREQ: u32, const U_FREQ: u32> =
+    Filter<P_FREQ, U_FREQ, GuitarAcousticOscillatorAdsr<P_FREQ, U_FREQ>, 2000>;
 
 ///
 /// GuitarAcoustic.  Now sort of a proof of concept.
 ///
-pub struct GuitarAcoustic<const PLAY_FREQUENCY: u32> {
-    core: GuitarAcousticFiltered<PLAY_FREQUENCY>,
+pub struct GuitarAcoustic<const P_FREQ: u32, const U_FREQ: u32> {
+    core: GuitarAcousticFiltered<P_FREQ, U_FREQ>,
 }
 
-impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for GuitarAcoustic<PLAY_FREQUENCY> {
+impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
+    for GuitarAcoustic<P_FREQ, U_FREQ>
+{
     type InitValuesType = SoundSourceNoteInit;
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
@@ -48,7 +52,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for GuitarAcoust
         let frequency_2 = midi_note_to_freq(init_values.key + 10);
         let adsr_init = (init_values.velocity as i32) << 8;
         let core =
-            GuitarAcousticFiltered::<PLAY_FREQUENCY>::new(((frequency_1, frequency_2), adsr_init));
+            GuitarAcousticFiltered::<P_FREQ, U_FREQ>::new(((frequency_1, frequency_2), adsr_init));
         return Self { core };
     }
 

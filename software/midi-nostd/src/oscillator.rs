@@ -36,7 +36,8 @@ impl OscillatorType {
 }
 
 pub struct CoreOscillator<
-    const PLAY_FREQUENCY: u32,
+    const P_FREQ: u32,
+    const U_FREQ: u32,
     const PULSE_WIDTH: u8,
     const VOLUME_U8: u8,
     const OSCILLATOR_TYPE: usize,
@@ -48,15 +49,16 @@ pub struct CoreOscillator<
 }
 
 impl<
-        const PLAY_FREQUENCY: u32,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
         const PULSE_WIDTH: u8,
         const VOLUME: u8,
         const OSCILATOR_TYPE: usize,
-    > CoreOscillator<PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
+    > CoreOscillator<P_FREQ, U_FREQ, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     const PULSE_WIDTH_CUTOFF: u32 = WAVE_TABLE_SIZE_U32 * (PULSE_WIDTH as u32) / 100;
     const VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(VOLUME);
-    const INC_DENOMINATOR: u32 = FREQUENCY_MULTIPLIER * PLAY_FREQUENCY;
+    const INC_DENOMINATOR: u32 = FREQUENCY_MULTIPLIER * P_FREQ;
     const OSCILATOR_TYPE_ENUM: OscillatorType = OscillatorType::from_usize(OSCILATOR_TYPE);
     const PULSE_MAX: SoundSampleI32 = SoundSampleI32::MAX.const_mul(Self::VOLUME_SCALE);
     const PULSE_MIN: SoundSampleI32 = SoundSampleI32::MIN.const_mul(Self::VOLUME_SCALE);
@@ -98,12 +100,13 @@ impl<
 }
 
 impl<
-        const PLAY_FREQUENCY: u32,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
         const PULSE_WIDTH: u8,
         const VOLUME: u8,
         const OSCILATOR_TYPE: usize,
-    > SoundSourceCore<PLAY_FREQUENCY>
-    for CoreOscillator<PLAY_FREQUENCY, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
+    > SoundSourceCore<P_FREQ, U_FREQ>
+    for CoreOscillator<P_FREQ, U_FREQ, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     type InitValuesType = u32;
 
@@ -173,7 +176,7 @@ mod tests {
 
     fn sample_core_wave<'a, T>(oscilator: &mut T) -> (u32, u32)
     where
-        T: SoundSourceCore<24000>,
+        T: SoundSourceCore<24000, 24000>,
     {
         let mut last = oscilator.get_next();
         let mut transitions: u32 = 0;
@@ -194,7 +197,7 @@ mod tests {
     #[test]
     fn test_pulse_50_from_pool() {
         let mut oscilator =
-            CoreOscillator::<24000, 50, 100, { OscillatorType::PulseWidth as usize }>::new(
+            CoreOscillator::<24000, 24000, 50, 100, { OscillatorType::PulseWidth as usize }>::new(
                 2600 * FREQUENCY_MULTIPLIER,
             );
 
@@ -207,7 +210,7 @@ mod tests {
     #[test]
     fn test_pulse_50_vol_50_from_pool() {
         let mut oscilator =
-            CoreOscillator::<24000, 50, 50, { OscillatorType::PulseWidth as usize }>::new(
+            CoreOscillator::<24000, 24000, 50, 50, { OscillatorType::PulseWidth as usize }>::new(
                 2600 * FREQUENCY_MULTIPLIER,
             );
 
@@ -220,7 +223,7 @@ mod tests {
     #[test]
     fn test_pulse_25_from_pool() {
         let mut oscilator =
-            CoreOscillator::<24000, 25, 100, { OscillatorType::PulseWidth as usize }>::new(
+            CoreOscillator::<24000, 24000, 25, 100, { OscillatorType::PulseWidth as usize }>::new(
                 2600 * FREQUENCY_MULTIPLIER,
             );
 
@@ -233,7 +236,7 @@ mod tests {
     #[test]
     fn test_triangle_from_pool() {
         let mut oscilator =
-            CoreOscillator::<24000, 0, 100, { OscillatorType::Triangle as usize }>::new(
+            CoreOscillator::<24000, 24000, 0, 100, { OscillatorType::Triangle as usize }>::new(
                 2600 * FREQUENCY_MULTIPLIER,
             );
 
@@ -247,7 +250,7 @@ mod tests {
     #[test]
     fn test_triangle_from_pool_vol_50percent() {
         let mut oscilator =
-            CoreOscillator::<24000, 0, 50, { OscillatorType::Triangle as usize }>::new(
+            CoreOscillator::<24000, 24000, 0, 50, { OscillatorType::Triangle as usize }>::new(
                 2600 * FREQUENCY_MULTIPLIER,
             );
 

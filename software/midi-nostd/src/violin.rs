@@ -11,38 +11,43 @@ use crate::oscillator::OscillatorType;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
-type ViolinOscillatorPair<const PLAY_FREQUENCY: u32> = DoubleOscillator<
-    PLAY_FREQUENCY,
-    CoreOscillator<PLAY_FREQUENCY, 50, 1, { OscillatorType::PulseWidth as usize }>,
-    CoreOscillator<PLAY_FREQUENCY, 50, 100, { OscillatorType::SawTooth as usize }>,
+type ViolinOscillatorPair<const P_FREQ: u32, const U_FREQ: u32> = DoubleOscillator<
+    P_FREQ,
+    U_FREQ,
+    CoreOscillator<P_FREQ, U_FREQ, 50, 1, { OscillatorType::PulseWidth as usize }>,
+    CoreOscillator<P_FREQ, U_FREQ, 50, 100, { OscillatorType::SawTooth as usize }>,
     true,
 >;
 
-type ViolinOscillatorLfo<const PLAY_FREQUENCY: u32> = LfoAmplitude<
-    PLAY_FREQUENCY,
-    ViolinOscillatorPair<PLAY_FREQUENCY>,
+type ViolinOscillatorLfo<const P_FREQ: u32, const U_FREQ: u32> = LfoAmplitude<
+    P_FREQ,
+    U_FREQ,
+    ViolinOscillatorPair<P_FREQ, U_FREQ>,
     { OscillatorType::Triangle as usize },
     { 6 * FREQUENCY_MULTIPLIER / 2 },
     10,
 >;
 
-type ViolinOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
-    PLAY_FREQUENCY,
-    ViolinOscillatorLfo<PLAY_FREQUENCY>,
-    CoreAdsr<PLAY_FREQUENCY, 03, 5000, 100, 350>,
+type ViolinOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
+    P_FREQ,
+    U_FREQ,
+    ViolinOscillatorLfo<P_FREQ, U_FREQ>,
+    CoreAdsr<P_FREQ, U_FREQ, 03, 5000, 100, 350>,
 >;
 
-type ViolinFiltered<const PLAY_FREQUENCY: u32> =
-    Filter<PLAY_FREQUENCY, ViolinOscillatorAdsr<PLAY_FREQUENCY>, 1900>;
+type ViolinFiltered<const P_FREQ: u32, const U_FREQ: u32> =
+    Filter<P_FREQ, U_FREQ, ViolinOscillatorAdsr<P_FREQ, U_FREQ>, 1900>;
 
 ///
 /// Violin.  Now sort of a proof of concept.
 ///
-pub struct Violin<const PLAY_FREQUENCY: u32> {
-    core: ViolinFiltered<PLAY_FREQUENCY>,
+pub struct Violin<const P_FREQ: u32, const U_FREQ: u32> {
+    core: ViolinFiltered<P_FREQ, U_FREQ>,
 }
 
-impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Violin<PLAY_FREQUENCY> {
+impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
+    for Violin<P_FREQ, U_FREQ>
+{
     type InitValuesType = SoundSourceNoteInit;
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
@@ -57,7 +62,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Violin<PLAY_
         let frequency_1 = midi_note_to_freq(init_values.key);
         let frequency_2 = midi_note_to_freq(init_values.key + 6);
         let adsr_init = (init_values.velocity as i32) << 8;
-        let core = ViolinFiltered::<PLAY_FREQUENCY>::new(((frequency_1, frequency_2), adsr_init));
+        let core = ViolinFiltered::<P_FREQ, U_FREQ>::new(((frequency_1, frequency_2), adsr_init));
         return Self { core };
     }
 

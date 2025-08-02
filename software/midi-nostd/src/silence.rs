@@ -7,23 +7,26 @@ use crate::oscillator::OscillatorType;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
-type SilenceOscillator<const PLAY_FREQUENCY: u32> =
-    CoreOscillator<PLAY_FREQUENCY, 0, 0, { OscillatorType::SawTooth as usize }>;
+type SilenceOscillator<const P_FREQ: u32, const U_FREQ: u32> =
+    CoreOscillator<P_FREQ, U_FREQ, 0, 0, { OscillatorType::SawTooth as usize }>;
 
-type SilenceOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
-    PLAY_FREQUENCY,
-    SilenceOscillator<PLAY_FREQUENCY>,
-    CoreAdsr<PLAY_FREQUENCY, 0, 100, 25, 5>,
+type SilenceOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
+    P_FREQ,
+    U_FREQ,
+    SilenceOscillator<P_FREQ, U_FREQ>,
+    CoreAdsr<P_FREQ, U_FREQ, 0, 100, 25, 5>,
 >;
 
 ///
 /// Silence.  Now sort of a proof of concept.
 ///
-pub struct Silence<const PLAY_FREQUENCY: u32> {
-    core: SilenceOscillatorAdsr<PLAY_FREQUENCY>,
+pub struct Silence<const P_FREQ: u32, const U_FREQ: u32> {
+    core: SilenceOscillatorAdsr<P_FREQ, U_FREQ>,
 }
 
-impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Silence<PLAY_FREQUENCY> {
+impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
+    for Silence<P_FREQ, U_FREQ>
+{
     type InitValuesType = SoundSourceNoteInit;
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
@@ -37,7 +40,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Silence<PLAY
     fn new(init_values: Self::InitValuesType) -> Self {
         let frequency_1 = midi_note_to_freq(init_values.key);
         let adsr_init = (init_values.velocity as i32) << 8;
-        let core = SilenceOscillatorAdsr::<PLAY_FREQUENCY>::new((frequency_1, adsr_init));
+        let core = SilenceOscillatorAdsr::<P_FREQ, U_FREQ>::new((frequency_1, adsr_init));
         return Self { core };
     }
 

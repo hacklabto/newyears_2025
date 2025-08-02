@@ -3,42 +3,45 @@ use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
 pub struct LfoAmplitude<
-    const PLAY_FREQUENCY: u32,
-    Source: SoundSourceCore<PLAY_FREQUENCY>,
+    const P_FREQ: u32,
+    const U_FREQ: u32,
+    Source: SoundSourceCore<P_FREQ, U_FREQ>,
     const WAVE: usize,
     const LFO_FREQUENCY: u32,
     const DEPTH: u8,
 > {
     source: Source,
-    oscillator: CoreOscillator<PLAY_FREQUENCY, 50, DEPTH, WAVE>,
+    oscillator: CoreOscillator<P_FREQ, U_FREQ, 50, DEPTH, WAVE>,
 }
 
 impl<
-        const PLAY_FREQUENCY: u32,
-        Source: SoundSourceCore<PLAY_FREQUENCY>,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        Source: SoundSourceCore<P_FREQ, U_FREQ>,
         const WAVE: usize,
         const LFO_FREQUENCY: u32,
         const DEPTH: u8,
-    > LfoAmplitude<PLAY_FREQUENCY, Source, WAVE, LFO_FREQUENCY, DEPTH>
+    > LfoAmplitude<P_FREQ, U_FREQ, Source, WAVE, LFO_FREQUENCY, DEPTH>
 {
     const AMPLITUDE_OFFSET: SoundSampleI32 =
         SoundSampleI32::new_i32(SoundSampleI32::MAX.to_i32() * (100 - (DEPTH as i32)) / 100);
 }
 
 impl<
-        const PLAY_FREQUENCY: u32,
-        Source: SoundSourceCore<PLAY_FREQUENCY>,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        Source: SoundSourceCore<P_FREQ, U_FREQ>,
         const WAVE: usize,
         const LFO_FREQUENCY: u32,
         const DEPTH: u8,
-    > SoundSourceCore<PLAY_FREQUENCY>
-    for LfoAmplitude<PLAY_FREQUENCY, Source, WAVE, LFO_FREQUENCY, DEPTH>
+    > SoundSourceCore<P_FREQ, U_FREQ>
+    for LfoAmplitude<P_FREQ, U_FREQ, Source, WAVE, LFO_FREQUENCY, DEPTH>
 {
     type InitValuesType = Source::InitValuesType;
 
     fn new(init_values: Self::InitValuesType) -> Self {
         let source = Source::new(init_values);
-        let oscillator = CoreOscillator::<PLAY_FREQUENCY, 50, DEPTH, WAVE>::new(LFO_FREQUENCY);
+        let oscillator = CoreOscillator::<P_FREQ, U_FREQ, 50, DEPTH, WAVE>::new(LFO_FREQUENCY);
 
         Self { source, oscillator }
     }

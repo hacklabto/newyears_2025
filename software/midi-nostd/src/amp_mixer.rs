@@ -2,19 +2,21 @@ use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
 pub struct AmpMixerCore<
-    const PLAY_FREQUENCY: u32,
-    MixSource0: SoundSourceCore<PLAY_FREQUENCY>,
-    MixSource1: SoundSourceCore<PLAY_FREQUENCY>,
+    const P_FREQ: u32,
+    const U_FREQ: u32,
+    MixSource0: SoundSourceCore<P_FREQ, U_FREQ>,
+    MixSource1: SoundSourceCore<P_FREQ, U_FREQ>,
 > {
     source_0: MixSource0,
     source_1: MixSource1,
 }
 
 impl<
-        const PLAY_FREQUENCY: u32,
-        MixSource0: SoundSourceCore<PLAY_FREQUENCY>,
-        MixSource1: SoundSourceCore<PLAY_FREQUENCY>,
-    > SoundSourceCore<PLAY_FREQUENCY> for AmpMixerCore<PLAY_FREQUENCY, MixSource0, MixSource1>
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        MixSource0: SoundSourceCore<P_FREQ, U_FREQ>,
+        MixSource1: SoundSourceCore<P_FREQ, U_FREQ>,
+    > SoundSourceCore<P_FREQ, U_FREQ> for AmpMixerCore<P_FREQ, U_FREQ, MixSource0, MixSource1>
 {
     type InitValuesType = (MixSource0::InitValuesType, MixSource1::InitValuesType);
 
@@ -47,10 +49,11 @@ mod tests {
     use crate::oscillator::CoreOscillator;
     use crate::oscillator::OscillatorType;
 
-    type OscilatorAdsrCore<const PLAY_FREQUENCY: u32> = AmpMixerCore<
-        PLAY_FREQUENCY,
-        CoreOscillator<PLAY_FREQUENCY, 50, 50, { OscillatorType::PulseWidth as usize }>,
-        CoreAdsr<PLAY_FREQUENCY, 2, 4, 50, 4>,
+    type OscilatorAdsrCore<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
+        P_FREQ,
+        U_FREQ,
+        CoreOscillator<P_FREQ, U_FREQ, 50, 50, { OscillatorType::PulseWidth as usize }>,
+        CoreAdsr<P_FREQ, U_FREQ, 2, 4, 50, 4>,
     >;
 
     #[test]
@@ -59,7 +62,7 @@ mod tests {
 
         let adsr_init: i32 = 0x8000;
 
-        let mut amp_mixer = OscilatorAdsrCore::<1000>::new((frequency, adsr_init));
+        let mut amp_mixer = OscilatorAdsrCore::<1000, 1000>::new((frequency, adsr_init));
 
         // Should mirror the ADSR test, about about half volume because I set the oscilator to half
         // volume.

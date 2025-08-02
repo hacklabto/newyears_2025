@@ -2,9 +2,10 @@ use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
 pub struct DoubleOscillator<
-    const PLAY_FREQUENCY: u32,
-    MixSource0: SoundSourceCore<PLAY_FREQUENCY>,
-    MixSource1: SoundSourceCore<PLAY_FREQUENCY>,
+    const P_FREQ: u32,
+    const U_FREQ: u32,
+    MixSource0: SoundSourceCore<P_FREQ, U_FREQ>,
+    MixSource1: SoundSourceCore<P_FREQ, U_FREQ>,
     const SYNC_1_FROM_0: bool,
 > {
     last_source_0_sample: SoundSampleI32,
@@ -13,12 +14,13 @@ pub struct DoubleOscillator<
 }
 
 impl<
-        const PLAY_FREQUENCY: u32,
-        MixSource0: SoundSourceCore<PLAY_FREQUENCY>,
-        MixSource1: SoundSourceCore<PLAY_FREQUENCY>,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        MixSource0: SoundSourceCore<P_FREQ, U_FREQ>,
+        MixSource1: SoundSourceCore<P_FREQ, U_FREQ>,
         const SYNC_1_FROM_0: bool,
-    > SoundSourceCore<PLAY_FREQUENCY>
-    for DoubleOscillator<PLAY_FREQUENCY, MixSource0, MixSource1, SYNC_1_FROM_0>
+    > SoundSourceCore<P_FREQ, U_FREQ>
+    for DoubleOscillator<P_FREQ, U_FREQ, MixSource0, MixSource1, SYNC_1_FROM_0>
 {
     type InitValuesType = (MixSource0::InitValuesType, MixSource1::InitValuesType);
 
@@ -67,10 +69,10 @@ mod tests {
     use crate::oscillator::OscillatorType;
     use crate::oscillator::SoundSourceOscillatorInit;
 
-    type OscilatorAdsrCore<const PLAY_FREQUENCY: u32> = DoubleOscillator<
-        PLAY_FREQUENCY,
-        CoreOscillator<PLAY_FREQUENCY, 50, 50, { OscillatorType::PulseWidth as usize }>,
-        CoreAdsr<PLAY_FREQUENCY, 2, 4, 4, 100, 50>,
+    type OscilatorAdsrCore<const P_FREQ: u32, const U_FREQ: u32> = DoubleOscillator<
+        P_FREQ, U_FREQ,
+        CoreOscillator<P_FREQ, U_FREQ, 50, 50, { OscillatorType::PulseWidth as usize }>,
+        CoreAdsr<P_FREQ, U_FREQ, 2, 4, 4, 100, 50>,
     >;
 
     #[test]

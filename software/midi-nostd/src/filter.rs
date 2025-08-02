@@ -169,8 +169,9 @@ pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i6
 }
 
 pub struct Filter<
-    const PLAY_FREQUENCY: u32,
-    Source: SoundSourceCore<PLAY_FREQUENCY>,
+    const P_FREQ: u32,
+    const U_FREQ: u32,
+    Source: SoundSourceCore<P_FREQ, U_FREQ>,
     const CUTOFF_FREQUENCY: i64,
 > {
     source: Source,
@@ -179,32 +180,34 @@ pub struct Filter<
 }
 
 impl<
-        const PLAY_FREQUENCY: u32,
-        Source: SoundSourceCore<PLAY_FREQUENCY>,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        Source: SoundSourceCore<P_FREQ, U_FREQ>,
         const CUTOFF_FREQUENCY: i64,
-    > Filter<PLAY_FREQUENCY, Source, CUTOFF_FREQUENCY>
+    > Filter<P_FREQ, U_FREQ, Source, CUTOFF_FREQUENCY>
 {
     const ONE: i64 = 1i64 << 31;
 
     // Extract filter co-coefficients at compile time.
-    const B0: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).0;
-    const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).1;
+    const B0: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).0;
+    const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).1;
     // B2 is the same as B0, so I just use the B0 term in the filter.
-    // const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).2;
+    // const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ, U_FREQ as i64).2;
 
     // In the filter we subtract A1 * input, but.... A1 is a value from -1 to -2.
     // Added one to remap it to 0 to -1 because I actually do need the extra bit
     // of head room.  The oscillator pair can produce values from 0 to 2.
     //
-    const A1_P1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).3 + Self::ONE;
-    const A2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, PLAY_FREQUENCY as i64).4;
+    const A1_P1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).3 + Self::ONE;
+    const A2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).4;
 }
 
 impl<
-        const PLAY_FREQUENCY: u32,
-        Source: SoundSourceCore<PLAY_FREQUENCY>,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        Source: SoundSourceCore<P_FREQ, U_FREQ>,
         const CUTOFF_FREQUENCY: i64,
-    > SoundSourceCore<PLAY_FREQUENCY> for Filter<PLAY_FREQUENCY, Source, CUTOFF_FREQUENCY>
+    > SoundSourceCore<P_FREQ, U_FREQ> for Filter<P_FREQ, U_FREQ, Source, CUTOFF_FREQUENCY>
 {
     type InitValuesType = Source::InitValuesType;
 
@@ -445,7 +448,7 @@ mod tests {
     //
     fn get_avg_amplitude<T>(source: &mut T) -> (i32, i32)
     where
-        T: SoundSourceCore<24000>,
+        T: SoundSourceCore<24000, 24000>,
     {
         let mut amplitude_sum: i32 = 0;
         let mut switches: i32 = 0;
@@ -466,8 +469,8 @@ mod tests {
 
     #[test]
     fn filter_behavior_400() {
-        type Oscillator = CoreOscillator<24000, 50, 100, { OscillatorType::Sine as usize }>;
-        type FilteredOscillator = Filter<24000, Oscillator, 400>;
+        type Oscillator = CoreOscillator<24000, 24000, 50, 100, { OscillatorType::Sine as usize }>;
+        type FilteredOscillator = Filter<24000, 24000, Oscillator, 400>;
 
         let mut sine_50hz = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_50hz = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
@@ -509,8 +512,8 @@ mod tests {
 
     #[test]
     fn filter_behavior_1600() {
-        type Oscillator = CoreOscillator<24000, 50, 100, { OscillatorType::Sine as usize }>;
-        type FilteredOscillator = Filter<24000, Oscillator, 1600>;
+        type Oscillator = CoreOscillator<24000, 24000, 50, 100, { OscillatorType::Sine as usize }>;
+        type FilteredOscillator = Filter<24000, 24000, Oscillator, 1600>;
 
         let mut sine_50hz = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_50hz = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);
@@ -552,8 +555,8 @@ mod tests {
     #[test]
     fn filter_behavior_24000() {
         // This should give us a simple pass through.
-        type Oscillator = CoreOscillator<24000, 50, 100, { OscillatorType::Sine as usize }>;
-        type FilteredOscillator = Filter<24000, Oscillator, 24000>;
+        type Oscillator = CoreOscillator<24000, 24000, 50, 100, { OscillatorType::Sine as usize }>;
+        type FilteredOscillator = Filter<24000, 24000, Oscillator, 24000>;
 
         let mut sine_50hz = Oscillator::new(50 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_50hz = FilteredOscillator::new(50 * FREQUENCY_MULTIPLIER);

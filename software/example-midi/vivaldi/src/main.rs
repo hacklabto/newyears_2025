@@ -27,13 +27,19 @@ fn run() -> Result<(), pa::Error> {
     let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
         .expect("It's inlined data, so its expected to parse");
 
-    type MyMidi<'a> = Midi<'a, 24000, 64, 32>;
+    type MyMidi<'a> = Midi<'a, 24000, 24000, 32, 32>;
     println!(
         "Midi structure is currently using {} bytes",
         std::mem::size_of::<MyMidi>()
     );
 
     let mut midi = MyMidi::new(&header, tracks);
+
+    /*
+        for _ in 0..24000*60 {
+            midi.get_next();
+        }
+    */
 
     let pa = pa::PortAudio::new()?;
 

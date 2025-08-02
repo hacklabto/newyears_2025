@@ -4,10 +4,10 @@ use crate::midi_channels::Channels;
 use crate::midi_time::MidiTime;
 use crate::note::SoundSourceNoteInit;
 
-pub fn handle_midi_event<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize>(
+pub fn handle_midi_event<const P_FREQ: u32, const U_FREQ: u32, const MAX_NOTES: usize>(
     midi_event: &midly::MidiMessage,
     channel_u8: u8,
-    notes: &mut AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
+    notes: &mut AmpAdder<P_FREQ, U_FREQ, MAX_NOTES>,
     channels: &mut Channels,
 ) {
     let channel: usize = channel_u8 as usize;
@@ -50,11 +50,11 @@ pub fn handle_midi_event<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize>(
     }
 }
 
-pub fn handle_track_event<const PLAY_FREQUENCY: u32, const MAX_NOTES: usize>(
+pub fn handle_track_event<const P_FREQ: u32, const U_FREQ: u32, const MAX_NOTES: usize>(
     track_event: &midly::TrackEvent,
-    notes: &mut AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
+    notes: &mut AmpAdder<P_FREQ, U_FREQ, MAX_NOTES>,
     channels: &mut Channels,
-    tempo: &mut MidiTime<PLAY_FREQUENCY>,
+    tempo: &mut MidiTime<P_FREQ, U_FREQ>,
 ) {
     match track_event.kind {
         midly::TrackEventKind::Midi { message, channel } => {

@@ -7,13 +7,15 @@ use crate::sound_source_core::SoundSourceCore;
 ///
 /// Amp Adder
 ///
-pub struct AmpAdder<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> {
+pub struct AmpAdder<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize> {
     free_list: FreeList<NUM_CHANNELS>,
-    channels: [Note<PLAY_FREQUENCY>; NUM_CHANNELS],
+    channels: [Note<P_FREQ, U_FREQ>; NUM_CHANNELS],
     divider: i32,
 }
 
-impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS> {
+impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize>
+    AmpAdder<P_FREQ, U_FREQ, NUM_CHANNELS>
+{
     pub fn alloc(self: &mut Self) -> usize {
         self.free_list.alloc()
     }
@@ -23,19 +25,19 @@ impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> AmpAdder<PLAY_FREQUEN
     }
 
     pub fn new_note_at(self: &mut Self, element: usize, note_init: SoundSourceNoteInit) {
-        self.channels[element] = Note::<PLAY_FREQUENCY>::new(note_init);
+        self.channels[element] = Note::<P_FREQ, U_FREQ>::new(note_init);
     }
 }
 
-impl<const PLAY_FREQUENCY: u32, const NUM_CHANNELS: usize> SoundSourceCore<PLAY_FREQUENCY>
-    for AmpAdder<PLAY_FREQUENCY, NUM_CHANNELS>
+impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize>
+    SoundSourceCore<P_FREQ, U_FREQ> for AmpAdder<P_FREQ, U_FREQ, NUM_CHANNELS>
 {
     type InitValuesType = i32;
 
     fn new(divider: Self::InitValuesType) -> Self {
         Self {
             free_list: { FreeList::<NUM_CHANNELS>::default() },
-            channels: { core::array::from_fn(|_idx| Note::<PLAY_FREQUENCY>::default()) },
+            channels: { core::array::from_fn(|_idx| Note::<P_FREQ, U_FREQ>::default()) },
             divider,
         }
     }
@@ -68,7 +70,7 @@ mod tests {
 
     #[test]
     fn basic_amp_adder_test() {
-        let mut amp_adder = AmpAdder::<24000, 2>::new(1);
+        let mut amp_adder = AmpAdder::<24000, 24000, 2>::new(1);
 
         assert_eq!(0, amp_adder.get_next().to_i32());
         assert_eq!(0, amp_adder.get_next().to_i32());

@@ -9,30 +9,34 @@ use crate::oscillator::OscillatorType;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
 
-type PianoOscillatorPair<const PLAY_FREQUENCY: u32> = DoubleOscillator<
-    PLAY_FREQUENCY,
-    CoreOscillator<PLAY_FREQUENCY, 50, 75, { OscillatorType::SawTooth as usize }>,
-    CoreOscillator<PLAY_FREQUENCY, 15, 100, { OscillatorType::PulseWidth as usize }>,
+type PianoOscillatorPair<const P_FREQ: u32, const U_FREQ: u32> = DoubleOscillator<
+    P_FREQ,
+    U_FREQ,
+    CoreOscillator<P_FREQ, U_FREQ, 50, 75, { OscillatorType::SawTooth as usize }>,
+    CoreOscillator<P_FREQ, U_FREQ, 15, 100, { OscillatorType::PulseWidth as usize }>,
     true,
 >;
 
-type PianoOscillatorAdsr<const PLAY_FREQUENCY: u32> = AmpMixerCore<
-    PLAY_FREQUENCY,
-    PianoOscillatorPair<PLAY_FREQUENCY>,
-    CoreAdsr<PLAY_FREQUENCY, 0, 670, 25, 500>,
+type PianoOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
+    P_FREQ,
+    U_FREQ,
+    PianoOscillatorPair<P_FREQ, U_FREQ>,
+    CoreAdsr<P_FREQ, U_FREQ, 0, 670, 25, 500>,
 >;
 
-type PianoFiltered<const PLAY_FREQUENCY: u32> =
-    Filter<PLAY_FREQUENCY, PianoOscillatorAdsr<PLAY_FREQUENCY>, 1000>;
+type PianoFiltered<const P_FREQ: u32, const U_FREQ: u32> =
+    Filter<P_FREQ, U_FREQ, PianoOscillatorAdsr<P_FREQ, U_FREQ>, 1000>;
 
 ///
 /// Piano.  Now sort of a proof of concept.
 ///
-pub struct Piano<const PLAY_FREQUENCY: u32> {
-    core: PianoFiltered<PLAY_FREQUENCY>,
+pub struct Piano<const P_FREQ: u32, const U_FREQ: u32> {
+    core: PianoFiltered<P_FREQ, U_FREQ>,
 }
 
-impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Piano<PLAY_FREQUENCY> {
+impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
+    for Piano<P_FREQ, U_FREQ>
+{
     type InitValuesType = SoundSourceNoteInit;
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
@@ -47,7 +51,7 @@ impl<const PLAY_FREQUENCY: u32> SoundSourceCore<PLAY_FREQUENCY> for Piano<PLAY_F
         let frequency_1 = midi_note_to_freq(init_values.key);
         let frequency_2 = midi_note_to_freq(init_values.key + 16);
         let adsr_init = (init_values.velocity as i32) << 8;
-        let core = PianoFiltered::<PLAY_FREQUENCY>::new(((frequency_1, frequency_2), adsr_init));
+        let core = PianoFiltered::<P_FREQ, U_FREQ>::new(((frequency_1, frequency_2), adsr_init));
         return Self { core };
     }
 

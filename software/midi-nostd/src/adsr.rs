@@ -10,31 +10,33 @@ type AdsrFraction = I32Fraction<{ ADSR_FRACTION_DENOMINATOR as i32 }>;
 /// ADSR envelope
 ///
 pub struct CoreAdsr<
-    const PLAY_FREQUENCY: u32,
+    const P_FREQ: u32,
+    const U_FREQ: u32,
     const A: i32,
     const D: i32,
     const SUSTAIN_VOLUME: u8,
     const R: i32,
 > {
-    time_since_state_start: i32, // units are 1/PLAY_FREQUENCY
+    time_since_state_start: i32, // units are 1/P_FREQ, U_FREQ
     last_sound: AdsrFraction,
     volume: i32,
 }
 
 impl<
-        const PLAY_FREQUENCY: u32,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
         const A: i32,
         const D: i32,
         const SUSTAIN_VOLUME: u8,
         const R: i32,
-    > CoreAdsr<PLAY_FREQUENCY, A, D, SUSTAIN_VOLUME, R>
+    > CoreAdsr<P_FREQ, U_FREQ, A, D, SUSTAIN_VOLUME, R>
 {
     const ATTACK_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::MAX;
     const SUSTAIN_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(SUSTAIN_VOLUME);
 
-    const A_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(A);
-    const D_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(D);
-    const R_TICKS: i32 = time_to_ticks::<PLAY_FREQUENCY>(R);
+    const A_TICKS: i32 = time_to_ticks::<P_FREQ>(A);
+    const D_TICKS: i32 = time_to_ticks::<P_FREQ>(D);
+    const R_TICKS: i32 = time_to_ticks::<P_FREQ>(R);
 
     const A_GAIN: AdsrFraction = if Self::A_TICKS != 0 {
         let a_diff: i64 = Self::ATTACK_VOLUME_SCALE.to_i32() as i64;
@@ -77,17 +79,18 @@ impl<
 
     const A_END: i32 = Self::A_TICKS;
     const D_END: i32 = Self::A_END + Self::D_TICKS;
-    const R_START: i32 = time_to_ticks::<PLAY_FREQUENCY>(10000);
+    const R_START: i32 = time_to_ticks::<P_FREQ>(10000);
     const R_END: i32 = Self::R_START + Self::R_TICKS;
 }
 
 impl<
-        const PLAY_FREQUENCY: u32,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
         const A: i32,
         const D: i32,
         const SUSTAIN_VOLUME: u8,
         const R: i32,
-    > SoundSourceCore<PLAY_FREQUENCY> for CoreAdsr<PLAY_FREQUENCY, A, D, SUSTAIN_VOLUME, R>
+    > SoundSourceCore<P_FREQ, U_FREQ> for CoreAdsr<P_FREQ, U_FREQ, A, D, SUSTAIN_VOLUME, R>
 {
     type InitValuesType = i32;
 
@@ -155,7 +158,7 @@ mod tests {
     fn basic_adsr_test() {
         let adsr_init: i32 = 0x8000;
 
-        let mut adsr = CoreAdsr::<1000, 2, 4, 50, 8>::new(adsr_init);
+        let mut adsr = CoreAdsr::<1000, 1000, 2, 4, 50, 8>::new(adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
         assert_eq!(true, adsr.has_next());
@@ -206,7 +209,7 @@ mod tests {
 
         const D_RANGE: i32 = 1000;
 
-        let mut adsr = CoreAdsr::<10000, 0, 100, 50, 8>::new(adsr_init);
+        let mut adsr = CoreAdsr::<10000, 10000, 0, 100, 50, 8>::new(adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
         assert_eq!(true, adsr.has_next());
