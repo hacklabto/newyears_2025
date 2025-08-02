@@ -3,14 +3,25 @@ use crate::midi_channels::Channels;
 use crate::midi_events::*;
 use crate::midi_time::MidiTime;
 
-pub struct MidiTrack<'a, const P_FREQ: u32, const U_FREQ: u32, const MAX_NOTES: usize> {
+pub struct MidiTrack<
+    'a,
+    const P_FREQ: u32,
+    const U_FREQ: u32,
+    const MAX_NOTES: usize,
+    const NO_SCALEDOWN: bool,
+> {
     last_event: Option<Result<midly::TrackEvent<'a>, midly::Error>>,
     event_iter: midly::EventIter<'a>,
     next_event_time: u32,
 }
 
-impl<'a, const P_FREQ: u32, const U_FREQ: u32, const MAX_NOTES: usize>
-    MidiTrack<'a, P_FREQ, U_FREQ, MAX_NOTES>
+impl<
+        'a,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        const MAX_NOTES: usize,
+        const NO_SCALEDOWN: bool,
+    > MidiTrack<'a, P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>
 {
     pub fn new(mut event_iter: midly::EventIter<'a>) -> Self {
         let last_event = event_iter.next();
@@ -33,7 +44,7 @@ impl<'a, const P_FREQ: u32, const U_FREQ: u32, const MAX_NOTES: usize>
 
     pub fn update(
         self: &mut Self,
-        notes: &mut AmpAdder<P_FREQ, U_FREQ, MAX_NOTES>,
+        notes: &mut AmpAdder<P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>,
         channels: &mut Channels,
         tempo: &mut MidiTime<P_FREQ, U_FREQ>,
     ) {

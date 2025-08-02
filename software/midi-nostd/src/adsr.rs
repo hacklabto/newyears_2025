@@ -167,45 +167,69 @@ mod tests {
         let mut adsr = CoreAdsr::<1000, 1000, 2, 4, 50, 8>::new(adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
+        adsr.update();
         assert_eq!(true, adsr.has_next());
         assert_eq!(0x0000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x4000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x8000, adsr.get_next().to_i32());
 
         // Delay state, 4 ticks to get to Sustain Volume (50%) from attack volume
+        adsr.update();
         assert_eq!(true, adsr.has_next());
         assert_eq!(0x7000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x6000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x5000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x4000, adsr.get_next().to_i32());
 
         // Sustain state
+        adsr.update();
         assert_eq!(true, adsr.has_next());
         assert_eq!(0x4000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x4000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x4000, adsr.get_next().to_i32());
         adsr.trigger_note_off(); // Release doesn't start until update begins
+        adsr.update();
         assert_eq!(0x4000, adsr.get_next().to_i32());
 
         // Release state, 4 ticks to get to quiet from Sustain Volume
+        adsr.update();
         assert_eq!(true, adsr.has_next());
         assert_eq!(0x3800, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x3000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x2800, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x2000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x1800, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x1000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x0800, adsr.get_next().to_i32());
-        assert_eq!(true, adsr.has_next());
+        adsr.update();
         assert_eq!(0x0000, adsr.get_next().to_i32());
 
         // End state.  Report silence and no more data
+        adsr.update();
         assert_eq!(false, adsr.has_next());
         assert_eq!(0x0000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x0000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x0000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x0000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x0000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x0000, adsr.get_next().to_i32());
         assert_eq!(false, adsr.has_next());
     }
@@ -221,6 +245,7 @@ mod tests {
         assert_eq!(true, adsr.has_next());
 
         for i in 0..D_RANGE {
+            adsr.update();
             assert_eq!((i, true), (i, adsr.has_next()));
             let desired: i32 = 0x4000 * i / D_RANGE + 0x8000 * (D_RANGE - i) / D_RANGE;
             let actual: i32 = adsr.get_next().to_i32();
@@ -234,10 +259,14 @@ mod tests {
         }
 
         // Sustain state
+        adsr.update();
         assert_eq!(true, adsr.has_next());
         assert_eq!(0x4001, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x4000, adsr.get_next().to_i32());
+        adsr.update();
         assert_eq!(0x4000, adsr.get_next().to_i32());
+        adsr.update();
         adsr.trigger_note_off(); // Release doesn't start until update begins
         assert_eq!(0x4000, adsr.get_next().to_i32());
 

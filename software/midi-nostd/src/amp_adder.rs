@@ -7,7 +7,12 @@ use crate::sound_source_core::SoundSourceCore;
 ///
 /// Amp Adder
 ///
-pub struct AmpAdder<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize> {
+pub struct AmpAdder<
+    const P_FREQ: u32,
+    const U_FREQ: u32,
+    const NUM_CHANNELS: usize,
+    const NO_SCALEDOWN: bool,
+> {
     free_list: FreeList<NUM_CHANNELS>,
     channels: [Note<P_FREQ, U_FREQ>; NUM_CHANNELS],
     active_channel_list: [usize; NUM_CHANNELS],
@@ -15,8 +20,8 @@ pub struct AmpAdder<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: us
     divider: i32,
 }
 
-impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize>
-    AmpAdder<P_FREQ, U_FREQ, NUM_CHANNELS>
+impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_SCALEDOWN: bool>
+    AmpAdder<P_FREQ, U_FREQ, NUM_CHANNELS, NO_SCALEDOWN>
 {
     pub fn alloc(self: &mut Self) -> usize {
         self.free_list.alloc()
@@ -31,8 +36,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize>
     }
 }
 
-impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize>
-    SoundSourceCore<P_FREQ, U_FREQ> for AmpAdder<P_FREQ, U_FREQ, NUM_CHANNELS>
+impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_SCALEDOWN: bool>
+    SoundSourceCore<P_FREQ, U_FREQ> for AmpAdder<P_FREQ, U_FREQ, NUM_CHANNELS, NO_SCALEDOWN>
 {
     type InitValuesType = i32;
 
@@ -55,7 +60,11 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize>
             output = output + self.channels[*i].get_next();
         }
 
-        SoundSampleI32::new_i32(output.to_i32() / self.divider)
+        if NO_SCALEDOWN {
+            output
+        } else {
+            SoundSampleI32::new_i32(output.to_i32() / self.divider)
+        }
     }
 
     fn update(self: &mut Self) {
@@ -85,7 +94,7 @@ mod tests {
 
     #[test]
     fn basic_amp_adder_test() {
-        let mut amp_adder = AmpAdder::<24000, 24000, 2>::new(1);
+        let mut amp_adder = AmpAdder::<24000, 24000, 2, false>::new(1);
 
         assert_eq!(0, amp_adder.get_next().to_i32());
         assert_eq!(0, amp_adder.get_next().to_i32());

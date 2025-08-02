@@ -12,17 +12,24 @@ pub struct Midi<
     const U_FREQ: u32,
     const MAX_NOTES: usize,
     const MAX_TRACKS: usize,
+    const NO_SCALEDOWN: bool = false,
 > {
     num_tracks: usize,
-    tracks: [Option<MidiTrack<'a, P_FREQ, U_FREQ, MAX_NOTES>>; MAX_TRACKS],
-    amp_adder: AmpAdder<P_FREQ, U_FREQ, MAX_NOTES>,
+    tracks: [Option<MidiTrack<'a, P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>>; MAX_TRACKS],
+    amp_adder: AmpAdder<P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>,
     channels: Channels,
     tempo: MidiTime<P_FREQ, U_FREQ>,
     skip_count: u32,
 }
 
-impl<'a, const P_FREQ: u32, const U_FREQ: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
-    Midi<'a, P_FREQ, U_FREQ, MAX_NOTES, MAX_TRACKS>
+impl<
+        'a,
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        const MAX_NOTES: usize,
+        const MAX_TRACKS: usize,
+        const NO_SCALEDOWN: bool,
+    > Midi<'a, P_FREQ, U_FREQ, MAX_NOTES, MAX_TRACKS, NO_SCALEDOWN>
 {
     const SKIP: u32 = P_FREQ / U_FREQ;
 
@@ -33,20 +40,20 @@ impl<'a, const P_FREQ: u32, const U_FREQ: u32, const MAX_NOTES: usize, const MAX
     ) -> Self {
         assert_eq!(0, (P_FREQ % U_FREQ));
         let num_tracks = track_iter.clone().count();
-        let tracks: [Option<MidiTrack<P_FREQ, U_FREQ, MAX_NOTES>>; MAX_TRACKS] =
+        let tracks: [Option<MidiTrack<P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>>; MAX_TRACKS] =
             core::array::from_fn(|_idx| {
                 let track = track_iter.next();
 
                 if track.is_none() {
                     None
                 } else {
-                    Some(MidiTrack::<P_FREQ, U_FREQ, MAX_NOTES>::new(
+                    Some(MidiTrack::<P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>::new(
                         track.unwrap().unwrap(),
                     ))
                 }
             });
 
-        let amp_adder = AmpAdder::<P_FREQ, U_FREQ, MAX_NOTES>::new(divider);
+        let amp_adder = AmpAdder::<P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>::new(divider);
 
         let tpqn_midly = match header.timing {
             Timing::Metrical(ticks) => ticks,
@@ -88,7 +95,7 @@ impl<'a, const P_FREQ: u32, const U_FREQ: u32, const MAX_NOTES: usize, const MAX
         //
         assert!(MAX_NOTES < 0xff);
         let loudest = Self::get_loudest_sample(header, track_iter.clone());
-        Midi::<P_FREQ, U_FREQ, MAX_NOTES, MAX_TRACKS>::new_internal(
+        Midi::<P_FREQ, U_FREQ, MAX_NOTES, MAX_TRACKS, NO_SCALEDOWN>::new_internal(
             header,
             track_iter.clone(),
             loudest / 0x8000 + 1,
