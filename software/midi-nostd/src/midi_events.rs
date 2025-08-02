@@ -16,9 +16,6 @@ pub fn handle_midi_event<
     channels: &mut Channels,
 ) {
     let channel: usize = channel_u8 as usize;
-    if channel == 10 {
-        return;
-    }
     match midi_event {
         midly::MidiMessage::NoteOn { key, vel } => {
             let key_as_u32: u8 = (*key).into();
@@ -65,9 +62,12 @@ pub fn handle_track_event<
     notes: &mut AmpAdder<P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>,
     channels: &mut Channels,
     tempo: &mut MidiTime<P_FREQ, U_FREQ>,
-) {
+) -> bool {
     match track_event.kind {
         midly::TrackEventKind::Midi { message, channel } => {
+            if channel == 10 {
+                return true;
+            }
             handle_midi_event(&message, channel.into(), notes, channels)
         }
         midly::TrackEventKind::Meta(message) => match message {
@@ -75,8 +75,12 @@ pub fn handle_track_event<
                 let ms_per_qn: u32 = ms_per_qn_midly.into();
                 tempo.set_ms_per_quarter_note(ms_per_qn as u32);
             }
+            midly::MetaMessage::EndOfTrack => {
+                return true;
+            }
             _ => {}
         },
         _ => {}
     }
+    false
 }

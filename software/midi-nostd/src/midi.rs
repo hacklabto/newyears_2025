@@ -20,6 +20,7 @@ pub struct Midi<
     channels: Channels,
     tempo: MidiTime<P_FREQ, U_FREQ>,
     skip_count: u32,
+    tracks_still_playing: bool,
 }
 
 impl<
@@ -69,6 +70,7 @@ impl<
             channels: Channels::default(),
             tempo,
             skip_count: 0,
+            tracks_still_playing: true,
         }
     }
 
@@ -77,7 +79,7 @@ impl<
             Midi::<24, 24, MAX_NOTES, MAX_TRACKS, true>::new_internal(
                 header,
                 track_iter.clone(),
-                9,
+                0, // not used
             );
         let mut loudest: i32 = 0;
         while fast_forward_midi_player.has_next() {
@@ -118,6 +120,14 @@ impl<
             }
         }
         self.amp_adder.update();
+        self.tracks_still_playing = false;
+        for i in 0..self.num_tracks {
+            if self.tracks[i].is_some() {
+                if self.tracks[i].as_ref().unwrap().has_next() {
+                    self.tracks_still_playing = true;
+                }
+            }
+        }
     }
 
     pub fn get_next(self: &mut Self) -> SoundSampleI32 {
@@ -132,14 +142,7 @@ impl<
     }
 
     pub fn has_next(self: &Self) -> bool {
-        for i in 0..self.num_tracks {
-            if self.tracks[i].is_some() {
-                if self.tracks[i].as_ref().unwrap().has_next() {
-                    return true;
-                }
-            }
-        }
-        false
+        self.tracks_still_playing
     }
 }
 

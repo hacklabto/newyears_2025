@@ -53,8 +53,14 @@ impl<
         }
         while tempo.get_current_time() >= self.next_event_time {
             let track_event = self.last_event.as_ref().unwrap().as_ref().unwrap();
-            handle_track_event(&track_event, notes, channels, tempo);
-            self.last_event = self.event_iter.next();
+            let end_of_track = handle_track_event(&track_event, notes, channels, tempo);
+
+            if !end_of_track {
+                self.last_event = self.event_iter.next();
+            } else {
+                self.last_event = None;
+            }
+
             if !self.has_next() {
                 return;
             }

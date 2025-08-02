@@ -42,11 +42,17 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_S
     type InitValuesType = i32;
 
     fn new(divider: Self::InitValuesType) -> Self {
+        let scale: SoundSampleI32 = if NO_SCALEDOWN {
+            SoundSampleI32::ZERO
+        } else {
+            SoundSampleI32::new_i32(0x8000 / divider)
+        };
+
         Self {
             free_list: { FreeList::<NUM_CHANNELS>::default() },
             channels: { core::array::from_fn(|_idx| Note::<P_FREQ, U_FREQ>::default()) },
-            scale: SoundSampleI32::new_i32(0x8000 / divider),
             num_active_channels: 0,
+            scale,
             active_channel_list: { core::array::from_fn(|_idx| 0) },
         }
     }
