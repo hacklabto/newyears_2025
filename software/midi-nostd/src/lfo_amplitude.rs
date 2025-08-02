@@ -1,11 +1,12 @@
 use crate::oscillator::CoreOscillator;
 use crate::sound_sample::SoundSampleI32;
+use crate::sound_source_core::OscillatorInterface;
 use crate::sound_source_core::SoundSourceCore;
 
 pub struct LfoAmplitude<
     const P_FREQ: u32,
     const U_FREQ: u32,
-    Source: SoundSourceCore<P_FREQ, U_FREQ>,
+    Source: OscillatorInterface<P_FREQ, U_FREQ>,
     const WAVE: usize,
     const LFO_FREQUENCY: u32,
     const DEPTH: u8,
@@ -17,7 +18,7 @@ pub struct LfoAmplitude<
 impl<
         const P_FREQ: u32,
         const U_FREQ: u32,
-        Source: SoundSourceCore<P_FREQ, U_FREQ>,
+        Source: OscillatorInterface<P_FREQ, U_FREQ>,
         const WAVE: usize,
         const LFO_FREQUENCY: u32,
         const DEPTH: u8,
@@ -30,7 +31,7 @@ impl<
 impl<
         const P_FREQ: u32,
         const U_FREQ: u32,
-        Source: SoundSourceCore<P_FREQ, U_FREQ>,
+        Source: OscillatorInterface<P_FREQ, U_FREQ>,
         const WAVE: usize,
         const LFO_FREQUENCY: u32,
         const DEPTH: u8,
@@ -64,5 +65,20 @@ impl<
 
     fn trigger_note_off(self: &mut Self) {
         self.source.trigger_note_off();
+    }
+}
+
+impl<
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        Source: OscillatorInterface<P_FREQ, U_FREQ>,
+        const WAVE: usize,
+        const LFO_FREQUENCY: u32,
+        const DEPTH: u8,
+    > OscillatorInterface<P_FREQ, U_FREQ>
+    for LfoAmplitude<P_FREQ, U_FREQ, Source, WAVE, LFO_FREQUENCY, DEPTH>
+{
+    fn set_amplitude_adjust(self: &mut Self, adjust: SoundSampleI32) {
+        self.source.set_amplitude_adjust(adjust);
     }
 }

@@ -1,11 +1,12 @@
 use crate::sound_sample::SoundSampleI32;
+use crate::sound_source_core::OscillatorInterface;
 use crate::sound_source_core::SoundSourceCore;
 
 pub struct DoubleOscillator<
     const P_FREQ: u32,
     const U_FREQ: u32,
-    MixSource0: SoundSourceCore<P_FREQ, U_FREQ>,
-    MixSource1: SoundSourceCore<P_FREQ, U_FREQ>,
+    MixSource0: OscillatorInterface<P_FREQ, U_FREQ>,
+    MixSource1: OscillatorInterface<P_FREQ, U_FREQ>,
     const SYNC_1_FROM_0: bool,
 > {
     last_source_0_sample: SoundSampleI32,
@@ -16,8 +17,8 @@ pub struct DoubleOscillator<
 impl<
         const P_FREQ: u32,
         const U_FREQ: u32,
-        MixSource0: SoundSourceCore<P_FREQ, U_FREQ>,
-        MixSource1: SoundSourceCore<P_FREQ, U_FREQ>,
+        MixSource0: OscillatorInterface<P_FREQ, U_FREQ>,
+        MixSource1: OscillatorInterface<P_FREQ, U_FREQ>,
         const SYNC_1_FROM_0: bool,
     > SoundSourceCore<P_FREQ, U_FREQ>
     for DoubleOscillator<P_FREQ, U_FREQ, MixSource0, MixSource1, SYNC_1_FROM_0>
@@ -60,6 +61,21 @@ impl<
     fn trigger_note_off(self: &mut Self) {
         self.source_0.trigger_note_off();
         self.source_1.trigger_note_off();
+    }
+}
+
+impl<
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        MixSource0: OscillatorInterface<P_FREQ, U_FREQ>,
+        MixSource1: OscillatorInterface<P_FREQ, U_FREQ>,
+        const SYNC_1_FROM_0: bool,
+    > OscillatorInterface<P_FREQ, U_FREQ>
+    for DoubleOscillator<P_FREQ, U_FREQ, MixSource0, MixSource1, SYNC_1_FROM_0>
+{
+    fn set_amplitude_adjust(self: &mut Self, adjust: SoundSampleI32) {
+        self.source_0.set_amplitude_adjust(adjust);
+        self.source_1.set_amplitude_adjust(adjust);
     }
 }
 

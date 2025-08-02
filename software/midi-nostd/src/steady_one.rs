@@ -1,5 +1,6 @@
 use crate::note::SoundSourceNoteInit;
 use crate::sound_sample::SoundSampleI32;
+use crate::sound_source_core::OscillatorInterface;
 use crate::sound_source_core::SoundSourceCore;
 
 ///
@@ -27,4 +28,10 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
     }
 
     fn trigger_note_off(self: &mut Self) {}
+}
+
+impl<const P_FREQ: u32, const U_FREQ: u32> OscillatorInterface<P_FREQ, U_FREQ>
+    for SteadyOne<P_FREQ, U_FREQ>
+{
+    fn set_amplitude_adjust(self: &mut Self, _adjust: SoundSampleI32) {}
 }

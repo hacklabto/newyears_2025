@@ -1,6 +1,7 @@
 use crate::sound_sample::time_to_ticks;
 use crate::sound_sample::I32Fraction;
 use crate::sound_sample::SoundSampleI32;
+use crate::sound_source_core::OscillatorInterface;
 use crate::sound_source_core::SoundSourceCore;
 
 const ADSR_FRACTION_DENOMINATOR: i64 = 0x8000000;
@@ -16,7 +17,7 @@ pub struct CoreAdsr<
     const D: i32,
     const SUSTAIN_VOLUME: u8,
     const R: i32,
-    Source: SoundSourceCore<P_FREQ, U_FREQ>,
+    Source: OscillatorInterface<P_FREQ, U_FREQ>,
 > {
     cached_adsr: SoundSampleI32,
     time_since_state_start: i32, // units are 1/P_FREQ
@@ -32,7 +33,7 @@ impl<
         const D: i32,
         const SUSTAIN_VOLUME: u8,
         const R: i32,
-        Source: SoundSourceCore<P_FREQ, U_FREQ>,
+        Source: OscillatorInterface<P_FREQ, U_FREQ>,
     > CoreAdsr<P_FREQ, U_FREQ, A, D, SUSTAIN_VOLUME, R, Source>
 {
     const ATTACK_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::MAX;
@@ -94,7 +95,7 @@ impl<
         const D: i32,
         const SUSTAIN_VOLUME: u8,
         const R: i32,
-        Source: SoundSourceCore<P_FREQ, U_FREQ>,
+        Source: OscillatorInterface<P_FREQ, U_FREQ>,
     > SoundSourceCore<P_FREQ, U_FREQ>
     for CoreAdsr<P_FREQ, U_FREQ, A, D, SUSTAIN_VOLUME, R, Source>
 {

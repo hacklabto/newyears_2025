@@ -1,5 +1,6 @@
 use crate::midi_notes::FREQUENCY_MULTIPLIER;
 use crate::sound_sample::SoundSampleI32;
+use crate::sound_source_core::OscillatorInterface;
 use crate::sound_source_core::SoundSourceCore;
 use crate::wave_tables::SAWTOOTH_WAVE;
 use crate::wave_tables::SINE_WAVE;
@@ -41,8 +42,9 @@ pub struct CoreOscillator<
     const VOLUME_U8: u8,
     const OSCILLATOR_TYPE: usize,
 > {
-    pub table_idx: u32,
-    pub table_idx_inc: u32,
+    table_idx: u32,
+    table_idx_inc: u32,
+    max_amplitude: SoundSampleI32,
 }
 
 impl<
@@ -56,8 +58,6 @@ impl<
     const PULSE_WIDTH_CUTOFF: u32 = ((1u64 << 32) * (PULSE_WIDTH as u64) / 100u64) as u32;
     const VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(VOLUME);
     const OSCILATOR_TYPE_ENUM: OscillatorType = OscillatorType::from_usize(OSCILATOR_TYPE);
-    const PULSE_MAX: SoundSampleI32 = SoundSampleI32::MAX.const_mul(Self::VOLUME_SCALE);
-    const PULSE_MIN: SoundSampleI32 = SoundSampleI32::MIN.const_mul(Self::VOLUME_SCALE);
     const INC_DENOMINATOR: u64 = (FREQUENCY_MULTIPLIER as u64) * (P_FREQ as u64);
 }
 
@@ -76,6 +76,7 @@ impl<
         Self {
             table_idx: 0,
             table_idx_inc: (((1u64 << 32) * (frequency as u64)) / Self::INC_DENOMINATOR) as u32,
+            max_amplitude: Self::VOLUME_SCALE,
         }
     }
 
@@ -89,13 +90,13 @@ impl<
 
         if Self::OSCILATOR_TYPE_ENUM == OscillatorType::PulseWidth {
             if self.table_idx < Self::PULSE_WIDTH_CUTOFF {
-                Self::PULSE_MAX
+                self.max_amplitude
             } else {
-                Self::PULSE_MIN
+                SoundSampleI32::new_i32(-self.max_amplitude.to_i32()) // should implement neg
             }
         } else {
             let table = ALL_WAVE_TABLES[Self::OSCILATOR_TYPE_ENUM as usize];
-            SoundSampleI32::new_i32(table[(self.table_idx >> 22) as usize]) * Self::VOLUME_SCALE
+            SoundSampleI32::new_i32(table[(self.table_idx >> 22) as usize]) * self.max_amplitude
         }
     }
 
@@ -106,6 +107,20 @@ impl<
     }
     fn reset_oscillator(self: &mut Self) {
         self.table_idx = 0;
+    }
+}
+
+impl<
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        const PULSE_WIDTH: u8,
+        const VOLUME: u8,
+        const OSCILATOR_TYPE: usize,
+    > OscillatorInterface<P_FREQ, U_FREQ>
+    for CoreOscillator<P_FREQ, U_FREQ, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
+{
+    fn set_amplitude_adjust(self: &mut Self, adjust: SoundSampleI32) {
+        self.max_amplitude = Self::VOLUME_SCALE * adjust;
     }
 }
 

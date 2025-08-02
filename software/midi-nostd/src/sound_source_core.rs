@@ -35,3 +35,11 @@ pub trait SoundSourceCore<const P_FREQ: u32, const U_FREQ: u32> {
     ///
     fn reset_oscillator(self: &mut Self) {}
 }
+
+pub trait OscillatorInterface<const P_FREQ: u32, const U_FREQ: u32>:
+    SoundSourceCore<P_FREQ, U_FREQ>
+{
+    // Push any amplitude adjustements from the ADSR into the oscilator.
+    //
+    fn set_amplitude_adjust(self: &mut Self, adjust: SoundSampleI32);
+}
