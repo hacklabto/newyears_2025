@@ -1,5 +1,4 @@
 use crate::adsr::CoreAdsr;
-use crate::amp_mixer::AmpMixerCore;
 use crate::double_oscillator::DoubleOscillator;
 use crate::filter::Filter;
 use crate::lfo_amplitude::LfoAmplitude;
@@ -28,12 +27,8 @@ type ChoirOscillatorLfo<const P_FREQ: u32, const U_FREQ: u32> = LfoAmplitude<
     10,
 >;
 
-type ChoirOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
-    P_FREQ,
-    U_FREQ,
-    ChoirOscillatorLfo<P_FREQ, U_FREQ>,
-    CoreAdsr<P_FREQ, U_FREQ, 320, 5000, 100, 930>,
->;
+type ChoirOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
+    CoreAdsr<P_FREQ, U_FREQ, 320, 5000, 100, 930, ChoirOscillatorLfo<P_FREQ, U_FREQ>>;
 
 type ChoirFiltered<const P_FREQ: u32, const U_FREQ: u32> =
     Filter<P_FREQ, U_FREQ, ChoirOscillatorAdsr<P_FREQ, U_FREQ>, 1000>;

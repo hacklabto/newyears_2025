@@ -16,11 +16,13 @@ pub struct CoreAdsr<
     const D: i32,
     const SUSTAIN_VOLUME: u8,
     const R: i32,
+    Source: SoundSourceCore<P_FREQ, U_FREQ>,
 > {
     cached_adsr: SoundSampleI32,
     time_since_state_start: i32, // units are 1/P_FREQ
     last_sound: AdsrFraction,
     volume: i32,
+    source: Source,
 }
 
 impl<
@@ -30,7 +32,8 @@ impl<
         const D: i32,
         const SUSTAIN_VOLUME: u8,
         const R: i32,
-    > CoreAdsr<P_FREQ, U_FREQ, A, D, SUSTAIN_VOLUME, R>
+        Source: SoundSourceCore<P_FREQ, U_FREQ>,
+    > CoreAdsr<P_FREQ, U_FREQ, A, D, SUSTAIN_VOLUME, R, Source>
 {
     const ATTACK_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::MAX;
     const SUSTAIN_VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(SUSTAIN_VOLUME);
@@ -91,11 +94,13 @@ impl<
         const D: i32,
         const SUSTAIN_VOLUME: u8,
         const R: i32,
-    > SoundSourceCore<P_FREQ, U_FREQ> for CoreAdsr<P_FREQ, U_FREQ, A, D, SUSTAIN_VOLUME, R>
+        Source: SoundSourceCore<P_FREQ, U_FREQ>,
+    > SoundSourceCore<P_FREQ, U_FREQ>
+    for CoreAdsr<P_FREQ, U_FREQ, A, D, SUSTAIN_VOLUME, R, Source>
 {
-    type InitValuesType = i32;
+    type InitValuesType = (Source::InitValuesType, i32);
 
-    fn new(init_volume: Self::InitValuesType) -> Self {
+    fn new(init_value: Self::InitValuesType) -> Self {
         let time_since_state_start = 0;
 
         let last_sound = if A != 0 {
@@ -109,14 +114,15 @@ impl<
         Self {
             time_since_state_start,
             last_sound,
-            volume: init_volume,
+            volume: init_value.1,
             cached_adsr: SoundSampleI32::new_i32(0),
+            source: Source::new(init_value.0),
         }
     }
 
     #[inline]
     fn get_next(self: &mut Self) -> SoundSampleI32 {
-        self.cached_adsr
+        self.source.get_next() * self.cached_adsr
     }
 
     fn update(self: &mut Self) {
@@ -159,12 +165,15 @@ impl<
 #[cfg(test)]
 mod tests {
     use crate::adsr::*;
+    use crate::note::*;
+    use crate::steady_one::*;
 
     #[test]
     fn basic_adsr_test() {
-        let adsr_init: i32 = 0x8000;
+        type TestAdsr = CoreAdsr<1000, 1000, 2, 4, 50, 8, SteadyOne<1000, 1000>>;
+        let adsr_init = (SoundSourceNoteInit::new(1, 2, 3), 0x8000);
 
-        let mut adsr = CoreAdsr::<1000, 1000, 2, 4, 50, 8>::new(adsr_init);
+        let mut adsr = TestAdsr::new(adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
         adsr.update();
@@ -235,11 +244,11 @@ mod tests {
     }
     #[test]
     fn no_attack_adsr_test() {
-        let adsr_init: i32 = 0x8000;
-
         const D_RANGE: i32 = 1000;
 
-        let mut adsr = CoreAdsr::<10000, 10000, 0, 100, 50, 8>::new(adsr_init);
+        type TestAdsr = CoreAdsr<10000, 10000, 0, 100, 50, 8, SteadyOne<10000, 10000>>;
+        let adsr_init = (SoundSourceNoteInit::new(1, 2, 3), 0x8000);
+        let mut adsr = TestAdsr::new(adsr_init);
 
         // Attack state, 2 ticks to get to attack volume (max) from 0
         assert_eq!(true, adsr.has_next());

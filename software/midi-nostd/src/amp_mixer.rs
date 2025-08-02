@@ -46,21 +46,26 @@ impl<
     }
 }
 
+// Todo, am I even keeping this class?
 #[cfg(test)]
 mod tests {
-    use crate::adsr::CoreAdsr;
+    //use crate::midi_notes::FREQUENCY_MULTIPLIER;
+    /*
     use crate::amp_mixer::*;
-    use crate::midi_notes::FREQUENCY_MULTIPLIER;
     use crate::oscillator::CoreOscillator;
     use crate::oscillator::OscillatorType;
+    */
 
+    /*
     type OscilatorAdsrCore<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
         P_FREQ,
         U_FREQ,
         CoreOscillator<P_FREQ, U_FREQ, 50, 50, { OscillatorType::PulseWidth as usize }>,
-        CoreAdsr<P_FREQ, U_FREQ, 2, 4, 50, 4>,
+        CoreOscillator<P_FREQ, U_FREQ, 50, 50, { OscillatorType::PulseWidth as usize }>,
     >;
+    */
 
+    /*
     #[test]
     fn basic_amp_mixer_test() {
         let frequency: u32 = 1 * FREQUENCY_MULTIPLIER; // 1 hz
@@ -75,4 +80,5 @@ mod tests {
         amp_mixer.update();
         assert_eq!(0x0000, amp_mixer.get_next().to_i32());
     }
+    */
 }

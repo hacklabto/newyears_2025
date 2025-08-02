@@ -1,5 +1,4 @@
 use crate::adsr::CoreAdsr;
-use crate::amp_mixer::AmpMixerCore;
 use crate::filter::Filter;
 use crate::midi_notes::midi_note_to_freq;
 use crate::note::SoundSourceNoteInit;
@@ -11,12 +10,8 @@ use crate::sound_source_core::SoundSourceCore;
 type FrenchHornOscillatorPair<const P_FREQ: u32, const U_FREQ: u32> =
     CoreOscillator<P_FREQ, U_FREQ, 10, 100, { OscillatorType::PulseWidth as usize }>;
 
-type FrenchHornOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
-    P_FREQ,
-    U_FREQ,
-    FrenchHornOscillatorPair<P_FREQ, U_FREQ>,
-    CoreAdsr<P_FREQ, U_FREQ, 0, 3900, 96, 930>,
->;
+type FrenchHornOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
+    CoreAdsr<P_FREQ, U_FREQ, 0, 3900, 96, 930, FrenchHornOscillatorPair<P_FREQ, U_FREQ>>;
 
 type FrenchHornFiltered<const P_FREQ: u32, const U_FREQ: u32> =
     Filter<P_FREQ, U_FREQ, FrenchHornOscillatorAdsr<P_FREQ, U_FREQ>, 800>;

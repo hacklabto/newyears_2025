@@ -1,5 +1,4 @@
 use crate::adsr::CoreAdsr;
-use crate::amp_mixer::AmpMixerCore;
 use crate::double_oscillator::DoubleOscillator;
 use crate::filter::Filter;
 use crate::midi_notes::midi_note_to_freq;
@@ -17,12 +16,8 @@ type ElectricPianoOscillatorPair<const P_FREQ: u32, const U_FREQ: u32> = DoubleO
     true,
 >;
 
-type ElectricPianoOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
-    P_FREQ,
-    U_FREQ,
-    ElectricPianoOscillatorPair<P_FREQ, U_FREQ>,
-    CoreAdsr<P_FREQ, U_FREQ, 0, 5140, 50, 660>,
->;
+type ElectricPianoOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
+    CoreAdsr<P_FREQ, U_FREQ, 0, 5140, 50, 660, ElectricPianoOscillatorPair<P_FREQ, U_FREQ>>;
 
 type ElectricPianoFiltered<const P_FREQ: u32, const U_FREQ: u32> =
     Filter<P_FREQ, U_FREQ, ElectricPianoOscillatorAdsr<P_FREQ, U_FREQ>, 1000>;

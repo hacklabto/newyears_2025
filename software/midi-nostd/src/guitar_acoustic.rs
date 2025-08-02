@@ -1,5 +1,4 @@
 use crate::adsr::CoreAdsr;
-use crate::amp_mixer::AmpMixerCore;
 use crate::double_oscillator::DoubleOscillator;
 use crate::filter::Filter;
 use crate::midi_notes::midi_note_to_freq;
@@ -17,12 +16,8 @@ type GuitarAcousticOscillatorPair<const P_FREQ: u32, const U_FREQ: u32> = Double
     true,
 >;
 
-type GuitarAcousticOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> = AmpMixerCore<
-    P_FREQ,
-    U_FREQ,
-    GuitarAcousticOscillatorPair<P_FREQ, U_FREQ>,
-    CoreAdsr<P_FREQ, U_FREQ, 0, 1700, 0, 1700>,
->;
+type GuitarAcousticOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
+    CoreAdsr<P_FREQ, U_FREQ, 0, 1700, 0, 1700, GuitarAcousticOscillatorPair<P_FREQ, U_FREQ>>;
 
 type GuitarAcousticFiltered<const P_FREQ: u32, const U_FREQ: u32> =
     Filter<P_FREQ, U_FREQ, GuitarAcousticOscillatorAdsr<P_FREQ, U_FREQ>, 2000>;

@@ -26,5 +26,6 @@ pub mod sax;
 pub mod silence;
 pub mod sound_sample;
 pub mod sound_source_core;
+pub mod steady_one;
 pub mod violin;
 mod wave_tables;
