@@ -98,6 +98,22 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         }
     }
 
+    fn update(self: &mut Self) {
+        match &mut self.core {
+            NoteEnum::PianoEnum { pcore } => pcore.update(),
+            NoteEnum::ElectricPianoEnum { pcore } => pcore.update(),
+            NoteEnum::GuitarAcousticEnum { pcore } => pcore.update(),
+            NoteEnum::SilenceEnum { pcore } => pcore.update(),
+            NoteEnum::CelloEnum { pcore } => pcore.update(),
+            NoteEnum::ViolinEnum { pcore } => pcore.update(),
+            NoteEnum::ChoirEnum { pcore } => pcore.update(),
+            NoteEnum::FrenchHornEnum { pcore } => pcore.update(),
+            NoteEnum::BassEnum { pcore } => pcore.update(),
+            NoteEnum::SaxEnum { pcore } => pcore.update(),
+            NoteEnum::Unassigned => {}
+        }
+    }
+
     fn has_next(self: &Self) -> bool {
         match &self.core {
             NoteEnum::PianoEnum { pcore } => pcore.has_next(),
@@ -111,6 +127,22 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
             NoteEnum::BassEnum { pcore } => pcore.has_next(),
             NoteEnum::SaxEnum { pcore } => pcore.has_next(),
             NoteEnum::Unassigned => false,
+        }
+    }
+
+    fn trigger_note_off(self: &mut Self) {
+        match &mut self.core {
+            NoteEnum::PianoEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::ElectricPianoEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::GuitarAcousticEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::SilenceEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::CelloEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::ViolinEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::ChoirEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::FrenchHornEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::BassEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::SaxEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::Unassigned => {}
         }
     }
 
@@ -185,21 +217,5 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         };
 
         return Self { core };
-    }
-
-    fn trigger_note_off(self: &mut Self) {
-        match &mut self.core {
-            NoteEnum::PianoEnum { pcore } => pcore.trigger_note_off(),
-            NoteEnum::ElectricPianoEnum { pcore } => pcore.trigger_note_off(),
-            NoteEnum::GuitarAcousticEnum { pcore } => pcore.trigger_note_off(),
-            NoteEnum::SilenceEnum { pcore } => pcore.trigger_note_off(),
-            NoteEnum::CelloEnum { pcore } => pcore.trigger_note_off(),
-            NoteEnum::ViolinEnum { pcore } => pcore.trigger_note_off(),
-            NoteEnum::ChoirEnum { pcore } => pcore.trigger_note_off(),
-            NoteEnum::FrenchHornEnum { pcore } => pcore.trigger_note_off(),
-            NoteEnum::BassEnum { pcore } => pcore.trigger_note_off(),
-            NoteEnum::SaxEnum { pcore } => pcore.trigger_note_off(),
-            NoteEnum::Unassigned => {}
-        }
     }
 }
