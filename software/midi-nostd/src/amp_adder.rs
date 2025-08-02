@@ -48,15 +48,24 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize>
         for i in 0..NUM_CHANNELS {
             if self.free_list.is_active(i) {
                 let entry = &mut (self.channels[i]);
-                if !entry.has_next() {
-                    self.free_list.free(i);
-                }
-                let this_source: SoundSampleI32 = entry.get_next();
-                output = output + this_source;
+                output = output + entry.get_next();
             }
         }
 
         SoundSampleI32::new_i32(output.to_i32() / self.divider)
+    }
+
+    fn update(self: &mut Self) {
+        for i in 0..NUM_CHANNELS {
+            if self.free_list.is_active(i) {
+                let entry = &mut (self.channels[i]);
+                if !entry.has_next() {
+                    self.free_list.free(i);
+                } else {
+                    entry.update();
+                }
+            }
+        }
     }
 
     fn has_next(self: &Self) -> bool {

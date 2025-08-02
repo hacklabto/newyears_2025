@@ -99,7 +99,6 @@ impl<'a, const P_FREQ: u32, const U_FREQ: u32, const MAX_NOTES: usize, const MAX
     }
 
     pub fn get_next(self: &mut Self) -> SoundSampleI32 {
-        let result = self.amp_adder.get_next();
         if self.skip_count == 0 {
             for i in 0..self.num_tracks {
                 if self.tracks[i].is_some() {
@@ -110,12 +109,14 @@ impl<'a, const P_FREQ: u32, const U_FREQ: u32, const MAX_NOTES: usize, const MAX
                     );
                 }
             }
+            self.amp_adder.update();
         }
         self.skip_count = self.skip_count + 1;
         if self.skip_count == self.skip {
             self.skip_count = 0;
         }
         self.tempo.advance_time();
+        let result = self.amp_adder.get_next();
         result
     }
 
