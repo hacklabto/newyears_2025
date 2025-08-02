@@ -3,13 +3,13 @@ use crate::sound_sample::U32Fraction;
 pub struct MidiTime<const P_FREQ: u32, const U_FREQ: u32> {
     current_ms_per_quarter_note: u32,
     ticks_per_quarter_note: u32,
-    midi_event_update_rate: U32Fraction<P_FREQ>,
-    current_time: U32Fraction<P_FREQ>,
+    midi_event_update_rate: U32Fraction<U_FREQ>,
+    current_time: U32Fraction<U_FREQ>,
 }
 
 impl<const P_FREQ: u32, const U_FREQ: u32> MidiTime<P_FREQ, U_FREQ> {
     fn compute_midi_events_per_second(self: &mut Self) {
-        // We are being called P_FREQ times a second.
+        // We are being called U_FREQ times a second.
         // one quarter note = current_ms_per_qn / 1 000 000 seconds
         // 1 tick = (current_ms_per_qn / 1 000 000 seconds) / ticks_per_qn
         // midi events / second = (1 000 000 * ticks_per_qn ) / current_ms_per_qn
@@ -23,8 +23,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32> MidiTime<P_FREQ, U_FREQ> {
         let midi_events_per_second: u32 = (1000000u64 * (self.ticks_per_quarter_note as u64)
             / (self.current_ms_per_quarter_note as u64))
             as u32;
-        let midi_events_per_sample = midi_events_per_second / P_FREQ;
-        let midi_events_per_sample_remainder = midi_events_per_second % P_FREQ;
+        let midi_events_per_sample = midi_events_per_second / U_FREQ;
+        let midi_events_per_sample_remainder = midi_events_per_second % U_FREQ;
 
         self.midi_event_update_rate =
             U32Fraction::new(midi_events_per_sample, midi_events_per_sample_remainder);
