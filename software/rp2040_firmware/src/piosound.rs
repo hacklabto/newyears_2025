@@ -100,7 +100,9 @@ impl<'d> AudioPlayback<'d> {
 
         for entry in buffer.iter_mut() {
             if read_on_zero == 0 {
-                let value_i32: i32 = (self.midi.get_next().to_i32() >> 8) + 0x80;
+                let value_raw: i32 = self.midi.get_next().to_i32();
+                let value_abs: i32 = if value_raw >= 0 { value_raw } else { -value_raw };
+                let value_i32: i32 = (value_abs >> 8);
                 value = if value_i32 < 0 {
                     0
                 } else if value_i32 > 255 {
