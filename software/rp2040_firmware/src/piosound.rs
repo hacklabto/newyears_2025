@@ -155,7 +155,23 @@ impl<'d> AudioPlayback<'d> {
                 // Value is what I'm sending to the PIO hardware to be PWMed
                 //
                 let value_u32: u32 = value_abs >> PWM_TOP_SHIFT;
+
+                //
+                // Remainder is the bits below value in the sound sample.  I'm
+                // ditherings I'm sending to the PIO to increase bit count.
+                //
                 let remainder = (value_abs >> PWM_REMAINDER_SHIFT) & (PWM_REMAINDER - 1);
+
+                // 
+                // DITHERs is basically a dither pattern for the current remainder.  If
+                // PWM_REMAINDER is 16 then DITHERS[remainder=0] should be
+                //
+                // 0b0000000000000000
+                //
+                // and DITHERS[remainder=8] should be
+                //
+                // 0b0101010101010101
+                //
                 dither = DITHERS[remainder as usize];
                 value = if value_u32 >= PWM_TOP {
                     PWM_TOP - 1
@@ -166,6 +182,9 @@ impl<'d> AudioPlayback<'d> {
                     self.clear_count = 1;
                 }
             }
+            //
+            // Fairly low overhead sound buffer population
+            //
             *entry = value + (dither & 1);
             dither = dither >> 1;
         }
