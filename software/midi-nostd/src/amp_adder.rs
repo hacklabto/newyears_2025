@@ -10,6 +10,8 @@ use crate::sound_source_core::SoundSourceCore;
 pub struct AmpAdder<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize> {
     free_list: FreeList<NUM_CHANNELS>,
     channels: [Note<P_FREQ, U_FREQ>; NUM_CHANNELS],
+    active_channel_list: [usize; NUM_CHANNELS],
+    num_active_channels: usize,
     divider: i32,
 }
 
@@ -39,23 +41,25 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize>
             free_list: { FreeList::<NUM_CHANNELS>::default() },
             channels: { core::array::from_fn(|_idx| Note::<P_FREQ, U_FREQ>::default()) },
             divider,
+            num_active_channels: 0,
+            active_channel_list: { core::array::from_fn(|_idx| 0) },
         }
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         let mut output: SoundSampleI32 = SoundSampleI32::ZERO;
 
-        for i in 0..NUM_CHANNELS {
-            if self.free_list.is_active(i) {
-                let entry = &mut (self.channels[i]);
-                output = output + entry.get_next();
-            }
+        let active_channels = &self.active_channel_list[0..self.num_active_channels];
+
+        for i in active_channels {
+            output = output + self.channels[*i].get_next();
         }
 
         SoundSampleI32::new_i32(output.to_i32() / self.divider)
     }
 
     fn update(self: &mut Self) {
+        self.num_active_channels = 0;
         for i in 0..NUM_CHANNELS {
             if self.free_list.is_active(i) {
                 let entry = &mut (self.channels[i]);
@@ -63,6 +67,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize>
                     self.free_list.free(i);
                 } else {
                     entry.update();
+                    self.active_channel_list[self.num_active_channels] = i;
+                    self.num_active_channels = self.num_active_channels + 1;
                 }
             }
         }
