@@ -4,6 +4,7 @@ pub struct MidiTime<const PLAY_FREQUENCY: u32> {
     current_ms_per_quarter_note: u32,
     ticks_per_quarter_note: u32,
     midi_event_update_rate: U32Fraction<PLAY_FREQUENCY>,
+    current_time: U32Fraction<PLAY_FREQUENCY>,
 }
 
 impl<const PLAY_FREQUENCY: u32> MidiTime<PLAY_FREQUENCY> {
@@ -38,12 +39,17 @@ impl<const PLAY_FREQUENCY: u32> MidiTime<PLAY_FREQUENCY> {
             current_ms_per_quarter_note,
             ticks_per_quarter_note,
             midi_event_update_rate: U32Fraction::new(0, 0),
+            current_time: U32Fraction::new(0, 0),
         };
         rval.compute_midi_events_per_second();
         rval
     }
 
-    pub fn get_update_rate(self: &Self) -> &U32Fraction<PLAY_FREQUENCY> {
-        return &self.midi_event_update_rate;
+    pub fn advance_time(self: &mut Self) {
+        self.current_time.add(&self.midi_event_update_rate);
+    }
+
+    pub fn get_current_time(self: &Self) -> u32 {
+        self.current_time.int_part
     }
 }

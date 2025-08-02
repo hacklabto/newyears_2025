@@ -12,6 +12,8 @@ pub struct Midi<'a, const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX
     amp_adder: AmpAdder<PLAY_FREQUENCY, MAX_NOTES>,
     channels: Channels,
     tempo: MidiTime<PLAY_FREQUENCY>,
+    skip: u32,
+    skip_count: u32,
 }
 
 impl<'a, const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: usize>
@@ -44,6 +46,10 @@ impl<'a, const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: us
         };
         let tpqn_u16: u16 = tpqn_midly.into();
         let tempo = MidiTime::new(500000, tpqn_u16 as u32);
+        let mut skip: u32 = PLAY_FREQUENCY / 2400;
+        if skip == 0 {
+            skip = 1;
+        }
 
         Self {
             num_tracks,
@@ -51,6 +57,8 @@ impl<'a, const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: us
             amp_adder,
             channels: Channels::default(),
             tempo,
+            skip,
+            skip_count: 0,
         }
     }
 
@@ -86,26 +94,34 @@ impl<'a, const PLAY_FREQUENCY: u32, const MAX_NOTES: usize, const MAX_TRACKS: us
 
     pub fn get_next(self: &mut Self) -> SoundSampleI32 {
         let result = self.amp_adder.get_next();
-        for i in 0..self.num_tracks {
-            if self.tracks[i].is_some() {
-                self.tracks[i].as_mut().unwrap().update(
-                    &mut self.amp_adder,
-                    &mut self.channels,
-                    &mut self.tempo,
-                );
+        if self.skip_count == 0 {
+            for i in 0..self.num_tracks {
+                if self.tracks[i].is_some() {
+                    self.tracks[i].as_mut().unwrap().update(
+                        &mut self.amp_adder,
+                        &mut self.channels,
+                        &mut self.tempo,
+                    );
+                }
             }
         }
+        self.skip_count = self.skip_count + 1;
+        if self.skip_count == self.skip {
+            self.skip_count = 0;
+        }
+        self.tempo.advance_time();
         result
     }
 
     pub fn has_next(self: &Self) -> bool {
-        let mut has_next: bool = false;
         for i in 0..self.num_tracks {
             if self.tracks[i].is_some() {
-                has_next = has_next || self.tracks[i].as_ref().unwrap().has_next()
+                if self.tracks[i].as_ref().unwrap().has_next() {
+                    return true;
+                }
             }
         }
-        has_next
+        false
     }
 }
 
