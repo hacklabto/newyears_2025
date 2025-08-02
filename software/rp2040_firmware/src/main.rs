@@ -5,8 +5,6 @@ use hackernewyears::menu::MenuBinding;
 use hackernewyears::AnimatingGif;
 use hackernewyears::AnimatingGifs;
 
-use cortex_m_rt::entry;
-
 use defmt_rtt as _;
 use panic_probe as _;
 
