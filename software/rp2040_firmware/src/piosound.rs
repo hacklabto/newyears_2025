@@ -100,7 +100,15 @@ impl<'d> AudioPlayback<'d> {
 
         for entry in buffer.iter_mut() {
             if read_on_zero == 0 {
-                value = (((self.midi.get_next().to_i32() >> 8) + 0x80) & 0xff) as u8;
+                let value_i32: i32 = (self.midi.get_next().to_i32() >> 8) + 0x80;
+                value = if value_i32 < 0 {
+                    0
+                } else if value_i32 > 255 {
+                    255
+                }
+                else {
+                    value_i32 as u8
+                }
             }
             *entry = value as u32;
             read_on_zero = read_on_zero + 1;
@@ -281,8 +289,8 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
     }
 
     pub async fn play_sound(&mut self) {
-        let (header, tracks) = midly::parse(include_bytes!("../assets/brother.mid"))
-        //let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
+        //let (header, tracks) = midly::parse(include_bytes!("../assets/brother.mid"))
+        let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 
