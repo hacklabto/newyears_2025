@@ -2,6 +2,7 @@
 
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
+use crate::sound_source_core::OscillatorInterface;
 
 //
 // Fixed point table of tan values.
@@ -209,14 +210,14 @@ const fn build_filter_param_array<const N: usize>(
     return filter_params;
 }
 
-pub struct Filter<const P_FREQ: u32, const U_FREQ: u32, Source: SoundSourceCore<P_FREQ, U_FREQ>> {
+pub struct Filter<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U_FREQ>> {
     source: Source,
     d1: i64,
     d2: i64,
     params: &'static FilterParams,
 }
 
-impl<const P_FREQ: u32, const U_FREQ: u32, Source: SoundSourceCore<P_FREQ, U_FREQ>>
+impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U_FREQ>>
     Filter<P_FREQ, U_FREQ, Source>
 {
     // const ONE: i64 = 1i64 << 31;
@@ -254,7 +255,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32, Source: SoundSourceCore<P_FREQ, U_FRE
     }
 }
 
-impl<const P_FREQ: u32, const U_FREQ: u32, Source: SoundSourceCore<P_FREQ, U_FREQ>>
+impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U_FREQ>>
     SoundSourceCore<P_FREQ, U_FREQ> for Filter<P_FREQ, U_FREQ, Source>
 {
     type InitValuesType = (Source::InitValuesType, u32);
@@ -322,20 +323,19 @@ impl<const P_FREQ: u32, const U_FREQ: u32, Source: SoundSourceCore<P_FREQ, U_FRE
     }
 
     fn has_next(self: &Self) -> bool {
-        if !self.source.has_next() {
-            //
-            // If the source we're drawing from has finished,
-            // (i.e., the note is done), stopping right away will cause a
-            // click.  I found this works.
-            //
-            self.d1 < -0x400 || self.d1 > 0x400
-        } else {
-            true
-        }
+        self.source.has_next()
     }
 
     fn trigger_note_off(self: &mut Self) {
         self.source.trigger_note_off();
+    }
+}
+
+impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U_FREQ>>
+    OscillatorInterface<P_FREQ, U_FREQ> for Filter<P_FREQ, U_FREQ, Source>
+{
+    fn set_amplitude_adjust(self: &mut Self, adjust: SoundSampleI32) {
+        self.source.set_amplitude_adjust(adjust);
     }
 }
 

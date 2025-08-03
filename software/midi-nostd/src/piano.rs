@@ -17,17 +17,18 @@ type PianoOscillatorPair<const P_FREQ: u32, const U_FREQ: u32> = DoubleOscillato
     true,
 >;
 
-type PianoOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
-    CoreAdsr<P_FREQ, U_FREQ, 0, 670, 25, 300, PianoOscillatorPair<P_FREQ, U_FREQ>>;
-
 type PianoFiltered<const P_FREQ: u32, const U_FREQ: u32> =
-    Filter<P_FREQ, U_FREQ, PianoOscillatorAdsr<P_FREQ, U_FREQ>>;
+    Filter<P_FREQ, U_FREQ, PianoOscillatorPair<P_FREQ, U_FREQ>>;
+
+type PianoAdsr<const P_FREQ: u32, const U_FREQ: u32> =
+    CoreAdsr<P_FREQ, U_FREQ, 0, 670, 25, 300, PianoFiltered<P_FREQ, U_FREQ>>;
+
 
 ///
 /// Piano.  Now sort of a proof of concept.
 ///
 pub struct Piano<const P_FREQ: u32, const U_FREQ: u32> {
-    core: PianoFiltered<P_FREQ, U_FREQ>,
+    core: PianoAdsr<P_FREQ, U_FREQ>,
 }
 
 impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
@@ -58,10 +59,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         //let cutoff_frequency_raw = midi_note_to_freq(init_values.key) / FREQUENCY_MULTIPLIER;
         //let cutoff_frequency = if cutoff_frequency_raw > 600 { 600 } else { cutoff_frequency_raw };
         let adsr_init = (init_values.velocity as i32) << 8;
-        let core = PianoFiltered::<P_FREQ, U_FREQ>::new((
-            ((frequency_1, frequency_2), adsr_init),
-            cutoff_frequency,
-        ));
+        let core = PianoAdsr::<P_FREQ, U_FREQ>::new(
+            (((frequency_1, frequency_2), cutoff_frequency), adsr_init));
         return Self { core };
     }
 

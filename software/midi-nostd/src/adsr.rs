@@ -42,6 +42,7 @@ impl<
     const A_TICKS: i32 = time_to_ticks::<U_FREQ>(A);
     const D_TICKS: i32 = time_to_ticks::<U_FREQ>(D);
     const R_TICKS: i32 = time_to_ticks::<U_FREQ>(R);
+    const RS_TICKS : i32 = time_to_ticks::<U_FREQ>(10);
 
     const A_GAIN: AdsrFraction = if Self::A_TICKS != 0 {
         let a_diff: i64 = Self::ATTACK_VOLUME_SCALE.to_i32() as i64;
@@ -86,6 +87,7 @@ impl<
     const D_END: i32 = Self::A_END + Self::D_TICKS;
     const R_START: i32 = 0;
     const R_END: i32 = Self::R_START + Self::R_TICKS;
+    const R_TERMINATE : i32 = Self::R_END + Self::RS_TICKS; 
 }
 
 impl<
@@ -160,7 +162,7 @@ impl<
     }
 
     fn has_next(self: &Self) -> bool {
-        !self.releasing || self.time_since_state_start <= Self::R_END
+        !self.releasing || self.time_since_state_start <= Self::R_TERMINATE
     }
 
     fn trigger_note_off(self: &mut Self) {
@@ -179,6 +181,21 @@ impl<
         self.releasing = false;
         self.volume = (vel as i32) << 8;
         self.update();
+    }
+}
+
+impl<
+        const P_FREQ: u32,
+        const U_FREQ: u32,
+        const A: i32,
+        const D: i32,
+        const SUSTAIN_VOLUME: u8,
+        const R: i32,
+        Source: OscillatorInterface<P_FREQ, U_FREQ>,
+    > OscillatorInterface<P_FREQ, U_FREQ>
+    for CoreAdsr<P_FREQ, U_FREQ, A, D, SUSTAIN_VOLUME, R, Source>
+{
+    fn set_amplitude_adjust(self: &mut Self, _adjust: SoundSampleI32) {
     }
 }
 
