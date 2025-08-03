@@ -9,7 +9,6 @@ pub struct DoubleOscillator<
     MixSource1: OscillatorInterface<P_FREQ, U_FREQ>,
     const SYNC_1_FROM_0: bool,
 > {
-    last_source_0_sample: SoundSampleI32,
     source_0: MixSource0,
     source_1: MixSource1,
 }
@@ -26,25 +25,22 @@ impl<
     type InitValuesType = (MixSource0::InitValuesType, MixSource1::InitValuesType);
 
     fn new(init_values: Self::InitValuesType) -> Self {
-        let last_source_0_sample = SoundSampleI32::ZERO;
         let source_0 = MixSource0::new(init_values.0);
         let source_1 = MixSource1::new(init_values.1);
-        Self {
-            source_0,
-            source_1,
-            last_source_0_sample,
-        }
+        Self { source_0, source_1 }
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
-        let s0 = self.source_0.get_next();
-        if SYNC_1_FROM_0
-            && s0 >= SoundSampleI32::ZERO
-            && self.last_source_0_sample < SoundSampleI32::ZERO
-        {
-            self.source_1.reset_oscillator();
-        }
-        self.last_source_0_sample = s0;
+        let s0 = if SYNC_1_FROM_0 {
+            let last_pos = self.source_0.get_table_idx();
+            let tmp = self.source_0.get_next();
+            if last_pos > self.source_0.get_table_idx() {
+                self.source_1.reset_oscillator();
+            }
+            tmp
+        } else {
+            self.source_0.get_next()
+        };
         let s1 = self.source_1.get_next();
         s0 + s1
     }

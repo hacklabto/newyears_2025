@@ -42,4 +42,8 @@ pub trait OscillatorInterface<const P_FREQ: u32, const U_FREQ: u32>:
     // Push any amplitude adjustements from the ADSR into the oscilator.
     //
     fn set_amplitude_adjust(self: &mut Self, adjust: SoundSampleI32);
+
+    fn get_table_idx(self: &Self) -> u32 {
+        0
+    }
 }

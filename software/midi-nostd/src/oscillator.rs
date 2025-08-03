@@ -122,6 +122,9 @@ impl<
     fn set_amplitude_adjust(self: &mut Self, adjust: SoundSampleI32) {
         self.max_amplitude = Self::VOLUME_SCALE * adjust;
     }
+    fn get_table_idx(self: &Self) -> u32 {
+        return self.table_idx;
+    }
 }
 
 #[cfg(test)]
