@@ -31,7 +31,7 @@ type CelloOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
     CoreAdsr<P_FREQ, U_FREQ, 006, 5000, 100, 300, CelloOscillatorLfo<P_FREQ, U_FREQ>>;
 
 type CelloFiltered<const P_FREQ: u32, const U_FREQ: u32> =
-    Filter<P_FREQ, U_FREQ, CelloOscillatorAdsr<P_FREQ, U_FREQ>, 1000>;
+    Filter<P_FREQ, U_FREQ, CelloOscillatorAdsr<P_FREQ, U_FREQ>>;
 
 ///
 /// Cello.  Now sort of a proof of concept.
@@ -61,7 +61,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         let frequency_1 = midi_note_to_freq(init_values.key);
         let frequency_2 = midi_note_to_freq(init_values.key);
         let adsr_init = (init_values.velocity as i32) << 8;
-        let core = CelloFiltered::<P_FREQ, U_FREQ>::new(((frequency_1, frequency_2), adsr_init));
+        let core =
+            CelloFiltered::<P_FREQ, U_FREQ>::new((((frequency_1, frequency_2), adsr_init), 1000));
         return Self { core };
     }
 

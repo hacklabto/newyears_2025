@@ -20,7 +20,7 @@ type ElectricPianoOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
     CoreAdsr<P_FREQ, U_FREQ, 0, 5140, 50, 660, ElectricPianoOscillatorPair<P_FREQ, U_FREQ>>;
 
 type ElectricPianoFiltered<const P_FREQ: u32, const U_FREQ: u32> =
-    Filter<P_FREQ, U_FREQ, ElectricPianoOscillatorAdsr<P_FREQ, U_FREQ>, 1000>;
+    Filter<P_FREQ, U_FREQ, ElectricPianoOscillatorAdsr<P_FREQ, U_FREQ>>;
 
 pub struct ElectricPiano<const P_FREQ: u32, const U_FREQ: u32> {
     core: ElectricPianoFiltered<P_FREQ, U_FREQ>,
@@ -47,8 +47,10 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         let frequency_1 = midi_note_to_freq(init_values.key);
         let frequency_2 = midi_note_to_freq(init_values.key + 24 + 9);
         let adsr_init = (init_values.velocity as i32) << 8;
-        let core =
-            ElectricPianoFiltered::<P_FREQ, U_FREQ>::new(((frequency_1, frequency_2), adsr_init));
+        let core = ElectricPianoFiltered::<P_FREQ, U_FREQ>::new((
+            ((frequency_1, frequency_2), adsr_init),
+            1000,
+        ));
         return Self { core };
     }
 

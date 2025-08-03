@@ -45,6 +45,7 @@ fn run() -> Result<(), pa::Error> {
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         let mut idx = 0;
         for _ in 0..frames {
+            //println!("Simultaneous notes {}", midi.get_current_num_mixed_notes());
             let current = (midi.get_next().clip().to_i32() as f32) / 32768.0;
             buffer[idx] = current;
             buffer[idx + 1] = current;

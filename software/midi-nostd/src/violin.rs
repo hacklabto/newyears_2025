@@ -31,7 +31,7 @@ type ViolinOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
     CoreAdsr<P_FREQ, U_FREQ, 03, 5000, 100, 350, ViolinOscillatorLfo<P_FREQ, U_FREQ>>;
 
 type ViolinFiltered<const P_FREQ: u32, const U_FREQ: u32> =
-    Filter<P_FREQ, U_FREQ, ViolinOscillatorAdsr<P_FREQ, U_FREQ>, 1900>;
+    Filter<P_FREQ, U_FREQ, ViolinOscillatorAdsr<P_FREQ, U_FREQ>>;
 
 ///
 /// Violin.  Now sort of a proof of concept.
@@ -61,7 +61,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         let frequency_1 = midi_note_to_freq(init_values.key);
         let frequency_2 = midi_note_to_freq(init_values.key + 6);
         let adsr_init = (init_values.velocity as i32) << 8;
-        let core = ViolinFiltered::<P_FREQ, U_FREQ>::new(((frequency_1, frequency_2), adsr_init));
+        let core =
+            ViolinFiltered::<P_FREQ, U_FREQ>::new((((frequency_1, frequency_2), adsr_init), 1900));
         return Self { core };
     }
 

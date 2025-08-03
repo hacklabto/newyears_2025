@@ -31,7 +31,7 @@ type BassOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
     CoreAdsr<P_FREQ, U_FREQ, 0, 1280, 0, 1380, BassOscillatorLfo<P_FREQ, U_FREQ>>;
 
 type BassFiltered<const P_FREQ: u32, const U_FREQ: u32> =
-    Filter<P_FREQ, U_FREQ, BassOscillatorAdsr<P_FREQ, U_FREQ>, 2000>;
+    Filter<P_FREQ, U_FREQ, BassOscillatorAdsr<P_FREQ, U_FREQ>>;
 
 pub struct Bass<const P_FREQ: u32, const U_FREQ: u32> {
     core: BassFiltered<P_FREQ, U_FREQ>,
@@ -58,7 +58,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         let frequency_1 = midi_note_to_freq(init_values.key - 12);
         let frequency_2 = midi_note_to_freq(init_values.key - 12);
         let adsr_init = (init_values.velocity as i32) << 8;
-        let core = BassFiltered::<P_FREQ, U_FREQ>::new(((frequency_1, frequency_2), adsr_init));
+        let core =
+            BassFiltered::<P_FREQ, U_FREQ>::new((((frequency_1, frequency_2), adsr_init), 2000));
         return Self { core };
     }
 

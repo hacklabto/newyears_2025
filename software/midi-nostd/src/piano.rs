@@ -20,7 +20,7 @@ type PianoOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
     CoreAdsr<P_FREQ, U_FREQ, 0, 670, 25, 500, PianoOscillatorPair<P_FREQ, U_FREQ>>;
 
 type PianoFiltered<const P_FREQ: u32, const U_FREQ: u32> =
-    Filter<P_FREQ, U_FREQ, PianoOscillatorAdsr<P_FREQ, U_FREQ>, 1000>;
+    Filter<P_FREQ, U_FREQ, PianoOscillatorAdsr<P_FREQ, U_FREQ>>;
 
 ///
 /// Piano.  Now sort of a proof of concept.
@@ -50,7 +50,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         let frequency_1 = midi_note_to_freq(init_values.key);
         let frequency_2 = midi_note_to_freq(init_values.key + 16);
         let adsr_init = (init_values.velocity as i32) << 8;
-        let core = PianoFiltered::<P_FREQ, U_FREQ>::new(((frequency_1, frequency_2), adsr_init));
+        let core =
+            PianoFiltered::<P_FREQ, U_FREQ>::new((((frequency_1, frequency_2), adsr_init), 1000));
         return Self { core };
     }
 

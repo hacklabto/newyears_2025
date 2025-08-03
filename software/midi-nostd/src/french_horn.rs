@@ -14,7 +14,7 @@ type FrenchHornOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
     CoreAdsr<P_FREQ, U_FREQ, 0, 3900, 96, 930, FrenchHornOscillatorPair<P_FREQ, U_FREQ>>;
 
 type FrenchHornFiltered<const P_FREQ: u32, const U_FREQ: u32> =
-    Filter<P_FREQ, U_FREQ, FrenchHornOscillatorAdsr<P_FREQ, U_FREQ>, 800>;
+    Filter<P_FREQ, U_FREQ, FrenchHornOscillatorAdsr<P_FREQ, U_FREQ>>;
 
 pub struct FrenchHorn<const P_FREQ: u32, const U_FREQ: u32> {
     core: FrenchHornFiltered<P_FREQ, U_FREQ>,
@@ -40,7 +40,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
     fn new(init_values: Self::InitValuesType) -> Self {
         let frequency_1 = midi_note_to_freq(init_values.key);
         let adsr_init = (init_values.velocity as i32) << 8;
-        let core = FrenchHornFiltered::<P_FREQ, U_FREQ>::new((frequency_1, adsr_init));
+        let core = FrenchHornFiltered::<P_FREQ, U_FREQ>::new(((frequency_1, adsr_init), 800));
         return Self { core };
     }
 
