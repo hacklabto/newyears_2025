@@ -54,7 +54,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
 
         // Basically just made this stuff up.
         let cutoff_frequency =
-            200 + ((init_values.key as u32) * 4) + ((init_values.velocity as u32) / 2);
+            200 + ((init_values.key as u32) * 5) + ((init_values.velocity as u32) / 3);
 
         //let cutoff_frequency_raw = midi_note_to_freq(init_values.key) / FREQUENCY_MULTIPLIER;
         //let cutoff_frequency = if cutoff_frequency_raw > 600 { 600 } else { cutoff_frequency_raw };
