@@ -20,21 +20,29 @@ pub fn handle_midi_event<
         midly::MidiMessage::NoteOn { key, vel } => {
             let key_as_u32: u8 = (*key).into();
 
-            let note_init = SoundSourceNoteInit::new(
-                (*key).into(),
-                channels.channels[channel].current_program,
-                (*vel).into(),
-            );
-            let playing_note = channels.channels[channel].playing_notes[key_as_u32 as usize];
-            let dst = if playing_note != Channel::UNUSED {
-                playing_note as usize
-            } else {
-                notes.alloc()
-            };
-            assert!(dst < (Channel::UNUSED as usize));
+            if *vel == 0 {
+                let playing_note = channels.channels[channel].playing_notes[key_as_u32 as usize];
 
-            notes.new_note_at(dst, note_init);
-            channels.channels[channel].playing_notes[key_as_u32 as usize] = dst as u8;
+                if playing_note != Channel::UNUSED {
+                    notes.trigger_note_off_at(playing_note as usize);
+                    channels.channels[channel].playing_notes[key_as_u32 as usize] = Channel::UNUSED;
+                }
+            } else {
+                let note_init = SoundSourceNoteInit::new(
+                    (*key).into(),
+                    channels.channels[channel].current_program,
+                    (*vel).into(),
+                );
+                let playing_note_u8 = channels.channels[channel].playing_notes[key_as_u32 as usize];
+                if playing_note_u8 != Channel::UNUSED {
+                    let playing_note = playing_note_u8 as usize;
+                    notes.restart_note_at(playing_note, note_init.velocity);
+                } else {
+                    let new_note = notes.alloc();
+                    notes.new_note_at(new_note, note_init);
+                    channels.channels[channel].playing_notes[key_as_u32 as usize] = new_note as u8;
+                }
+            }
         }
         midly::MidiMessage::NoteOff { key, vel: _ } => {
             let key_as_u32: u8 = (*key).into();

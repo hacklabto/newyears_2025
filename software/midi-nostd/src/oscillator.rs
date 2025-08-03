@@ -108,6 +108,8 @@ impl<
     fn reset_oscillator(self: &mut Self) {
         self.table_idx = 0;
     }
+
+    fn restart(self: &mut Self, _vel: u8) {}
 }
 
 impl<

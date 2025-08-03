@@ -146,6 +146,22 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         }
     }
 
+    fn restart(self: &mut Self, vel: u8) {
+        match &mut self.core {
+            NoteEnum::PianoEnum { pcore } => pcore.restart(vel),
+            NoteEnum::ElectricPianoEnum { pcore } => pcore.restart(vel),
+            NoteEnum::GuitarAcousticEnum { pcore } => pcore.restart(vel),
+            NoteEnum::SilenceEnum { pcore } => pcore.restart(vel),
+            NoteEnum::CelloEnum { pcore } => pcore.restart(vel),
+            NoteEnum::ViolinEnum { pcore } => pcore.restart(vel),
+            NoteEnum::ChoirEnum { pcore } => pcore.restart(vel),
+            NoteEnum::FrenchHornEnum { pcore } => pcore.restart(vel),
+            NoteEnum::BassEnum { pcore } => pcore.restart(vel),
+            NoteEnum::SaxEnum { pcore } => pcore.restart(vel),
+            NoteEnum::Unassigned => {}
+        }
+    }
+
     fn new(init_values: Self::InitValuesType) -> Self {
         let instrument = init_values.instrument;
 
@@ -153,6 +169,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
             0 => {
                 let pcore = Piano::<P_FREQ, U_FREQ>::new(init_values);
                 NoteEnum::<P_FREQ, U_FREQ>::PianoEnum { pcore }
+                //let pcore = ElectricPiano::<P_FREQ, U_FREQ>::new(init_values);
+                //NoteEnum::<P_FREQ, U_FREQ>::ElectricPianoEnum { pcore }
                 //let pcore = Cello::<P_FREQ, U_FREQ>::new(init_values);
                 //NoteEnum::<P_FREQ, U_FREQ>::CelloEnum { pcore }
                 //let pcore = ElectricPiano::<P_FREQ, U_FREQ>::new(init_values);
@@ -210,7 +228,6 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
                 NoteEnum::<P_FREQ, U_FREQ>::SaxEnum { pcore }
             }
             _ => {
-                //assert_eq!(0, instrument);
                 let pcore = Silence::<P_FREQ, U_FREQ>::new(init_values);
                 NoteEnum::<P_FREQ, U_FREQ>::SilenceEnum { pcore }
             }

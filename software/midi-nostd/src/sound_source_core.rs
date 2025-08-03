@@ -34,6 +34,10 @@ pub trait SoundSourceCore<const P_FREQ: u32, const U_FREQ: u32> {
     /// Reset an oscillator
     ///
     fn reset_oscillator(self: &mut Self) {}
+
+    /// Restart the sound
+    ///
+    fn restart(self: &mut Self, _vel: u8);
 }
 
 pub trait OscillatorInterface<const P_FREQ: u32, const U_FREQ: u32>:

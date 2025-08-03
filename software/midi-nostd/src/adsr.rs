@@ -19,9 +19,10 @@ pub struct CoreAdsr<
     const R: i32,
     Source: OscillatorInterface<P_FREQ, U_FREQ>,
 > {
-    time_since_state_start: i32, // units are 1/P_FREQ
+    time_since_state_start: i32, // units are 1/U_FREQ
     last_sound: AdsrFraction,
     volume: i32,
+    releasing: bool,
     source: Source,
 }
 
@@ -83,7 +84,7 @@ impl<
 
     const A_END: i32 = Self::A_TICKS;
     const D_END: i32 = Self::A_END + Self::D_TICKS;
-    const R_START: i32 = time_to_ticks::<U_FREQ>(10000);
+    const R_START: i32 = 0;
     const R_END: i32 = Self::R_START + Self::R_TICKS;
 }
 
@@ -116,6 +117,7 @@ impl<
             last_sound,
             volume: init_value.1,
             source: Source::new(init_value.0),
+            releasing: false,
         }
     }
 
@@ -125,40 +127,58 @@ impl<
     }
 
     fn update(self: &mut Self) {
-        let scale: SoundSampleI32 = if self.time_since_state_start < Self::A_END {
-            let rval = SoundSampleI32::new_i32(self.last_sound.int_part);
-            self.last_sound.add(&Self::A_GAIN);
-            rval
-        } else if self.time_since_state_start < Self::D_END {
-            let rval = SoundSampleI32::new_i32(self.last_sound.int_part);
-            self.last_sound.add(&Self::D_GAIN);
-            rval
-        } else if self.time_since_state_start < Self::R_START {
-            let rval = SoundSampleI32::new_i32(self.last_sound.int_part);
-            self.last_sound = AdsrFraction::new(Self::SUSTAIN_VOLUME_SCALE.to_i32(), 0);
-            rval
-        } else if self.time_since_state_start <= Self::R_END {
-            let rval = SoundSampleI32::new_i32(self.last_sound.int_part);
-            self.last_sound.add(&Self::R_GAIN);
-            if self.last_sound.int_part < 0 {
-                self.time_since_state_start = Self::R_END + 1;
+        let scale: SoundSampleI32 = if !self.releasing {
+            if self.time_since_state_start < Self::A_END {
+                let rval = SoundSampleI32::new_i32(self.last_sound.int_part);
+                self.last_sound.add(&Self::A_GAIN);
+                rval
+            } else if self.time_since_state_start < Self::D_END {
+                let rval = SoundSampleI32::new_i32(self.last_sound.int_part);
+                self.last_sound.add(&Self::D_GAIN);
+                rval
+            } else {
+                let rval = SoundSampleI32::new_i32(self.last_sound.int_part);
+                self.last_sound = AdsrFraction::new(Self::SUSTAIN_VOLUME_SCALE.to_i32(), 0);
+                rval
             }
-            rval
         } else {
-            SoundSampleI32::ZERO
+            if self.time_since_state_start <= Self::R_END {
+                let rval = SoundSampleI32::new_i32(self.last_sound.int_part);
+                self.last_sound.add(&Self::R_GAIN);
+                if self.last_sound.int_part < 0 {
+                    self.time_since_state_start = Self::R_END + 1;
+                }
+                rval
+            } else {
+                SoundSampleI32::ZERO
+            }
         };
         self.time_since_state_start = self.time_since_state_start + 1;
         let volume_adjusted_scale = SoundSampleI32::new_i32((self.volume * scale.to_i32()) >> 15);
         self.source
-            .set_amplitude_adjust(volume_adjusted_scale.pos_clip())
+            .set_amplitude_adjust(volume_adjusted_scale.pos_clip());
     }
 
     fn has_next(self: &Self) -> bool {
-        self.time_since_state_start <= Self::R_END
+        !self.releasing || self.time_since_state_start <= Self::R_END
     }
 
     fn trigger_note_off(self: &mut Self) {
-        self.time_since_state_start = Self::R_START;
+        self.releasing = true;
+        self.time_since_state_start = 0;
+    }
+    fn restart(self: &mut Self, vel: u8) {
+        self.time_since_state_start = 0;
+        self.last_sound = if A != 0 {
+            AdsrFraction::new(0, 0)
+        } else if D != 0 {
+            AdsrFraction::new(Self::ATTACK_VOLUME_SCALE.to_i32(), 0)
+        } else {
+            AdsrFraction::new(Self::SUSTAIN_VOLUME_SCALE.to_i32(), 0)
+        };
+        self.releasing = false;
+        self.volume = (vel as i32) << 8;
+        self.update();
     }
 }
 

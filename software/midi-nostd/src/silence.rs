@@ -27,4 +27,6 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
     }
 
     fn trigger_note_off(self: &mut Self) {}
+
+    fn restart(self: &mut Self, _vel: u8) {}
 }

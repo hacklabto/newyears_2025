@@ -264,6 +264,10 @@ impl<
         self.source.update();
     }
 
+    fn restart(self: &mut Self, vel: u8) {
+        self.source.restart(vel);
+    }
+
     fn has_next(self: &Self) -> bool {
         if !self.source.has_next() {
             //

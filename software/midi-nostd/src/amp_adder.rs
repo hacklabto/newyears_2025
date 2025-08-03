@@ -34,6 +34,10 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_S
     pub fn new_note_at(self: &mut Self, element: usize, note_init: SoundSourceNoteInit) {
         self.channels[element] = Note::<P_FREQ, U_FREQ>::new(note_init);
     }
+
+    pub fn restart_note_at(self: &mut Self, element: usize, vel: u8) {
+        self.channels[element].restart(vel);
+    }
 }
 
 impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_SCALEDOWN: bool>
@@ -93,6 +97,8 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_S
     fn has_next(self: &Self) -> bool {
         true
     }
+
+    fn restart(self: &mut Self, _vel: u8) {}
 }
 
 #[cfg(test)]

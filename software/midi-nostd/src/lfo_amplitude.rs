@@ -66,6 +66,8 @@ impl<
     fn trigger_note_off(self: &mut Self) {
         self.source.trigger_note_off();
     }
+
+    fn restart(self: &mut Self, _vel: u8) {}
 }
 
 impl<
