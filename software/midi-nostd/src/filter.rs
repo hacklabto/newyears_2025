@@ -125,9 +125,9 @@ pub const fn const_tan(a: i64) -> i64 {
 //
 pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i64, i64, i64, i64) {
     let one: i64 = 1i64 << 31;
-    if cutoff_freq * 5 > sample_freq {
+    if cutoff_freq * 6 > sample_freq {
         //
-        // I only support a cut-off frequency that's 20% the samople frequency.
+        // I only support a cut-off frequency that's 20% the sample frequency.
         // If you want something faster, the filter will treat this value as
         // a pass through.
         //
@@ -194,12 +194,15 @@ impl FilterParams {
     }
 }
 
-const fn FilterParamArray<const N: usize>(max_cutoff: u32, sample_freq: u32) -> [FilterParams; N] {
+const fn build_filter_param_array<const N: usize>(
+    max_cutoff: u32,
+    sample_freq: u32,
+) -> [FilterParams; N] {
     let mut filter_params = [FilterParams::const_default(); N];
-
     let mut idx: usize = 1;
-    while idx < N {
-        filter_params[idx] = FilterParams::new((idx as u32) / max_cutoff, sample_freq);
+
+    while idx < N - 1 {
+        filter_params[idx] = FilterParams::new(max_cutoff * (idx as u32) / (N as u32), sample_freq);
         idx = idx + 1;
     }
 
@@ -225,7 +228,7 @@ impl<
         const CUTOFF_FREQUENCY: i64,
     > Filter<P_FREQ, U_FREQ, Source, CUTOFF_FREQUENCY>
 {
-    const ONE: i64 = 1i64 << 31;
+    // const ONE: i64 = 1i64 << 31;
 
     // TODO, move these comments to structure
     // Extract filter co-coefficients at compile time.
@@ -240,7 +243,24 @@ impl<
     // const A1_P1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).3 + Self::ONE;
     // const A2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).4;
 
-    const FILTER_PARAMS: FilterParams = FilterParams::new(CUTOFF_FREQUENCY as u32, P_FREQ);
+    //const FILTER_PARAMS: FilterParams = FilterParams::new(CUTOFF_FREQUENCY as u32, P_FREQ);
+    const FILTER_PARAMS_ARRAY_SIZE: usize = 300;
+    const FILTER_STEP_SHIFT: u32 = 4;
+    const FILTER_STEP: u32 = (1 << Self::FILTER_STEP_SHIFT);
+    const FILTER_PARAMS_MAX_CUTOFF: u32 =
+        ((Self::FILTER_PARAMS_ARRAY_SIZE as u32) * Self::FILTER_STEP);
+    const FILTER_PARAMS: [FilterParams; 300] =
+        build_filter_param_array::<300>(Self::FILTER_PARAMS_MAX_CUTOFF, P_FREQ);
+
+    fn freq_to_filter_param(cutoff_frequency: u32) -> &'static FilterParams {
+        let raw_idx = (cutoff_frequency >> Self::FILTER_STEP_SHIFT) as usize;
+        let idx = if raw_idx >= Self::FILTER_PARAMS.len() {
+            Self::FILTER_PARAMS.len() - 1
+        } else {
+            raw_idx
+        };
+        &(Self::FILTER_PARAMS[idx])
+    }
 }
 
 impl<
@@ -260,7 +280,7 @@ impl<
             source,
             d1,
             d2,
-            params: &Self::FILTER_PARAMS,
+            params: Self::freq_to_filter_param(CUTOFF_FREQUENCY as u32),
         };
     }
 
