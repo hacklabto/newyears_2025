@@ -46,10 +46,13 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
     fn new(init_values: Self::InitValuesType) -> Self {
         let frequency_1 = midi_note_to_freq(init_values.key);
         let frequency_2 = midi_note_to_freq(init_values.key + 24 + 9);
+        let cutoff_frequency =
+            200 + ((init_values.key as u32) * 4) + ((init_values.velocity as u32) / 2);
+
         let adsr_init = (init_values.velocity as i32) << 8;
         let core = ElectricPianoFiltered::<P_FREQ, U_FREQ>::new((
             ((frequency_1, frequency_2), adsr_init),
-            1000,
+            cutoff_frequency,
         ));
         return Self { core };
     }

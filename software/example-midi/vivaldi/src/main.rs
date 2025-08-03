@@ -27,7 +27,7 @@ fn run() -> Result<(), pa::Error> {
     let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
         .expect("It's inlined data, so its expected to parse");
 
-    type MyMidi<'a> = Midi<'a, 24000, 240, 32, 32>;
+    type MyMidi<'a> = Midi<'a, 24000, 240, 64, 32>;
     println!(
         "Midi structure is currently using {} bytes",
         std::mem::size_of::<MyMidi>()
@@ -50,6 +50,8 @@ fn run() -> Result<(), pa::Error> {
 
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         let mut idx = 0;
+        //println!("Simultaneous notes {}", midi.get_current_num_mixed_notes());
+
         for _ in 0..frames {
             let current = (midi.get_next().clip().to_i32() as f32) / 32768.0;
             buffer[idx] = current;
