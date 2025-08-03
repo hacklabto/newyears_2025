@@ -108,6 +108,10 @@ impl<
         )
     }
 
+    pub fn get_current_num_mixed_notes(self: &mut Self) -> u32 {
+        self.amp_adder.get_current_num_mixed_notes()
+    }
+
     pub fn update(self: &mut Self) {
         self.tempo.advance_time();
         for i in 0..self.num_tracks {

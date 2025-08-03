@@ -38,6 +38,10 @@ impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_S
     pub fn restart_note_at(self: &mut Self, element: usize, vel: u8) {
         self.channels[element].restart(vel);
     }
+
+    pub fn get_current_num_mixed_notes(self: &mut Self) -> u32 {
+        return self.num_active_channels as u32;
+    }
 }
 
 impl<const P_FREQ: u32, const U_FREQ: u32, const NUM_CHANNELS: usize, const NO_SCALEDOWN: bool>

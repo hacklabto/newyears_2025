@@ -168,6 +168,44 @@ pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i6
     }
 }
 
+#[derive(Copy, Clone)]
+struct FilterParams {
+    b1: i64,
+    a1_p1: i64,
+    a2: i64,
+}
+
+impl FilterParams {
+    const fn new(cutoff_frequency: u32, sample_frequency: u32) -> Self {
+        let raw_params = lowpass_butterworth(cutoff_frequency as i64, sample_frequency as i64);
+        const ONE: i64 = 1i64 << 31;
+        Self {
+            b1: raw_params.1,
+            a1_p1: raw_params.3 + ONE,
+            a2: raw_params.4,
+        }
+    }
+    const fn const_default() -> Self {
+        Self {
+            b1: 0,
+            a1_p1: 0,
+            a2: 0,
+        }
+    }
+}
+
+const fn FilterParamArray<const N: usize>(max_cutoff: u32, sample_freq: u32) -> [FilterParams; N] {
+    let mut filter_params = [FilterParams::const_default(); N];
+
+    let mut idx: usize = 1;
+    while idx < N {
+        filter_params[idx] = FilterParams::new((idx as u32) / max_cutoff, sample_freq);
+        idx = idx + 1;
+    }
+
+    return filter_params;
+}
+
 pub struct Filter<
     const P_FREQ: u32,
     const U_FREQ: u32,
@@ -177,6 +215,7 @@ pub struct Filter<
     source: Source,
     d1: i64,
     d2: i64,
+    params: &'static FilterParams,
 }
 
 impl<
@@ -188,9 +227,9 @@ impl<
 {
     const ONE: i64 = 1i64 << 31;
 
+    // TODO, move these comments to structure
     // Extract filter co-coefficients at compile time.
-    const B0: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).0;
-    const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).1;
+    // const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).1;
     // B2 is the same as B0, so I just use the B0 term in the filter.
     // const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ, U_FREQ as i64).2;
 
@@ -198,8 +237,10 @@ impl<
     // Added one to remap it to 0 to -1 because I actually do need the extra bit
     // of head room.  The oscillator pair can produce values from 0 to 2.
     //
-    const A1_P1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).3 + Self::ONE;
-    const A2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).4;
+    // const A1_P1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).3 + Self::ONE;
+    // const A2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).4;
+
+    const FILTER_PARAMS: FilterParams = FilterParams::new(CUTOFF_FREQUENCY as u32, P_FREQ);
 }
 
 impl<
@@ -215,11 +256,16 @@ impl<
         let source = Source::new(init_values);
         let d1 = 0;
         let d2 = 0;
-        return Self { source, d1, d2 };
+        return Self {
+            source,
+            d1,
+            d2,
+            params: &Self::FILTER_PARAMS,
+        };
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
-        if Self::B0 == 0 {
+        if self.params.b1 == 0 {
             // Special case,
             //
             // If the filter frequency is more than 20% of the playback frequency,
@@ -235,7 +281,7 @@ impl<
 
             // Compute input * B0, input * B1, input * B2.
             //
-            let b1_input_term = fixp_mul(input, Self::B1);
+            let b1_input_term = fixp_mul(input, self.params.b1);
             // B0 = B1/2, B2 = B1/2, so just take the b1 input term and divide by 2
             let b0_input_term = b1_input_term >> 1;
             let b2_input_term = b0_input_term;
@@ -248,8 +294,8 @@ impl<
             // A1 Plus 1).  Pay an extra subtract to unwind that.
             //
             let output: i64 = b0_input_term + self.d1;
-            let a1_output_term = fixp_mul(output, Self::A1_P1) - output;
-            let a2_output_term = fixp_mul(output, Self::A2);
+            let a1_output_term = fixp_mul(output, self.params.a1_p1) - output;
+            let a2_output_term = fixp_mul(output, self.params.a2);
 
             // Record d1 and d2, then return the output
             //
