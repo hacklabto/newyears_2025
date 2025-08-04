@@ -22,5 +22,5 @@ pub type Oboe<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplateAmpLfo<
     5000,                                    // D
     100,                                     // S
     140,                                     // R
-    GenericLowPassCalculator<100, 300>,
+    GenericLowPassCalculator<80, 100>,
 >;
