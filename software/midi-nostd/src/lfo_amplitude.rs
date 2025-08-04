@@ -12,7 +12,8 @@ pub struct LfoAmplitude<
     const DEPTH: u8,
 > {
     source: Source,
-    oscillator: CoreOscillator<P_FREQ, U_FREQ, 50, DEPTH, WAVE>,
+    oscillator: CoreOscillator<U_FREQ, U_FREQ, 50, DEPTH, WAVE>,
+    amplitude_adjust: SoundSampleI32,
 }
 
 impl<
@@ -42,21 +43,20 @@ impl<
 
     fn new(init_values: Self::InitValuesType) -> Self {
         let source = Source::new(init_values);
-        let oscillator = CoreOscillator::<P_FREQ, U_FREQ, 50, DEPTH, WAVE>::new(LFO_FREQUENCY);
+        let oscillator = CoreOscillator::<U_FREQ, U_FREQ, 50, DEPTH, WAVE>::new(LFO_FREQUENCY);
+        let amplitude_adjust = SoundSampleI32::new_i32( 0x8000 - 0x8000 * (DEPTH as i32) / 100 ); 
 
-        Self { source, oscillator }
+        Self { source, oscillator, amplitude_adjust }
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
-        let lfo_oscillation = self.oscillator.get_next() + Self::AMPLITUDE_OFFSET;
-        let sound = self.source.get_next();
-        assert!(lfo_oscillation.to_i32() > 0 && lfo_oscillation.to_i32() <= 0x8000);
-
-        return lfo_oscillation * sound;
+        self.source.get_next()
     }
 
     fn update(self: &mut Self) {
-        return self.source.update();
+        let lfo_oscillation = self.oscillator.get_next() + Self::AMPLITUDE_OFFSET;
+        self.amplitude_adjust = lfo_oscillation;
+        self.source.update();
     }
 
     fn has_next(self: &Self) -> bool {
@@ -81,6 +81,6 @@ impl<
     for LfoAmplitude<P_FREQ, U_FREQ, Source, WAVE, LFO_FREQUENCY, DEPTH>
 {
     fn set_amplitude_adjust(self: &mut Self, adjust: SoundSampleI32) {
-        self.source.set_amplitude_adjust(adjust);
+        self.source.set_amplitude_adjust(adjust * self.amplitude_adjust);
     }
 }

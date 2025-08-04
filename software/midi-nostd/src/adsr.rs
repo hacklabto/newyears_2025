@@ -129,6 +129,7 @@ impl<
     }
 
     fn update(self: &mut Self) {
+        self.source.update();
         let scale: SoundSampleI32 = if !self.releasing {
             if self.time_since_state_start < Self::A_END {
                 let rval = SoundSampleI32::new_i32(self.last_sound.int_part);

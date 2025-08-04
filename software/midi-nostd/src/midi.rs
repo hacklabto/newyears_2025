@@ -76,7 +76,7 @@ impl<
 
     pub fn get_loudest_sample(header: &midly::Header, track_iter: midly::TrackIter<'a>) -> i32 {
         let mut fast_forward_midi_player =
-            Midi::<24, 24, MAX_NOTES, MAX_TRACKS, true>::new_internal(
+            Midi::<240, 240, MAX_NOTES, MAX_TRACKS, true>::new_internal(
                 header,
                 track_iter.clone(),
                 0, // not used
