@@ -1,7 +1,7 @@
 use crate::adsr::CoreAdsr;
 use crate::double_oscillator::DoubleOscillator;
 use crate::filter::Filter;
-use crate::instrument_template_basic::FrequencyCalculator;
+use crate::instrument_low_pass_filters::FrequencyCalculator;
 use crate::lfo_amplitude::LfoAmplitude;
 use crate::midi_notes::midi_note_to_freq;
 use crate::note::SoundSourceNoteInit;

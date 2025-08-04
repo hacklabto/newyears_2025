@@ -1,18 +1,7 @@
 use crate::instrument_template_amp_lfo::InstrumentTemplateAmpLfo;
-use crate::instrument_template_basic::FrequencyCalculator;
-use crate::midi_notes::midi_note_to_freq;
 use crate::midi_notes::FREQUENCY_MULTIPLIER;
-use crate::note::SoundSourceNoteInit;
 use crate::oscillator::OscillatorType;
-
-pub struct CelloLowPassCalculator {}
-
-impl FrequencyCalculator for CelloLowPassCalculator {
-    fn get_cutoff_frequency(init_values: &SoundSourceNoteInit) -> u32 {
-        let frequency_1 = midi_note_to_freq(init_values.key);
-        ((frequency_1 / FREQUENCY_MULTIPLIER) * 90 / 100) + 400
-    }
-}
+use crate::instrument_low_pass_filters::CelloLowPassCalculator;
 
 pub type Cello<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplateAmpLfo<
     P_FREQ,

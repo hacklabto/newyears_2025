@@ -12,6 +12,7 @@ pub mod filter;
 pub mod free_list;
 pub mod french_horn;
 pub mod guitar_acoustic;
+pub mod instrument_low_pass_filters;
 pub mod instrument_template_amp_lfo;
 pub mod instrument_template_basic;
 pub mod lfo_amplitude;

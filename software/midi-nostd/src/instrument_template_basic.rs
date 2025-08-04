@@ -6,11 +6,8 @@ use crate::note::SoundSourceNoteInit;
 use crate::oscillator::CoreOscillator;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
+use crate::instrument_low_pass_filters::FrequencyCalculator;
 use core::marker::PhantomData;
-
-pub trait FrequencyCalculator {
-    fn get_cutoff_frequency(init_values: &SoundSourceNoteInit) -> u32;
-}
 
 pub struct InstrumentTemplateBasic<
     const P_FREQ: u32,

@@ -1,16 +1,6 @@
-use crate::instrument_template_basic::FrequencyCalculator;
 use crate::instrument_template_basic::InstrumentTemplateBasic;
-use crate::note::SoundSourceNoteInit;
 use crate::oscillator::OscillatorType;
-
-pub struct ElectricPianoLowPassCalculator {}
-
-impl FrequencyCalculator for ElectricPianoLowPassCalculator {
-    fn get_cutoff_frequency(init_values: &SoundSourceNoteInit) -> u32 {
-        // experimentally derived
-        200 + ((init_values.key as u32) * 5) + ((init_values.velocity as u32) / 3)
-    }
-}
+use crate::instrument_low_pass_filters::PianoLowPassCalculator;
 
 pub type ElectricPiano<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplateBasic<
     P_FREQ,
@@ -28,5 +18,5 @@ pub type ElectricPiano<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplat
     5140,                                    // D
     50,                                      // S
     660,                                     // R
-    ElectricPianoLowPassCalculator,
+    PianoLowPassCalculator,
 >;
