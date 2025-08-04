@@ -1,6 +1,6 @@
 use crate::midi_notes::midi_note_to_freq;
-use crate::note::SoundSourceNoteInit;
 use crate::midi_notes::FREQUENCY_MULTIPLIER;
+use crate::note::SoundSourceNoteInit;
 
 pub trait FrequencyCalculator {
     fn get_cutoff_frequency(init_values: &SoundSourceNoteInit) -> u32;
@@ -24,3 +24,13 @@ impl FrequencyCalculator for PianoLowPassCalculator {
     }
 }
 
+pub struct GenericLowPassCalculator<const SCALE_DOWN_PERCENT: u32, const OFFSET: u32> {}
+
+impl<const SCALE_DOWN_PERCENT: u32, const OFFSET: u32> FrequencyCalculator
+    for GenericLowPassCalculator<SCALE_DOWN_PERCENT, OFFSET>
+{
+    fn get_cutoff_frequency(init_values: &SoundSourceNoteInit) -> u32 {
+        let frequency = midi_note_to_freq(init_values.key);
+        ((frequency / FREQUENCY_MULTIPLIER) * SCALE_DOWN_PERCENT / 100) + OFFSET
+    }
+}

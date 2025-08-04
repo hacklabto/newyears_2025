@@ -1,7 +1,7 @@
+use crate::instrument_low_pass_filters::CelloLowPassCalculator;
 use crate::instrument_template_amp_lfo::InstrumentTemplateAmpLfo;
 use crate::midi_notes::FREQUENCY_MULTIPLIER;
 use crate::oscillator::OscillatorType;
-use crate::instrument_low_pass_filters::CelloLowPassCalculator;
 
 pub type Cello<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplateAmpLfo<
     P_FREQ,
@@ -24,4 +24,3 @@ pub type Cello<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplateAmpLfo<
     300,                                     // R
     CelloLowPassCalculator,
 >;
-

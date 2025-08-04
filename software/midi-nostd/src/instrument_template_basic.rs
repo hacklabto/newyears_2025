@@ -1,12 +1,12 @@
 use crate::adsr::CoreAdsr;
 use crate::double_oscillator::DoubleOscillator;
 use crate::filter::Filter;
+use crate::instrument_low_pass_filters::FrequencyCalculator;
 use crate::midi_notes::midi_note_to_freq;
 use crate::note::SoundSourceNoteInit;
 use crate::oscillator::CoreOscillator;
 use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::SoundSourceCore;
-use crate::instrument_low_pass_filters::FrequencyCalculator;
 use core::marker::PhantomData;
 
 pub struct InstrumentTemplateBasic<
@@ -15,11 +15,11 @@ pub struct InstrumentTemplateBasic<
     const OSC_0_PULSE_WIDTH: u8,
     const OSC_0_VOLUME: u8,
     const OSC_0_WAVE_FORM: usize,
-    const OSC_0_TUNE: u8,
+    const OSC_0_TUNE: i8,
     const OSC_1_PULSE_WIDTH: u8,
     const OSC_1_VOLUME: u8,
     const OSC_1_WAVE_FORM: usize,
-    const OSC_1_TUNE: u8,
+    const OSC_1_TUNE: i8,
     const OSC_1_SYNC_TO_0: bool,
     const A: i32,
     const D: i32,
@@ -55,11 +55,11 @@ impl<
         const OSC_0_PULSE_WIDTH: u8,
         const OSC_0_VOLUME: u8,
         const OSC_0_WAVE_FORM: usize,
-        const OSC_0_TUNE: u8,
+        const OSC_0_TUNE: i8,
         const OSC_1_PULSE_WIDTH: u8,
         const OSC_1_VOLUME: u8,
         const OSC_1_WAVE_FORM: usize,
-        const OSC_1_TUNE: u8,
+        const OSC_1_TUNE: i8,
         const OSC_1_SYNC_TO_0: bool,
         const A: i32,
         const D: i32,
@@ -109,8 +109,8 @@ impl<
     }
 
     fn new(init_values: Self::InitValuesType) -> Self {
-        let frequency_1 = midi_note_to_freq(init_values.key + OSC_0_TUNE);
-        let frequency_2 = midi_note_to_freq(init_values.key + OSC_1_TUNE);
+        let frequency_1 = midi_note_to_freq(((init_values.key as i8) + OSC_0_TUNE) as u8);
+        let frequency_2 = midi_note_to_freq(((init_values.key as i8) + OSC_1_TUNE) as u8);
         let cutoff_frequency = CutoffFrequencyCalculator::get_cutoff_frequency(&init_values);
         let adsr_init = (init_values.velocity as i32) << 8;
         let core = CoreAdsr::new((((frequency_1, frequency_2), cutoff_frequency), adsr_init));

@@ -1,6 +1,6 @@
+use crate::instrument_low_pass_filters::PianoLowPassCalculator;
 use crate::instrument_template_basic::InstrumentTemplateBasic;
 use crate::oscillator::OscillatorType;
-use crate::instrument_low_pass_filters::PianoLowPassCalculator;
 
 pub type ElectricPiano<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplateBasic<
     P_FREQ,

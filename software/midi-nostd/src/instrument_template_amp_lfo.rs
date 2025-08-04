@@ -16,11 +16,11 @@ pub struct InstrumentTemplateAmpLfo<
     const OSC_0_PULSE_WIDTH: u8,
     const OSC_0_VOLUME: u8,
     const OSC_0_WAVE_FORM: usize,
-    const OSC_0_TUNE: u8,
+    const OSC_0_TUNE: i8,
     const OSC_1_PULSE_WIDTH: u8,
     const OSC_1_VOLUME: u8,
     const OSC_1_WAVE_FORM: usize,
-    const OSC_1_TUNE: u8,
+    const OSC_1_TUNE: i8,
     const OSC_1_SYNC_TO_0: bool,
     const LFO_OSC_WAVE_FORM: usize,
     const LFO_OSC_FREQ: u32,
@@ -78,11 +78,11 @@ impl<
         const OSC_0_PULSE_WIDTH: u8,
         const OSC_0_VOLUME: u8,
         const OSC_0_WAVE_FORM: usize,
-        const OSC_0_TUNE: u8,
+        const OSC_0_TUNE: i8,
         const OSC_1_PULSE_WIDTH: u8,
         const OSC_1_VOLUME: u8,
         const OSC_1_WAVE_FORM: usize,
-        const OSC_1_TUNE: u8,
+        const OSC_1_TUNE: i8,
         const OSC_1_SYNC_TO_0: bool,
         const LFO_OSC_WAVE_FORM: usize,
         const LFO_OSC_FREQ: u32,
@@ -138,8 +138,8 @@ impl<
     }
 
     fn new(init_values: Self::InitValuesType) -> Self {
-        let frequency_1 = midi_note_to_freq(init_values.key + OSC_0_TUNE);
-        let frequency_2 = midi_note_to_freq(init_values.key + OSC_1_TUNE);
+        let frequency_1 = midi_note_to_freq(((init_values.key as i8) + OSC_0_TUNE) as u8);
+        let frequency_2 = midi_note_to_freq(((init_values.key as i8) + OSC_1_TUNE) as u8);
         let cutoff_frequency = CutoffFrequencyCalculator::get_cutoff_frequency(&init_values);
         let adsr_init = (init_values.velocity as i32) << 8;
         let core = CoreAdsr::new((((frequency_1, frequency_2), cutoff_frequency), adsr_init));
