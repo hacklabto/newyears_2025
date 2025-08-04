@@ -13,8 +13,8 @@ use crate::sound_source_core::SoundSourceCore;
 type CelloOscillatorPair<const P_FREQ: u32, const U_FREQ: u32> = DoubleOscillator<
     P_FREQ,
     U_FREQ,
-    CoreOscillator<P_FREQ, U_FREQ, 10, 70, { OscillatorType::PulseWidth as usize }>,
-    CoreOscillator<P_FREQ, U_FREQ, 50, 70, { OscillatorType::PulseWidth as usize }>,
+    CoreOscillator<P_FREQ, U_FREQ, 10, 100, { OscillatorType::PulseWidth as usize }>,
+    CoreOscillator<P_FREQ, U_FREQ, 50, 100, { OscillatorType::PulseWidth as usize }>,
     false,
 >;
 
@@ -24,7 +24,7 @@ type CelloOscillatorLfo<const P_FREQ: u32, const U_FREQ: u32> = LfoAmplitude<
     CelloOscillatorPair<P_FREQ, U_FREQ>,
     { OscillatorType::Sine as usize },
     { 15 * FREQUENCY_MULTIPLIER / 2 },
-    10,
+    5,
 >;
 
 type CelloOscillatorAdsr<const P_FREQ: u32, const U_FREQ: u32> =
@@ -64,7 +64,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
 
        // Basically just made this stuff up.
         let cutoff_frequency =
-            200 + ((init_values.key as u32) * 8) + ((init_values.velocity as u32) / 5);
+            200 + ((init_values.key as u32) * 5) + ((init_values.velocity as u32) / 5);
 
         let core =
             CelloFiltered::<P_FREQ, U_FREQ>::new((((frequency_1, frequency_2), adsr_init), cutoff_frequency));
