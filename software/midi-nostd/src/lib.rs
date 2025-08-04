@@ -23,6 +23,7 @@ pub mod midi_notes;
 pub mod midi_time;
 pub mod midi_track;
 pub mod note;
+pub mod oboe;
 pub mod oscillator;
 pub mod piano;
 pub mod sax;

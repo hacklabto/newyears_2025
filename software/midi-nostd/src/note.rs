@@ -4,6 +4,7 @@ use crate::choir::Choir;
 use crate::electric_piano::ElectricPiano;
 use crate::french_horn::FrenchHorn;
 use crate::guitar_acoustic::GuitarAcoustic;
+use crate::oboe::Oboe;
 use crate::piano::Piano;
 use crate::sax::Sax;
 use crate::silence::Silence;
@@ -59,6 +60,9 @@ pub enum NoteEnum<const P_FREQ: u32, const U_FREQ: u32> {
     SaxEnum {
         pcore: Sax<P_FREQ, U_FREQ>,
     },
+    OboeEnum {
+        pcore: Oboe<P_FREQ, U_FREQ>,
+    },
     Unassigned,
 }
 
@@ -94,6 +98,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
             NoteEnum::FrenchHornEnum { pcore } => pcore.get_next(),
             NoteEnum::BassEnum { pcore } => pcore.get_next(),
             NoteEnum::SaxEnum { pcore } => pcore.get_next(),
+            NoteEnum::OboeEnum { pcore } => pcore.get_next(),
             NoteEnum::Unassigned => SoundSampleI32::ZERO,
         }
     }
@@ -110,6 +115,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
             NoteEnum::FrenchHornEnum { pcore } => pcore.update(),
             NoteEnum::BassEnum { pcore } => pcore.update(),
             NoteEnum::SaxEnum { pcore } => pcore.update(),
+            NoteEnum::OboeEnum { pcore } => pcore.update(),
             NoteEnum::Unassigned => {}
         }
     }
@@ -126,6 +132,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
             NoteEnum::FrenchHornEnum { pcore } => pcore.has_next(),
             NoteEnum::BassEnum { pcore } => pcore.has_next(),
             NoteEnum::SaxEnum { pcore } => pcore.has_next(),
+            NoteEnum::OboeEnum { pcore } => pcore.has_next(),
             NoteEnum::Unassigned => false,
         }
     }
@@ -142,6 +149,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
             NoteEnum::FrenchHornEnum { pcore } => pcore.trigger_note_off(),
             NoteEnum::BassEnum { pcore } => pcore.trigger_note_off(),
             NoteEnum::SaxEnum { pcore } => pcore.trigger_note_off(),
+            NoteEnum::OboeEnum { pcore } => pcore.trigger_note_off(),
             NoteEnum::Unassigned => {}
         }
     }
@@ -158,6 +166,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
             NoteEnum::FrenchHornEnum { pcore } => pcore.restart(vel),
             NoteEnum::BassEnum { pcore } => pcore.restart(vel),
             NoteEnum::SaxEnum { pcore } => pcore.restart(vel),
+            NoteEnum::OboeEnum { pcore } => pcore.restart(vel),
             NoteEnum::Unassigned => {}
         }
     }
@@ -168,15 +177,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         let core = match instrument {
             0 => {
                 let pcore = Piano::<P_FREQ, U_FREQ>::new(init_values);
-                NoteEnum::<P_FREQ, U_FREQ>::PianoEnum { pcore }
-                //let pcore = ElectricPiano::<P_FREQ, U_FREQ>::new(init_values);
-                //NoteEnum::<P_FREQ, U_FREQ>::ElectricPianoEnum { pcore }
-                //let pcore = Cello::<P_FREQ, U_FREQ>::new(init_values);
-                //NoteEnum::<P_FREQ, U_FREQ>::CelloEnum { pcore }
-                //let pcore = ElectricPiano::<P_FREQ, U_FREQ>::new(init_values);
-                //NoteEnum::<P_FREQ, U_FREQ>::ElectricPianoEnum { pcore }
-                //let pcore = Violin::<P_FREQ, U_FREQ>::new(init_values);
-                //NoteEnum::<P_FREQ, U_FREQ>::ViolinEnum { pcore }
+                NoteEnum::<P_FREQ, U_FREQ>::PianoEnum{ pcore }
             }
             6 => {
                 let pcore = ElectricPiano::<P_FREQ, U_FREQ>::new(init_values);
@@ -186,6 +187,11 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
                 // Dulcimer
                 let pcore = Silence::<P_FREQ, U_FREQ>::new(init_values);
                 NoteEnum::<P_FREQ, U_FREQ>::SilenceEnum { pcore }
+            }
+            24 => {
+                // "Tango Accordian".  TODO
+                let pcore = GuitarAcoustic::<P_FREQ, U_FREQ>::new(init_values);
+                NoteEnum::<P_FREQ, U_FREQ>::GuitarAcousticEnum { pcore }
             }
             30 => {
                 // Distortion Guitar.  TODO
@@ -217,8 +223,18 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
                 let pcore = Choir::<P_FREQ, U_FREQ>::new(init_values);
                 NoteEnum::<P_FREQ, U_FREQ>::ChoirEnum { pcore }
             }
+            55 => {
+                // Orchestra Hit?
+                let pcore = Choir::<P_FREQ, U_FREQ>::new(init_values);
+                NoteEnum::<P_FREQ, U_FREQ>::ChoirEnum { pcore }
+            }
             60 => {
                 //French Horn
+                let pcore = FrenchHorn::<P_FREQ, U_FREQ>::new(init_values);
+                NoteEnum::<P_FREQ, U_FREQ>::FrenchHornEnum { pcore }
+            }
+            62 => {
+                // Brass Section
                 let pcore = FrenchHorn::<P_FREQ, U_FREQ>::new(init_values);
                 NoteEnum::<P_FREQ, U_FREQ>::FrenchHornEnum { pcore }
             }
@@ -227,7 +243,13 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
                 let pcore = Sax::<P_FREQ, U_FREQ>::new(init_values);
                 NoteEnum::<P_FREQ, U_FREQ>::SaxEnum { pcore }
             }
+            69 => {
+                // Oboe
+                let pcore = Oboe::<P_FREQ, U_FREQ>::new(init_values);
+                NoteEnum::<P_FREQ, U_FREQ>::OboeEnum { pcore }
+            }
             _ => {
+                assert_eq!(0, instrument);
                 let pcore = Silence::<P_FREQ, U_FREQ>::new(init_values);
                 NoteEnum::<P_FREQ, U_FREQ>::SilenceEnum { pcore }
             }
