@@ -62,13 +62,15 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         let frequency_2 = midi_note_to_freq(init_values.key);
         let adsr_init = (init_values.velocity as i32) << 8;
 
-       // Basically just made this stuff up.
+        // Basically just made this stuff up.
         //let cutoff_frequency =
-            //200 + ((init_values.key as u32) * 5) + ((init_values.velocity as u32) / 5);
-        let cutoff_frequency = ((frequency_1 / FREQUENCY_MULTIPLIER) * 90/ 100) + 40;
+        //200 + ((init_values.key as u32) * 5) + ((init_values.velocity as u32) / 5);
+        let cutoff_frequency = ((frequency_1 / FREQUENCY_MULTIPLIER) * 90 / 100) + 40;
 
-        let core =
-            CelloFiltered::<P_FREQ, U_FREQ>::new((((frequency_1, frequency_2), adsr_init), cutoff_frequency));
+        let core = CelloFiltered::<P_FREQ, U_FREQ>::new((
+            ((frequency_1, frequency_2), adsr_init),
+            cutoff_frequency,
+        ));
         return Self { core };
     }
 

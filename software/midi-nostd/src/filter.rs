@@ -1,8 +1,8 @@
 // Frequency filter using fixed point math.
 
 use crate::sound_sample::SoundSampleI32;
-use crate::sound_source_core::SoundSourceCore;
 use crate::sound_source_core::OscillatorInterface;
+use crate::sound_source_core::SoundSourceCore;
 
 //
 // Fixed point table of tan values.
@@ -93,6 +93,7 @@ pub const fn fixp_div(numerator: i64, denominator: i64) -> i64 {
 //
 pub const fn const_tan(a: i64) -> i64 {
     // 2^10 = 1024 = Pi * angle in the table.  The table does only support angles to .2*pi
+    // See comments in the filter co-oefficient code below.
     //
     let tan_table_bits = 10;
 
@@ -126,11 +127,16 @@ pub const fn const_tan(a: i64) -> i64 {
 //
 pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i64, i64, i64, i64) {
     let one: i64 = 1i64 << 31;
-    if cutoff_freq * 6 > sample_freq {
+    if cutoff_freq > sample_freq * 19 / 100 {
         //
-        // I only support a cut-off frequency that's 20% the sample frequency.
+        // I only support a cut-off frequency that's 19% the sample frequency.
         // If you want something faster, the filter will treat this value as
-        // a pass through.
+        // a pass through.  This could be increased, but I'd start losing
+        // precision. And that might be the right trade off if I'm finding I need
+        // to bump down the payback rate to something like 12000hz to get this
+        // working in typical 2025 embedded devices like the RPi Pico.
+        //
+        // - glowmouse, August 2025.
         //
         return (0, 0, 0, 0, 0);
     }
@@ -169,6 +175,14 @@ pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i6
     }
 }
 
+//
+// A container for the three filter parameters I use in my filter.
+//
+// b1    - the b1 filter co-efficient.  b0 and b2 are just half b1, so I don't store them.
+// a1_p1 - the a1 filter co-efficient, plus 1.  a1 is usually around -2.  Adding 1 gets an
+//         extra bit of precision, at the cost of an extra 64 bit add in the filter.
+// a2    - the a2 filter co-efficient.
+//
 #[derive(Copy, Clone)]
 struct FilterParams {
     b1: i64,
@@ -195,6 +209,9 @@ impl FilterParams {
     }
 }
 
+//
+// Precomputes an array of filter parameters at compile time.
+//
 const fn build_filter_param_array<const N: usize>(
     max_cutoff: u32,
     sample_freq: u32,
@@ -210,7 +227,8 @@ const fn build_filter_param_array<const N: usize>(
     return filter_params;
 }
 
-pub struct Filter<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U_FREQ>> {
+pub struct Filter<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U_FREQ>>
+{
     source: Source,
     d1: i64,
     d2: i64,
@@ -220,37 +238,42 @@ pub struct Filter<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterf
 impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U_FREQ>>
     Filter<P_FREQ, U_FREQ, Source>
 {
-    // const ONE: i64 = 1i64 << 31;
-
-    // TODO, move these comments to structure
-    // Extract filter co-coefficients at compile time.
-    // const B1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).1;
-    // B2 is the same as B0, so I just use the B0 term in the filter.
-    // const B2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ, U_FREQ as i64).2;
-
-    // In the filter we subtract A1 * input, but.... A1 is a value from -1 to -2.
-    // Added one to remap it to 0 to -1 because I actually do need the extra bit
-    // of head room.  The oscillator pair can produce values from 0 to 2.
     //
-    // const A1_P1: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).3 + Self::ONE;
-    // const A2: i64 = lowpass_butterworth(CUTOFF_FREQUENCY, P_FREQ as i64).4;
+    // For building an array of filter parameter constants
+    //
 
-    //const FILTER_PARAMS: FilterParams = FilterParams::new(CUTOFF_FREQUENCY as u32, P_FREQ);
+    // The size of the array.  This is going into flash on most embedded devices,
+    // so 300 seems reasonable.
+    //
     const FILTER_PARAMS_ARRAY_SIZE: usize = 300;
-    const FILTER_STEP_SHIFT: u32 = 4;
-    const FILTER_STEP: u32 = (1 << Self::FILTER_STEP_SHIFT);
-    const FILTER_PARAMS_MAX_CUTOFF: u32 =
-        ((Self::FILTER_PARAMS_ARRAY_SIZE as u32) * Self::FILTER_STEP);
-    const FILTER_PARAMS: [FilterParams; 300] =
-        build_filter_param_array::<300>(Self::FILTER_PARAMS_MAX_CUTOFF, P_FREQ);
 
+    // What cut off freqeuncy gets shiftedby to get th the desired filter param table entry
+    //
+    const FILTER_CUTOFF_TO_TABLE_ENTRY_SHIFT: u32 = 4;
+
+    // What cut off freqeuncy gets divided by to get th the desired filter param table entry
+    //
+    const FILTER_CUTOFF_TO_TABLE_ENTRY_DIVIDE: u32 =
+        (1 << Self::FILTER_CUTOFF_TO_TABLE_ENTRY_SHIFT);
+
+    // Maximum supported cutoff frequency.
+    //
+    const FILTER_PARAMS_MAX_CUTOFF_FREQUENCY: u32 =
+        ((Self::FILTER_PARAMS_ARRAY_SIZE as u32) * Self::FILTER_CUTOFF_TO_TABLE_ENTRY_DIVIDE);
+
+    // The actual table of filter parameters
+    //
+    const FILTER_PARAMS: [FilterParams; 300] =
+        build_filter_param_array::<300>(Self::FILTER_PARAMS_MAX_CUTOFF_FREQUENCY, P_FREQ);
+
+    // Helper function to go from a cutoff frequency to the parameter table entry
+    // for that frequency.
+    //
     fn freq_to_filter_param(cutoff_frequency: u32) -> &'static FilterParams {
-        let raw_idx = (cutoff_frequency >> Self::FILTER_STEP_SHIFT) as usize;
-        let idx = if raw_idx >= Self::FILTER_PARAMS.len() {
-            Self::FILTER_PARAMS.len() - 1
-        } else {
-            raw_idx
-        };
+        let idx = core::cmp::min(
+            (cutoff_frequency >> Self::FILTER_CUTOFF_TO_TABLE_ENTRY_SHIFT) as usize,
+            Self::FILTER_PARAMS.len() - 1,
+        );
         &(Self::FILTER_PARAMS[idx])
     }
 }
@@ -261,13 +284,10 @@ impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U
     type InitValuesType = (Source::InitValuesType, u32);
 
     fn new(init_values: Self::InitValuesType) -> Self {
-        let source = Source::new(init_values.0);
-        let d1 = 0;
-        let d2 = 0;
         return Self {
-            source,
-            d1,
-            d2,
+            source: Source::new(init_values.0),
+            d1: 0,
+            d2: 0,
             params: Self::freq_to_filter_param(init_values.1),
         };
     }
@@ -279,6 +299,19 @@ impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U
             // If the filter frequency is more than 20% of the playback frequency,
             // just do a pass-through.  See the filter co-efficient code for the
             // other side of that logic.
+            //
+            // This code is hit when the midi player estimates the midi's loudness
+            // by "fast forwarding" throgh the song at high speed and looking for
+            // the biggest amplitude values.  The expected amplitude reduction
+            // from the filter is
+            //
+            //              1
+            // -------------------------------------------
+            // sqrt( 1 + (note_frequncy / cutoff_freuency) ^ 2 )
+            //
+            // So this can result in the volume being substantially under-estimated.
+            // TODO - put together a fixed point friendly version of this formula
+            // and provide a hint in the filter fixes this.
             //
             self.source.get_next()
         } else {

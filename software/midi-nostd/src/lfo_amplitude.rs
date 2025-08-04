@@ -44,9 +44,13 @@ impl<
     fn new(init_values: Self::InitValuesType) -> Self {
         let source = Source::new(init_values);
         let oscillator = CoreOscillator::<U_FREQ, U_FREQ, 50, DEPTH, WAVE>::new(LFO_FREQUENCY);
-        let amplitude_adjust = SoundSampleI32::new_i32( 0x8000 - 0x8000 * (DEPTH as i32) / 100 ); 
+        let amplitude_adjust = SoundSampleI32::new_i32(0x8000 - 0x8000 * (DEPTH as i32) / 100);
 
-        Self { source, oscillator, amplitude_adjust }
+        Self {
+            source,
+            oscillator,
+            amplitude_adjust,
+        }
     }
 
     fn get_next(self: &mut Self) -> SoundSampleI32 {
@@ -81,6 +85,7 @@ impl<
     for LfoAmplitude<P_FREQ, U_FREQ, Source, WAVE, LFO_FREQUENCY, DEPTH>
 {
     fn set_amplitude_adjust(self: &mut Self, adjust: SoundSampleI32) {
-        self.source.set_amplitude_adjust(adjust * self.amplitude_adjust);
+        self.source
+            .set_amplitude_adjust(adjust * self.amplitude_adjust);
     }
 }

@@ -42,7 +42,7 @@ impl<
     const A_TICKS: i32 = time_to_ticks::<U_FREQ>(A);
     const D_TICKS: i32 = time_to_ticks::<U_FREQ>(D);
     const R_TICKS: i32 = time_to_ticks::<U_FREQ>(R);
-    const RS_TICKS : i32 = time_to_ticks::<U_FREQ>(10);
+    const RS_TICKS: i32 = time_to_ticks::<U_FREQ>(10);
 
     const A_GAIN: AdsrFraction = if Self::A_TICKS != 0 {
         let a_diff: i64 = Self::ATTACK_VOLUME_SCALE.to_i32() as i64;
@@ -87,7 +87,7 @@ impl<
     const D_END: i32 = Self::A_END + Self::D_TICKS;
     const R_START: i32 = 0;
     const R_END: i32 = Self::R_START + Self::R_TICKS;
-    const R_TERMINATE : i32 = Self::R_END + Self::RS_TICKS; 
+    const R_TERMINATE: i32 = Self::R_END + Self::RS_TICKS;
 }
 
 impl<
@@ -196,8 +196,7 @@ impl<
     > OscillatorInterface<P_FREQ, U_FREQ>
     for CoreAdsr<P_FREQ, U_FREQ, A, D, SUSTAIN_VOLUME, R, Source>
 {
-    fn set_amplitude_adjust(self: &mut Self, _adjust: SoundSampleI32) {
-    }
+    fn set_amplitude_adjust(self: &mut Self, _adjust: SoundSampleI32) {}
 }
 
 #[cfg(test)]
@@ -264,21 +263,15 @@ mod tests {
         adsr.update();
         assert_eq!(0x0000, adsr.get_next().to_i32());
 
-        // End state.  Report silence and no more data
+        // End state.  We get a bit of silence to
+        for _ in 0..8 {
+            adsr.update();
+            assert_eq!(true, adsr.has_next());
+            assert_eq!(0x0000, adsr.get_next().to_i32());
+        }
         adsr.update();
         assert_eq!(false, adsr.has_next());
         assert_eq!(0x0000, adsr.get_next().to_i32());
-        adsr.update();
-        assert_eq!(0x0000, adsr.get_next().to_i32());
-        adsr.update();
-        assert_eq!(0x0000, adsr.get_next().to_i32());
-        adsr.update();
-        assert_eq!(0x0000, adsr.get_next().to_i32());
-        adsr.update();
-        assert_eq!(0x0000, adsr.get_next().to_i32());
-        adsr.update();
-        assert_eq!(0x0000, adsr.get_next().to_i32());
-        assert_eq!(false, adsr.has_next());
     }
     #[test]
     fn no_attack_adsr_test() {
