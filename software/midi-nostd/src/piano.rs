@@ -15,8 +15,8 @@ pub type Piano<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplateBasic<
     14,                                      // Oscillator 1 note offset
     true,                                    // Sync Oscillator 1 to 0
     0,                                       // A
-    670,                                     // D
-    25,                                      // S
-    300,                                     // R
+    300,                                     // D
+    20,                                      // S
+    500,                                     // R
     PianoLowPassCalculator,
 >;
