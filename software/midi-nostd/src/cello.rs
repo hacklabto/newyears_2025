@@ -65,7 +65,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         // Basically just made this stuff up.
         //let cutoff_frequency =
         //200 + ((init_values.key as u32) * 5) + ((init_values.velocity as u32) / 5);
-        let cutoff_frequency = ((frequency_1 / FREQUENCY_MULTIPLIER) * 90 / 100) + 40;
+        let cutoff_frequency = ((frequency_1 / FREQUENCY_MULTIPLIER) * 90 / 100) + 400;
 
         let core = CelloFiltered::<P_FREQ, U_FREQ>::new((
             ((frequency_1, frequency_2), adsr_init),

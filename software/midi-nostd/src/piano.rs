@@ -1,74 +1,32 @@
-use crate::adsr::CoreAdsr;
-use crate::double_oscillator::DoubleOscillator;
-use crate::filter::Filter;
-use crate::midi_notes::midi_note_to_freq;
+use crate::instrument_template_basic::FrequencyCalculator;
+use crate::instrument_template_basic::InstrumentTemplateBasic;
 use crate::note::SoundSourceNoteInit;
-use crate::oscillator::CoreOscillator;
 use crate::oscillator::OscillatorType;
-use crate::sound_sample::SoundSampleI32;
-use crate::sound_source_core::SoundSourceCore;
-//use crate::midi_notes::FREQUENCY_MULTIPLIER;
 
-type PianoOscillatorPair<const P_FREQ: u32, const U_FREQ: u32> = DoubleOscillator<
+pub struct PianoLowPassCalculator {}
+
+impl FrequencyCalculator for PianoLowPassCalculator {
+    fn get_cutoff_frequency(init_values: &SoundSourceNoteInit) -> u32 {
+        // experimentally derived
+        200 + ((init_values.key as u32) * 5) + ((init_values.velocity as u32) / 3)
+    }
+}
+
+pub type Piano<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplateBasic<
     P_FREQ,
     U_FREQ,
-    CoreOscillator<P_FREQ, U_FREQ, 50, 75, { OscillatorType::SawTooth as usize }>,
-    CoreOscillator<P_FREQ, U_FREQ, 15, 75, { OscillatorType::PulseWidth as usize }>,
-    true,
+    50,                                      // Oscillator 0 pulse width
+    75,                                      // Oscillator 0 volume
+    { OscillatorType::SawTooth as usize },   // Oscillator 0 wave form
+    0,                                       // Oscillator 0 note offset
+    15,                                      // Oscillator 1 pulse width
+    75,                                      // Oscillator 1 volume
+    { OscillatorType::PulseWidth as usize }, // Oscillator 1 wave form
+    14,                                      // Oscillator 1 note offset
+    true,                                    // Sync Oscillator 1 to 0
+    0,                                       // A
+    670,                                     // D
+    25,                                      // S
+    300,                                     // R
+    PianoLowPassCalculator,
 >;
-
-type PianoFiltered<const P_FREQ: u32, const U_FREQ: u32> =
-    Filter<P_FREQ, U_FREQ, PianoOscillatorPair<P_FREQ, U_FREQ>>;
-
-type PianoAdsr<const P_FREQ: u32, const U_FREQ: u32> =
-    CoreAdsr<P_FREQ, U_FREQ, 0, 670, 25, 300, PianoFiltered<P_FREQ, U_FREQ>>;
-
-///
-/// Piano.  Now sort of a proof of concept.
-///
-pub struct Piano<const P_FREQ: u32, const U_FREQ: u32> {
-    core: PianoAdsr<P_FREQ, U_FREQ>,
-}
-
-impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
-    for Piano<P_FREQ, U_FREQ>
-{
-    type InitValuesType = SoundSourceNoteInit;
-
-    fn get_next(self: &mut Self) -> SoundSampleI32 {
-        self.core.get_next()
-    }
-
-    fn update(self: &mut Self) {
-        self.core.update()
-    }
-
-    fn has_next(self: &Self) -> bool {
-        self.core.has_next()
-    }
-
-    fn new(init_values: Self::InitValuesType) -> Self {
-        let frequency_1 = midi_note_to_freq(init_values.key);
-        let frequency_2 = midi_note_to_freq(init_values.key + 14);
-
-        // Basically just made this stuff up.
-        let cutoff_frequency =
-            200 + ((init_values.key as u32) * 5) + ((init_values.velocity as u32) / 3);
-
-        //let cutoff_frequency_raw = midi_note_to_freq(init_values.key) / FREQUENCY_MULTIPLIER;
-        //let cutoff_frequency = if cutoff_frequency_raw > 600 { 600 } else { cutoff_frequency_raw };
-        let adsr_init = (init_values.velocity as i32) << 8;
-        let core = PianoAdsr::<P_FREQ, U_FREQ>::new((
-            ((frequency_1, frequency_2), cutoff_frequency),
-            adsr_init,
-        ));
-        return Self { core };
-    }
-
-    fn trigger_note_off(self: &mut Self) {
-        self.core.trigger_note_off();
-    }
-    fn restart(self: &mut Self, vel: u8) {
-        self.core.restart(vel);
-    }
-}
