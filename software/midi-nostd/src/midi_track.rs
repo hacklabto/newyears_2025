@@ -47,13 +47,15 @@ impl<
         notes: &mut AmpAdder<P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>,
         channels: &mut Channels,
         tempo: &mut MidiTime<P_FREQ, U_FREQ>,
+        program_override: i32,
     ) {
         if !self.has_next() {
             return;
         }
         while tempo.get_current_time() >= self.next_event_time {
             let track_event = self.last_event.as_ref().unwrap().as_ref().unwrap();
-            let end_of_track = handle_track_event(&track_event, notes, channels, tempo);
+            let end_of_track =
+                handle_track_event(&track_event, notes, channels, tempo, program_override);
 
             if !end_of_track {
                 self.last_event = self.event_iter.next();

@@ -14,6 +14,7 @@ pub fn handle_midi_event<
     channel_u8: u8,
     notes: &mut AmpAdder<P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>,
     channels: &mut Channels,
+    program_override: i32,
 ) {
     let channel: usize = channel_u8 as usize;
     match midi_event {
@@ -28,11 +29,12 @@ pub fn handle_midi_event<
                     channels.channels[channel].playing_notes[key_as_u32 as usize] = Channel::UNUSED;
                 }
             } else {
-                let note_init = SoundSourceNoteInit::new(
-                    (*key).into(),
-                    channels.channels[channel].current_program,
-                    (*vel).into(),
-                );
+                let mut instrument: u8 = channels.channels[channel].current_program;
+                if program_override != -1 {
+                    instrument = program_override as u8;
+                }
+
+                let note_init = SoundSourceNoteInit::new((*key).into(), instrument, (*vel).into());
                 let playing_note_u8 = channels.channels[channel].playing_notes[key_as_u32 as usize];
                 if playing_note_u8 != Channel::UNUSED {
                     let playing_note = playing_note_u8 as usize;
@@ -70,13 +72,14 @@ pub fn handle_track_event<
     notes: &mut AmpAdder<P_FREQ, U_FREQ, MAX_NOTES, NO_SCALEDOWN>,
     channels: &mut Channels,
     tempo: &mut MidiTime<P_FREQ, U_FREQ>,
+    program_override: i32,
 ) -> bool {
     match track_event.kind {
         midly::TrackEventKind::Midi { message, channel } => {
             if channel == 10 {
                 return true;
             }
-            handle_midi_event(&message, channel.into(), notes, channels)
+            handle_midi_event(&message, channel.into(), notes, channels, program_override)
         }
         midly::TrackEventKind::Meta(message) => match message {
             midly::MetaMessage::Tempo(ms_per_qn_midly) => {

@@ -34,6 +34,7 @@ fn run() -> Result<(), pa::Error> {
     );
 
     let mut midi = MyMidi::new(&header, tracks);
+    midi.set_program_override(69); // override to oboe
     let pa = pa::PortAudio::new()?;
 
     let mut settings =

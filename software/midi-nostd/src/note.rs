@@ -177,7 +177,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32> SoundSourceCore<P_FREQ, U_FREQ>
         let core = match instrument {
             0 => {
                 let pcore = Piano::<P_FREQ, U_FREQ>::new(init_values);
-                NoteEnum::<P_FREQ, U_FREQ>::PianoEnum{ pcore }
+                NoteEnum::<P_FREQ, U_FREQ>::PianoEnum { pcore }
             }
             6 => {
                 let pcore = ElectricPiano::<P_FREQ, U_FREQ>::new(init_values);

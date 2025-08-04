@@ -21,6 +21,7 @@ pub struct Midi<
     tempo: MidiTime<P_FREQ, U_FREQ>,
     skip_count: u32,
     tracks_still_playing: bool,
+    program_override: i32,
 }
 
 impl<
@@ -71,7 +72,12 @@ impl<
             tempo,
             skip_count: 0,
             tracks_still_playing: true,
+            program_override: -1,
         }
+    }
+
+    pub fn set_program_override(self: &mut Self, program_override: i32) {
+        self.program_override = program_override;
     }
 
     pub fn get_loudest_sample(header: &midly::Header, track_iter: midly::TrackIter<'a>) -> i32 {
@@ -120,6 +126,7 @@ impl<
                     &mut self.amp_adder,
                     &mut self.channels,
                     &mut self.tempo,
+                    self.program_override,
                 );
             }
         }

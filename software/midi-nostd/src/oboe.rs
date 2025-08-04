@@ -7,11 +7,11 @@ pub type Oboe<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplateAmpLfo<
     P_FREQ,
     U_FREQ,
     20,                                      // Oscillator 0 pulse width
-    100,                                     // Oscillator 0 volume
+    80,                                      // Oscillator 0 volume
     { OscillatorType::PulseWidth as usize }, // Oscillator 0 wave form
     0,                                       // Oscillator 0 note offset
     5,                                       // Oscillator 1 pulse width
-    100,                                     // Oscillator 1 volume
+    80,                                      // Oscillator 1 volume
     { OscillatorType::PulseWidth as usize }, // Oscillator 1 wave form
     0,                                       // Oscillator 1 note offset
     false,                                   // Sync Oscillator 1 to 0
@@ -22,5 +22,5 @@ pub type Oboe<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTemplateAmpLfo<
     5000,                                    // D
     100,                                     // S
     140,                                     // R
-    GenericLowPassCalculator<80, 100>,
+    GenericLowPassCalculator<70, 100>,
 >;
