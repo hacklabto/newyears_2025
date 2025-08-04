@@ -15,8 +15,8 @@ pub type GuitarAcoustic<const P_FREQ: u32, const U_FREQ: u32> = InstrumentTempla
     10,                                      // Oscillator 1 note offset
     true,                                    // Sync Oscillator 1 to 0
     0,                                       // A
-    1700,                                    // D
+    1000,                                    // D
     0,                                       // S
-    1700,                                    // R
+    1000,                                    // R
     GenericLowPassCalculator<80, 400>,
 >;
