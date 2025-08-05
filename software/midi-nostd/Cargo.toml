@@ -7,5 +7,6 @@ rust-version = "1.79"
 
 [dependencies]
 midly = { version = "0.5.3", default-features = false }
-const_soft_float = { version = "0.1.4" }
+#const_soft_float = { version = "0.1.4", feature = "no_std" }
+softfloat = { version = "1.0.0", feature = "no_std" }
 

@@ -12,7 +12,7 @@ use gpio::{Level, Output, Pin};
 use midi_nostd::midi::Midi;
 use pio::InstructionOperands;
 // 89 and 3 are factors of 20292.  89*3 has to be a factor of 20292.
-type NewYearsMidi<'a> = Midi<'a, 20292, { 89 * 3 }, 32, 32>;
+type NewYearsMidi<'a> = Midi<'a, 20292, { 89 * 3 }, 64, 32>;
 
 const PWM_BITS: u32 = 6;
 const REMAINDER_BITS: u32 = 10 - PWM_BITS;
@@ -355,7 +355,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
     pub async fn play_sound(&mut self) {
         //let (header, tracks) = midly::parse(include_bytes!("../assets/brother.mid"))
-        let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
+        let (header, tracks) = midly::parse(include_bytes!("../assets/maple.mid"))
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 

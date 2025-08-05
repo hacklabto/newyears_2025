@@ -3,13 +3,13 @@ edition = "2021"
 name = "hackernewyears"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
+rust-version = "1.79"
 
 [features]
 default = ["workingssd"]
 workingssd = []
 
 [dependencies]
-embedded-alloc = {version = "0.6.0" }
 midi-nostd = {path = "../midi-nostd"}
 midly = {version = "0.5.3", default-features = false }
 embassy-embedded-hal = { version = "0.2.0", features = ["defmt"] }
