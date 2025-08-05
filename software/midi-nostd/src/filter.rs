@@ -30,10 +30,9 @@ pub const fn fixp_div(numerator: i64, denominator: i64) -> i64 {
 //
 // Computes tangent at compile time for filter co-efficients.
 //
-const fn const_tan( a: i64) -> i64
-{
-    const ONE:f32 = (1i64 << 31) as f32;
-    let angle = SoftF32(((a as f32) / ONE)*3.14159265359);
+const fn const_tan(a: i64) -> i64 {
+    const ONE: f32 = (1i64 << 31) as f32;
+    let angle = SoftF32(((a as f32) / ONE) * core::f32::consts::PI);
     let tan_result = angle.sin().div(angle.cos()).to_f32();
     (tan_result * ONE) as i64
 }
