@@ -25,7 +25,7 @@ const PWM_REMAINDER_SHIFT: u32 = PWM_TOP_SHIFT - REMAINDER_BITS;
 //const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
 
 pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
-    buffer: [[u32; BUFSIZE]; BUFFERS],
+    buffer: [[u8; BUFSIZE]; BUFFERS],
     being_dmaed: AtomicU16,
     next_available_slot: u16,
 }
@@ -42,7 +42,7 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
         return BUFFERS;
     }
 
-    pub fn next_writable(&mut self) -> Option<&mut [u32]> {
+    pub fn next_writable(&mut self) -> Option<&mut [u8]> {
         let buffers_u16 = BUFFERS as u16;
         let buffer_being_dmaed: u16 = self.being_dmaed.load(Ordering::Relaxed);
         let next_available_slot = self.next_available_slot;
@@ -55,7 +55,7 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
         Some(&mut self.buffer[next_available_slot as usize])
     }
 
-    pub fn get_writable_dma_buffer() -> &'static mut [u32] {
+    pub fn get_writable_dma_buffer() -> &'static mut [u8] {
         unsafe { SOUND_DMA.next_writable().unwrap() }
         /*
                 loop {
@@ -71,7 +71,7 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
         */
     }
 
-    pub fn next_to_dma(&mut self) -> &mut [u32] {
+    pub fn next_to_dma(&mut self) -> &mut [u8] {
         let mut being_dmaed: u16 = self.being_dmaed.load(Ordering::Relaxed);
         being_dmaed = (being_dmaed + 1) % (BUFFERS as u16);
         self.being_dmaed.store(being_dmaed, Ordering::Relaxed);
@@ -117,7 +117,7 @@ impl<'d> AudioPlayback<'d> {
         Self { midi, clear_count }
     }
 
-    fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
+    fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u8]) {
         let mut value: u32 = 0;
         let mut dither: u32 = 0;
         let mut countdown: u32 = 0;
@@ -180,7 +180,7 @@ impl<'d> AudioPlayback<'d> {
             //
             // Fairly low overhead sound buffer population
             //
-            *entry = ((value + (dither & 1)) as u8) as u32;
+            *entry = (value + (dither & 1)) as u8;
             dither = dither >> 1;
             countdown = countdown - 1;
         }
