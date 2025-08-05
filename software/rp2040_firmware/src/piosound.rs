@@ -79,9 +79,7 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
     }
 }
 
-// Buffer size should be a multiple of 3 right now.
-//
-type SoundDmaType = SoundDma<3, 9600>;
+type SoundDmaType = SoundDma<3, 32768>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
 
 pub struct AudioPlayback<'d> {
@@ -225,10 +223,12 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
                 // TSX FIFO -> OSR.  Do not block if the FIFO is empty.
                 // If we run out of data, just hold the last PWM state.
                 // Set the output to 0
-                "out x,8                   side 0b01"
-                "out x,8                   side 0b01"
-                "out x,8                   side 0b01"
-                "out x,8                   side 0b01"
+                //"out x,8                   side 0b01"
+                //"out x,8                   side 0b01"
+                //"out x,8                   side 0b01"
+                //"out x,8                   side 0b01"
+                "pull                     side 0b01"
+                "out x,8"
                 //"mov x, osr"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
@@ -280,7 +280,6 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         pio_cfg.fifo_join = FifoJoin::TxOnly;
 
         pio_cfg.clock_divider = 1.to_fixed();
-        //(U56F8!(125_000_000) / (TARGET_PLAYBACK * PWM_CYCLES_PER_READ)).to_fixed();
 
         sm.set_config(&pio_cfg);
 
