@@ -4,69 +4,7 @@ use crate::sound_sample::SoundSampleI32;
 use crate::sound_source_core::OscillatorInterface;
 use crate::sound_source_core::SoundSourceCore;
 
-//
-// Fixed point table of tan values.
-//
-// The tan table is here so I can compute my frequency co-efficients at compile
-// time, which makes the rest of the code a bit more management.  Computing
-// float values in Rust, at compile time, is still an ongoing research topic.
-// Philosphically, the compiler problem is that you don't want compilers on
-// different machines to produce different results because the float implementation
-// changes (float results are definately 100% compiler/ machine/ optimization
-// level dependent in C/ C++/ Rust).
-//
-// Values can be mapping back to floating point by dividing by (1<<31).  The 31 was
-// chosen so two i64s can be multiplied and I have have a few bits of head room.
-// So, first value non zero value, 6588417, maps to 6588417/2^31, or .0030679...
-//
-// The original function I was interested in is
-//
-// tan(pi * filter_frequency / playback_frequency)
-//
-// So table entries map to 2^10 * filter_frequency / playback_frequency
-//
-// i.e.,  if filter_frequency / playback_frequency is 0.1, then I need to
-// compute tan( pi * .1 ), and the table entry I want is .1 * 2^10, or
-// 102.
-//
-// There are only 204 table entries - I'm only supporting angles from 0 to
-// about (204/1024) * pi, or about .2 * pi.  What that means is that the
-// cut-off frequency for the filter can't be more than about 20% of the
-// playback frequency, and the result of the tan call is always from
-// about 0 to .73, which is a managable fixed point number
-//
-// Linear interpolation is done improve the function's accuracy.  The
-// current accuracy is about 6 digits, which seems good enough, in that
-// the Filters I'm getting seem to behave properly.
-//
-const TAN_TABLE: [i64; 204] = [
-    0, 6588417, 13176960, 19765750, 26354912, 32944570, 39534849, 46125872, 52717764, 59310649,
-    65904651, 72499895, 79096506, 85694607, 92294325, 98895783, 105499106, 112104420, 118711851,
-    125321523, 131933562, 138548094, 145165246, 151785142, 158407910, 165033676, 171662568,
-    178294711, 184930234, 191569264, 198211930, 204858358, 211508678, 218163018, 224821507,
-    231484275, 238151451, 244823166, 251499549, 258180732, 264866845, 271558020, 278254389,
-    284956084, 291663237, 298375983, 305094453, 311818783, 318549107, 325285560, 332028276,
-    338777392, 345533044, 352295370, 359064505, 365840589, 372623760, 379414157, 386211919,
-    393017187, 399830100, 406650802, 413479433, 420316137, 427161056, 434014334, 440876117,
-    447746548, 454625775, 461513944, 468411202, 475317697, 482233579, 489158996, 496094099,
-    503039040, 509993970, 516959042, 523934410, 530920227, 537916651, 544923835, 551941939,
-    558971119, 566011534, 573063345, 580126712, 587201797, 594288762, 601387771, 608498990,
-    615622583, 622758717, 629907561, 637069283, 644244053, 651432042, 658633423, 665848369,
-    673077055, 680319656, 687576349, 694847313, 702132726, 709432770, 716747627, 724077479,
-    731422512, 738782911, 746158863, 753550558, 760958185, 768381935, 775822002, 783278580,
-    790751865, 798242054, 805749346, 813273941, 820816043, 828375853, 835953578, 843549424,
-    851163600, 858796317, 866447785, 874118220, 881807836, 889516851, 897245485, 904993957,
-    912762492, 920551313, 928360648, 936190725, 944041776, 951914032, 959807729, 967723104,
-    975660395, 983619845, 991601695, 999606193, 1007633585, 1015684122, 1023758056, 1031855642,
-    1039977138, 1048122803, 1056292898, 1064487689, 1072707443, 1080952429, 1089222920, 1097519190,
-    1105841517, 1114190182, 1122565468, 1130967661, 1139397049, 1147853924, 1156338581, 1164851317,
-    1173392433, 1181962234, 1190561025, 1199189117, 1207846823, 1216534460, 1225252347, 1234000808,
-    1242780169, 1251590761, 1260432918, 1269306976, 1278213276, 1287152164, 1296123987, 1305129097,
-    1314167852, 1323240610, 1332347736, 1341489598, 1350666568, 1359879022, 1369127341, 1378411911,
-    1387733119, 1397091361, 1406487035, 1415920543, 1425392293, 1434902698, 1444452175, 1454041146,
-    1463670038, 1473339283, 1483049319, 1492800589, 1502593540, 1512428625, 1522306304, 1532227041,
-    1542191307,
-];
+use const_soft_float::soft_f32::SoftF32;
 
 //
 // Multiply two fixed point numbers with 31 bits of precision.
@@ -89,36 +27,15 @@ pub const fn fixp_div(numerator: i64, denominator: i64) -> i64 {
     (numerator << 31) / denominator
 }
 
-// Constant time fixed point tan computation.
 //
-pub const fn const_tan(a: i64) -> i64 {
-    // 2^10 = 1024 = Pi * angle in the table.  The table does only support angles to .2*pi
-    // See comments in the filter co-oefficient code below.
-    //
-    let tan_table_bits = 10;
-
-    // a is 31 bit fixed point, so I need to divide by 2^31 and multiply by 2^10.
-    // to get the table entry.  Or divide by 2^21.  Or shift by 31-10.
-    //
-    let tan_table_idx = (a >> (31 - tan_table_bits)) as usize;
-
-    // Pull out the two table entries for linear interpolation
-    //
-    let e0 = TAN_TABLE[tan_table_idx];
-    let e1 = TAN_TABLE[tan_table_idx + 1];
-
-    // Now I need to get the last 21 bits of the angle, mask it off, and shift
-    // it so it's a 31 bit fixed point number.
-    //
-    // 31 - tan_table_bits = 21, (2^21-1) gives me my mask, and a number from
-    // 0 to 2^21-1.  Shifting left by 10 multiplies that to 0^31-1, which
-    // represents a fixed point number from [0..1)
-    //
-    let fraction = (a & ((1i64 << (31 - tan_table_bits)) - 1)) << tan_table_bits;
-
-    // And do the linear interpoltion.
-    let one: i64 = 1i64 << 31;
-    fixp_mul(e0, one - fraction) + fixp_mul(e1, fraction)
+// Computes tangent at compile time for filter co-efficients.
+//
+const fn const_tan( a: i64) -> i64
+{
+    const ONE:f32 = (1i64 << 31) as f32;
+    let angle = SoftF32(((a as f32) / ONE)*3.14159265359);
+    let tan_result = angle.sin().div(angle.cos()).to_f32();
+    (tan_result * ONE) as i64
 }
 
 //
