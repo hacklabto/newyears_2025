@@ -225,8 +225,8 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
                 // TSX FIFO -> OSR.  Do not block if the FIFO is empty.
                 // If we run out of data, just hold the last PWM state.
                 // Set the output to 0
-                "pull noblock                   side 0b01"
-                "mov x, osr"
+                "out x,32                   side 0b01"
+                //"mov x, osr"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
                 "mov y, isr"
@@ -272,7 +272,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         pio_cfg.shift_out = ShiftConfig {
             threshold: 32,
             direction: ShiftDirection::Left,
-            auto_fill: false,
+            auto_fill: true,
         };
         pio_cfg.fifo_join = FifoJoin::TxOnly;
 
