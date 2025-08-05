@@ -180,7 +180,7 @@ impl<'d> AudioPlayback<'d> {
             //
             // Fairly low overhead sound buffer population
             //
-            *entry = value + (dither & 1);
+            *entry = ((value + (dither & 1)) as u8) as u32;
             dither = dither >> 1;
             countdown = countdown - 1;
         }
@@ -225,7 +225,10 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
                 // TSX FIFO -> OSR.  Do not block if the FIFO is empty.
                 // If we run out of data, just hold the last PWM state.
                 // Set the output to 0
-                "out x,32                   side 0b01"
+                "out x,8                   side 0b01"
+                "out x,8                   side 0b01"
+                "out x,8                   side 0b01"
+                "out x,8                   side 0b01"
                 //"mov x, osr"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
