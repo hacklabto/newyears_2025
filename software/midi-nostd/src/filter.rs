@@ -27,26 +27,24 @@ pub const fn fixp_div(numerator: i64, denominator: i64) -> i64 {
     (numerator << 31) / denominator
 }
 
+//
+// Const compatible standard Tan function using a software floating
+// point library.
+// 
 const fn const_tan(angle_native: f32) -> f32 {
     let angle = F32::from_native_f32(angle_native);
     angle.sin().div(angle.cos()).to_native_f32()
 }
 
 //
-// Computes tangent at compile time for filter co-efficients.
-//
-const fn const_tan_int(a: i64) -> i64 {
-    const ONE: f32 = (1i64 << 31) as f32;
-    (const_tan((a as f32) / ONE * core::f32::consts::PI) * ONE) as i64
-}
-
-//
 // Compute butterworth filter co-efficients for a 2nd order filter at compile time.
 // Returns (B0, B1, B2, A0, A1).
 //
+// return values are currently fixed point numbers with 31 bits of precision.
+//
 pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i64, i64, i64, i64) {
-    let one: i64 = 1i64 << 31;
-    if cutoff_freq > sample_freq * 19 / 100 {
+    let ratio: f32 = (cutoff_freq as f32) / (sample_freq as f32);
+    if ratio > 0.19 {
         //
         // I only support a cut-off frequency that's 19% the sample frequency.
         // If you want something faster, the filter will treat this value as
@@ -59,39 +57,28 @@ pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i6
         //
         return (0, 0, 0, 0, 0);
     }
-    let tan_fraction: i64 = one * cutoff_freq / sample_freq; // range 0 to 1/5
-    let k: i64 = const_tan_int(tan_fraction); // range 0 to ~.73
-    let sqrt2: i64 = 3037000500i64; // range 0 to ~1.42
-    let k_squared: i64 = fixp_mul(k, k); // range 0 to ~.54
-    let a0_denom = one + fixp_mul(sqrt2, k) + k_squared; // range 1 to 2.58
-    let a1_numerator: i64 = 2 * (k_squared - one); // range -2 to .-.88.  Often around -2
-    let a1: i64 = (a1_numerator << 31) / a0_denom; // should have just enough head room
-    let a2_numerator: i64 = one - fixp_mul(sqrt2, k) + k_squared; // range 1 to .53.
-    let a2: i64 = fixp_div(a2_numerator, a0_denom);
+    let k: f32 = const_tan(ratio * core::f32::consts::PI );
+    let k_squared: f32= k * k;
+    const SQRT2: f32 = F32::from_native_f32(2.0).sqrt().to_native_f32(); 
+    let a0_denom = 1.0 + SQRT2 * k + k_squared;
+    let a1_numerator: f32 = 2.0 * (k_squared - 1.0); // range -2 to .-.88.  Often around -2
+    let a1: f32 = a1_numerator / a0_denom; // should have just enough head room
+    let a2_numerator: f32 = 1.0 - SQRT2 * k + k_squared; // range 1 to .53.
+    let a2: f32 = a2_numerator / a0_denom;
 
-    // I'm did a special case for very small k values to try to get
-    // a bit more accuracy for very low frequency filters.
-    //
-    let small_point = 5;
-    let small: i64 = 1i64 << (31 - small_point);
-    if k > small {
-        let b0: i64 = fixp_div(k_squared, a0_denom);
-        let b1: i64 = fixp_div(k_squared * 2, a0_denom);
-        let b2: i64 = fixp_div(k_squared, a0_denom);
-        return (b0, b1, b2, a1, a2);
-    } else {
-        //
-        // k is under 1/2^5 (small_point=5).  Shift it up before the divide
-        // to take advantage of the extra head room for a more accurate
-        // k^2 computation.  Remember to shift back down by 10.
-        //
-        let k_shift = k << small_point;
-        let k_squared_shift: i64 = fixp_mul(k_shift, k_shift); // range 0 to ~.54
-        let b0: i64 = fixp_div(k_squared_shift, a0_denom) >> (small_point * 2);
-        let b1: i64 = fixp_div(k_squared_shift * 2, a0_denom) >> (small_point * 2);
-        let b2: i64 = fixp_div(k_squared_shift, a0_denom) >> (small_point * 2);
-        return (b0, b1, b2, a1, a2);
-    }
+    let b0: f32 = k_squared / a0_denom;
+    let b1: f32 = b0 * 2.0;
+    let b2: f32 = b0;
+
+    const ONE: f32 = (1i64 << 31) as f32;
+
+    return (
+        (b0 * ONE) as i64, 
+        (b1 * ONE) as i64, 
+        (b2 * ONE) as i64, 
+        (a1 * ONE) as i64, 
+        (a2 * ONE) as i64
+    )
 }
 
 //
@@ -296,7 +283,6 @@ mod tests {
     use crate::filter::*;
     use crate::midi_notes::FREQUENCY_MULTIPLIER;
     use crate::oscillator::*;
-    use std::f64::consts::PI;
 
     // Helper to convert 31 bit fixed point to float
     //
@@ -311,30 +297,6 @@ mod tests {
     fn is_close(actual: f64, expected: f64) -> bool {
         let accuracy = actual / expected;
         accuracy > 0.99999 && accuracy < 1.00001
-    }
-
-    //
-    // Test a tangent test case.  TODO - better ways to do this.
-    //
-    fn const_tan_int_accuracy_test_case<const CUTOFF: u32, const FREQ: u32>() {
-        let target: f64 = (CUTOFF as f64) / (FREQ as f64);
-        let expected = (PI * target).tan();
-        let one_fixp: f64 = (1i64 << 31) as f64;
-        let target_int = (target * one_fixp) as i64;
-        let actual_int = const_tan_int(target_int);
-        let actual = (actual_int as f64) / one_fixp;
-        let worked = is_close(actual, expected);
-        assert_eq!(
-            (CUTOFF, actual, expected, true),
-            (CUTOFF, actual, expected, worked)
-        )
-    }
-
-    #[test]
-    fn const_tan_int_accuracy() {
-        const_tan_int_accuracy_test_case::<400, 24000>();
-        const_tan_int_accuracy_test_case::<150, 24000>();
-        const_tan_int_accuracy_test_case::<40, 24000>();
     }
 
     #[test]
