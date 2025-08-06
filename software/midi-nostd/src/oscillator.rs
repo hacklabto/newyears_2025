@@ -56,7 +56,7 @@ impl<
     > CoreOscillator<P_FREQ, U_FREQ, PULSE_WIDTH, VOLUME, OSCILATOR_TYPE>
 {
     const PULSE_WIDTH_CUTOFF: u32 = ((1u64 << 32) * (PULSE_WIDTH as u64) / 100u64) as u32;
-    const VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(VOLUME);
+    const VOLUME_SCALE: SoundSampleI32 = SoundSampleI32::new_percent(VOLUME / 2);
     const OSCILATOR_TYPE_ENUM: OscillatorType = OscillatorType::from_usize(OSCILATOR_TYPE);
     const INC_DENOMINATOR: u64 = (FREQUENCY_MULTIPLIER as u64) * (P_FREQ as u64);
 }
@@ -171,7 +171,7 @@ mod tests {
         let (transitions, area) = sample_core_wave(&mut oscilator);
         assert_eq!(2600 * 2 - 1, transitions);
 
-        assert_eq!(0x8000 * 24000, area);
+        assert_eq!(0x4000 * 24000, area);
     }
 
     #[test]
@@ -184,7 +184,7 @@ mod tests {
         let (transitions, area) = sample_core_wave(&mut oscilator);
 
         assert_eq!(2600 * 2 - 1, transitions);
-        assert_eq!(0x4000 * 12000 + 0x4000 * 12000, area);
+        assert_eq!(0x2000 * 24000, area);
     }
 
     #[test]
@@ -197,7 +197,7 @@ mod tests {
         let (transitions, area) = sample_core_wave(&mut oscilator);
 
         assert_eq!(2600 * 2 - 1, transitions); // we don't get the last transition in square.
-        assert_eq!(0x8000 * 24000, area); // TODO - this is kind of uninteresting.
+        assert_eq!(0x4000 * 24000, area); // TODO - this is kind of uninteresting.
     }
 
     #[test]
@@ -211,7 +211,7 @@ mod tests {
         assert_eq!(2600 * 2 - 1, transitions);
 
         // Triangles are half the area squares are.
-        assert_eq!(24000 * 0x4000, area);
+        assert_eq!(24000 * 0x2000, area);
     }
 
     #[test]
@@ -225,6 +225,6 @@ mod tests {
         assert_eq!(2600 * 2 - 1, transitions);
 
         // Triangles are half the area squares are.
-        assert_eq!(24000 * 0x2000, area);
+        assert_eq!(24000 * 0x1000, area);
     }
 }
