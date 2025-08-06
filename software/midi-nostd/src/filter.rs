@@ -82,7 +82,7 @@ pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (f32, f3
 #[derive(Copy, Clone)]
 struct FilterParams {
     b1: i64,
-    a1_p1: i64,
+    a1: i64,
     a2: i64,
 }
 
@@ -92,14 +92,14 @@ impl FilterParams {
         const ONE: f32 = (1i64 << 31) as f32;
         Self {
             b1: (raw_params.1 * ONE) as i64,
-            a1_p1: ((raw_params.3 + 1.0) * ONE) as i64,
+            a1: (raw_params.3 * ONE) as i64,
             a2: (raw_params.4 * ONE) as i64,
         }
     }
     const fn const_default() -> Self {
         Self {
             b1: 0,
-            a1_p1: 0,
+            a1: 0,
             a2: 0,
         }
     }
@@ -231,7 +231,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U
             // A1 Plus 1).  Pay an extra subtract to unwind that.
             //
             let output: i64 = b0_input_term + self.d1;
-            let a1_output_term = fixp_mul(output, self.params.a1_p1) - output;
+            let a1_output_term = fixp_mul(output, self.params.a1);
             let a2_output_term = fixp_mul(output, self.params.a2);
 
             // Record d1 and d2, then return the output
