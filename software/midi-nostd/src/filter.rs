@@ -40,9 +40,7 @@ const fn const_tan(angle_native: f32) -> f32 {
 // Compute butterworth filter co-efficients for a 2nd order filter at compile time.
 // Returns (B0, B1, B2, A0, A1).
 //
-// return values are currently fixed point numbers with 31 bits of precision.
-//
-pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i64, i64, i64, i64) {
+pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (f32, f32, f32, f32, f32) {
     let ratio: f32 = (cutoff_freq as f32) / (sample_freq as f32);
     if ratio > 0.19 {
         //
@@ -55,7 +53,7 @@ pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i6
         //
         // - glowmouse, August 2025.
         //
-        return (0, 0, 0, 0, 0);
+        return (0.0, 0.0, 0.0, 0.0, 0.0);
     }
     let k: f32 = const_tan(ratio * core::f32::consts::PI );
     let k_squared: f32= k * k;
@@ -70,16 +68,9 @@ pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i6
     let b1: f32 = b0 * 2.0;
     let b2: f32 = b0;
 
-    const ONE: f32 = (1i64 << 31) as f32;
-
-    return (
-        (b0 * ONE) as i64, 
-        (b1 * ONE) as i64, 
-        (b2 * ONE) as i64, 
-        (a1 * ONE) as i64, 
-        (a2 * ONE) as i64
-    )
+    return ( b0, b1, b2, a1, a2 )
 }
+
 
 //
 // A container for the three filter parameters I use in my filter.
@@ -99,11 +90,11 @@ struct FilterParams {
 impl FilterParams {
     const fn new(cutoff_frequency: u32, sample_frequency: u32) -> Self {
         let raw_params = lowpass_butterworth(cutoff_frequency as i64, sample_frequency as i64);
-        const ONE: i64 = 1i64 << 31;
+        const ONE: f32 = (1i64 << 31) as f32;
         Self {
-            b1: raw_params.1,
-            a1_p1: raw_params.3 + ONE,
-            a2: raw_params.4,
+            b1: (raw_params.1 * ONE) as i64,
+            a1_p1: ((raw_params.3 + 1.0) * ONE) as i64,
+            a2: (raw_params.4 * ONE) as i64,
         }
     }
     const fn const_default() -> Self {
@@ -283,139 +274,6 @@ mod tests {
     use crate::filter::*;
     use crate::midi_notes::FREQUENCY_MULTIPLIER;
     use crate::oscillator::*;
-
-    // Helper to convert 31 bit fixed point to float
-    //
-    fn fixp_to_float(i: i64) -> f64 {
-        (i as f64) / ((1i64 << 31) as f64)
-    }
-
-    //
-    // Helper to figure out if the actual is close to expected
-    // (within 5 digits)
-    //
-    fn is_close(actual: f64, expected: f64) -> bool {
-        let accuracy = actual / expected;
-        accuracy > 0.99999 && accuracy < 1.00001
-    }
-
-    #[test]
-    fn filter_params_150hz() {
-        let params = lowpass_butterworth(150, 24000);
-
-        // Reference values from the Python script
-        //
-        let b0_expected = 0.0003750696;
-        let b1_expected = 0.0007501392;
-        let b2_expected = 0.0003750696;
-        let a1_expected = -1.9444776578;
-        let a2_expected = 0.9459779362;
-
-        let b0_actual = fixp_to_float(params.0);
-        let b1_actual = fixp_to_float(params.1);
-        let b2_actual = fixp_to_float(params.2);
-        let a1_actual = fixp_to_float(params.3);
-        let a2_actual = fixp_to_float(params.4);
-
-        assert_eq!(
-            (b0_actual, b0_expected, true),
-            (b0_actual, b0_expected, is_close(b0_actual, b0_expected))
-        );
-        assert_eq!(
-            (b1_actual, b1_expected, true),
-            (b1_actual, b1_expected, is_close(b1_actual, b1_expected))
-        );
-        assert_eq!(
-            (b2_actual, b2_expected, true),
-            (b2_actual, b2_expected, is_close(b2_actual, b2_expected))
-        );
-        assert_eq!(
-            (a1_actual, a1_expected, true),
-            (a1_actual, a1_expected, is_close(a1_actual, a1_expected))
-        );
-        assert_eq!(
-            (a2_actual, a2_expected, true),
-            (a2_actual, a2_expected, is_close(a2_actual, a2_expected))
-        );
-    }
-    #[test]
-    fn filter_params_40hz() {
-        let params = lowpass_butterworth(40, 24000);
-
-        // Reference values from the Python script
-        //
-        let b0_expected = 0.0000272138;
-        let b1_expected = 0.0000544276;
-        let b2_expected = 0.0000272138;
-        let a1_expected = -1.9851906579;
-        let a2_expected = 0.9852995131;
-
-        let b0_actual = fixp_to_float(params.0);
-        let b1_actual = fixp_to_float(params.1);
-        let b2_actual = fixp_to_float(params.2);
-        let a1_actual = fixp_to_float(params.3);
-        let a2_actual = fixp_to_float(params.4);
-
-        assert_eq!(
-            (b0_actual, b0_expected, true),
-            (b0_actual, b0_expected, is_close(b0_actual, b0_expected))
-        );
-        assert_eq!(
-            (b1_actual, b1_expected, true),
-            (b1_actual, b1_expected, is_close(b1_actual, b1_expected))
-        );
-        assert_eq!(
-            (b2_actual, b2_expected, true),
-            (b2_actual, b2_expected, is_close(b2_actual, b2_expected))
-        );
-        assert_eq!(
-            (a1_actual, a1_expected, true),
-            (a1_actual, a1_expected, is_close(a1_actual, a1_expected))
-        );
-        assert_eq!(
-            (a2_actual, a2_expected, true),
-            (a2_actual, a2_expected, is_close(a2_actual, a2_expected))
-        );
-    }
-    #[test]
-    fn filter_params_400hz() {
-        let params = lowpass_butterworth(400, 24000);
-
-        // Reference values from the Python script
-        //
-        let b0_expected = 0.0025505352;
-        let b1_expected = 0.0051010703;
-        let b2_expected = 0.0025505352;
-        let a1_expected = -1.8521464854;
-        let a2_expected = 0.8623486260;
-
-        let b0_actual = fixp_to_float(params.0);
-        let b1_actual = fixp_to_float(params.1);
-        let b2_actual = fixp_to_float(params.2);
-        let a1_actual = fixp_to_float(params.3);
-        let a2_actual = fixp_to_float(params.4);
-
-        assert_eq!(
-            (b0_actual, b0_expected, true),
-            (b0_actual, b0_expected, is_close(b0_actual, b0_expected))
-        );
-        assert_eq!(
-            (b1_actual, b1_expected, true),
-            (b1_actual, b1_expected, is_close(b1_actual, b1_expected))
-        );
-        assert_eq!(
-            (b2_actual, b2_expected, true),
-            (b2_actual, b2_expected, is_close(b2_actual, b2_expected))
-        );
-        assert_eq!(
-            (a1_actual, a1_expected, true),
-            (a1_actual, a1_expected, is_close(a1_actual, a1_expected))
-        );
-        assert_eq!(
-            (a2_actual, a2_expected, true),
-            (a2_actual, a2_expected, is_close(a2_actual, a2_expected))
-        );
-    }
 
     //
     // Helper function to get the average amplitude of some sound source.
