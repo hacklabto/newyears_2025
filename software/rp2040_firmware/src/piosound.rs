@@ -357,7 +357,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
     pub async fn play_sound(&mut self) {
         //let (header, tracks) = midly::parse(include_bytes!("../assets/brother.mid"))
-        let (header, tracks) = midly::parse(include_bytes!("../assets/maple.mid"))
+        let (header, tracks) = midly::parse(include_bytes!("../assets/entertainer.mid"))
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 
