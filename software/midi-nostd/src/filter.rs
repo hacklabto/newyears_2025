@@ -27,14 +27,17 @@ pub const fn fixp_div(numerator: i64, denominator: i64) -> i64 {
     (numerator << 31) / denominator
 }
 
+const fn const_tan(angle_native: f32) -> f32 {
+    let angle = F32::from_native_f32(angle_native);
+    angle.sin().div(angle.cos()).to_native_f32()
+}
+
 //
 // Computes tangent at compile time for filter co-efficients.
 //
-const fn const_tan(a: i64) -> i64 {
+const fn const_tan_int(a: i64) -> i64 {
     const ONE: f32 = (1i64 << 31) as f32;
-    let angle = F32::from_native_f32(((a as f32) / ONE) * core::f32::consts::PI);
-    let tan_result = angle.sin().div(angle.cos()).to_native_f32();
-    (tan_result * ONE) as i64
+    (const_tan((a as f32) / ONE * core::f32::consts::PI) * ONE) as i64
 }
 
 //
@@ -57,7 +60,7 @@ pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (i64, i6
         return (0, 0, 0, 0, 0);
     }
     let tan_fraction: i64 = one * cutoff_freq / sample_freq; // range 0 to 1/5
-    let k: i64 = const_tan(tan_fraction); // range 0 to ~.73
+    let k: i64 = const_tan_int(tan_fraction); // range 0 to ~.73
     let sqrt2: i64 = 3037000500i64; // range 0 to ~1.42
     let k_squared: i64 = fixp_mul(k, k); // range 0 to ~.54
     let a0_denom = one + fixp_mul(sqrt2, k) + k_squared; // range 1 to 2.58
@@ -313,12 +316,12 @@ mod tests {
     //
     // Test a tangent test case.  TODO - better ways to do this.
     //
-    fn const_tan_accuracy_test_case<const CUTOFF: u32, const FREQ: u32>() {
+    fn const_tan_int_accuracy_test_case<const CUTOFF: u32, const FREQ: u32>() {
         let target: f64 = (CUTOFF as f64) / (FREQ as f64);
         let expected = (PI * target).tan();
         let one_fixp: f64 = (1i64 << 31) as f64;
         let target_int = (target * one_fixp) as i64;
-        let actual_int = const_tan(target_int);
+        let actual_int = const_tan_int(target_int);
         let actual = (actual_int as f64) / one_fixp;
         let worked = is_close(actual, expected);
         assert_eq!(
@@ -328,10 +331,10 @@ mod tests {
     }
 
     #[test]
-    fn const_tan_accuracy() {
-        const_tan_accuracy_test_case::<400, 24000>();
-        const_tan_accuracy_test_case::<150, 24000>();
-        const_tan_accuracy_test_case::<40, 24000>();
+    fn const_tan_int_accuracy() {
+        const_tan_int_accuracy_test_case::<400, 24000>();
+        const_tan_int_accuracy_test_case::<150, 24000>();
+        const_tan_int_accuracy_test_case::<40, 24000>();
     }
 
     #[test]
