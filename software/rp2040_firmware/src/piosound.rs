@@ -1,6 +1,7 @@
 use core::sync::atomic::AtomicU16;
 use core::sync::atomic::Ordering;
 use embassy_rp::dma::Channel;
+//use crate::audio_playback::AudioPlayback;
 use embassy_rp::dma::Transfer;
 use embassy_rp::gpio;
 use embassy_rp::pio::{
@@ -59,7 +60,7 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
 type SoundDmaType = SoundDma<2, 65536>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
 
-pub struct AudioPlayback<'d> {
+pub struct AudioPlayback<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32> {
     midi: &'d mut NewYearsMidi<'d>,
     clear_count: u32,
 }
@@ -86,7 +87,7 @@ const fn generate_dither_array<const N: usize>() -> [u32; N] {
     return array;
 }
 
-impl<'d> AudioPlayback<'d> {
+impl<'d, const AUDIO_PWM_BITS: u32, const AUDIO_REMAINDER_BITS: u32> AudioPlayback<'d, AUDIO_PWM_BITS, AUDIO_REMAINDER_BITS> {
     pub fn new(midi: &'d mut NewYearsMidi<'d>) -> Self {
         let clear_count: u32 = 0;
         Self { midi, clear_count }
@@ -341,13 +342,15 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 
-        let mut playback_state: AudioPlayback = AudioPlayback::new(&mut midi);
+        let mut playback_state = AudioPlayback::<PWM_BITS, REMAINDER_BITS>::new(&mut midi);
 
         while !playback_state.is_done() {
             // Start DMA transfer
             let dma_buffer_in_flight = self.send_dma_buffer_to_pio();
             // While the DMA transfer runs, populate the next DMA buffer
-            playback_state.populate_next_dma_buffer();
+            let dma_write_buffer = SoundDmaType::get_writable_dma_buffer();
+            playback_state.populate_next_dma_buffer_with_audio(dma_write_buffer);
+            //playback_state.populate_next_dma_buffer();
             // Wakes up when "DMA finished transfering" interrupt occurs.
             dma_buffer_in_flight.await;
         }

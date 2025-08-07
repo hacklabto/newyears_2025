@@ -10,6 +10,8 @@ pub use backlight::{Config, PioBacklight};
 pub mod piosound;
 pub use piosound::PioSound;
 
+pub mod audio_playback;
+
 mod buttons;
 pub use buttons::Button;
 pub use buttons::Buttons;
