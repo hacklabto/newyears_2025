@@ -7,24 +7,17 @@ use crate::sound_source_core::SoundSourceCore;
 use softfloat::F32;
 
 //
-// Multiply two fixed point numbers with 31 bits of precision.
-// Works well as long as but numbers are under 1, otherwise
-// overflows.  Rust debug will check for overflows.
+// Multiply two fixed point numbers with 15 bits of precision.
+// I'm guaranteeing that one of the inputs will be from -1 to 1 and
+// the the 2nd will be from -2 to 2, which gives just enough room to
+// avoid an overflow.
+//
+// Rust debug will check for overflows as an extra guard rail.  Rust
+// release does not.
 //
 #[inline]
-pub const fn fixp_mul(a: i64, b: i64) -> i64 {
-    (a * b) >> 31
-}
-
-//
-// Divide two fixed point numbers with 31 bits of precision.
-// The numerator is shifted up to improve the precision of
-// the result.  Again, breaks if the numerator represents
-// a number above 2.
-//
-#[inline]
-pub const fn fixp_div(numerator: i64, denominator: i64) -> i64 {
-    (numerator << 31) / denominator
+pub const fn fixp_mul(a: i32, b: i32) -> i32 {
+    (a * b) >> 15
 }
 
 //
@@ -75,25 +68,24 @@ pub const fn lowpass_butterworth(cutoff_freq: i64, sample_freq: i64) -> (f32, f3
 // A container for the three filter parameters I use in my filter.
 //
 // b1    - the b1 filter co-efficient.  b0 and b2 are just half b1, so I don't store them.
-// a1_p1 - the a1 filter co-efficient, plus 1.  a1 is usually around -2.  Adding 1 gets an
-//         extra bit of precision, at the cost of an extra 64 bit add in the filter.
+// a1    - the a1 filter co-efficient,
 // a2    - the a2 filter co-efficient.
 //
 #[derive(Copy, Clone)]
 struct FilterParams {
-    b1: i64,
-    a1: i64,
-    a2: i64,
+    b1: i32,
+    a1: i32,
+    a2: i32,
 }
 
 impl FilterParams {
     const fn new(cutoff_frequency: u32, sample_frequency: u32) -> Self {
         let raw_params = lowpass_butterworth(cutoff_frequency as i64, sample_frequency as i64);
-        const ONE: f32 = (1i64 << 31) as f32;
+        const ONE: f32 = (1i32<< 15) as f32;
         Self {
-            b1: (raw_params.1 * ONE) as i64,
-            a1: (raw_params.3 * ONE) as i64,
-            a2: (raw_params.4 * ONE) as i64,
+            b1: (raw_params.1 * ONE) as i32,
+            a1: (raw_params.3 * ONE) as i32,
+            a2: (raw_params.4 * ONE) as i32,
         }
     }
     const fn const_default() -> Self {
@@ -126,8 +118,8 @@ const fn build_filter_param_array<const N: usize>(
 pub struct Filter<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U_FREQ>>
 {
     source: Source,
-    d1: i64,
-    d2: i64,
+    d1: i32,
+    d2: i32,
     params: &'static FilterParams,
 }
 
@@ -211,12 +203,20 @@ impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U
             //
             self.source.get_next()
         } else {
-            let raw_value = self.source.get_next().to_i32();
-            // raw_value starts as fix point with 15 decimal bits.  Shift by
-            // 16 to get a 64 bit fixed point with 31 decimal bits.
-            let input = (raw_value as i64) << 16;
+            let input = self.source.get_next().to_i32();
 
             // Compute input * B0, input * B1, input * B2.
+            //
+            // I'm using 32 bit numbers here, which is a bit sketchy.
+            // If I have a 400hz filter and a 24000hz playback, b0 will be about
+            // 0.0027137.  The input will be from -(1<<15) to (1<<15), so 
+            // b0_input_term will be from -88 to 88.  That's a lot of precision loss
+            // on the values going into d1 and d2.  And yet it seems to sound okay.
+            //
+            // 64 bit fixed point would be better, but the CPU cost on 32 bit processors
+            // is is bad, and I'm having trouble keeping the DMA buffer filled, so go with
+            // this for now.  If it becomes a problem, I could use a 40 bit hybrid fixed
+            // point for extra precision.
             //
             let b1_input_term = fixp_mul(input, self.params.b1);
             // B0 = B1/2, B2 = B1/2, so just take the b1 input term and divide by 2
@@ -226,11 +226,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U
             //
             // Compute output, output * a1, output * a2
             //
-            // For the a1 term, I added 1 to A1 to get an extra bit of head
-            // room so the fixed point multiply doesn't overflow (A1_P1 being
-            // A1 Plus 1).  Pay an extra subtract to unwind that.
-            //
-            let output: i64 = b0_input_term + self.d1;
+            let output: i32 = b0_input_term + self.d1;
             let a1_output_term = fixp_mul(output, self.params.a1);
             let a2_output_term = fixp_mul(output, self.params.a2);
 
@@ -238,8 +234,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U
             //
             self.d1 = self.d2 + b1_input_term - a1_output_term;
             self.d2 = b2_input_term - a2_output_term;
-            let output_i32 = (output >> 16) as i32;
-            SoundSampleI32::new_i32(output_i32)
+            SoundSampleI32::new_i32(output)
         }
     }
 
@@ -311,17 +306,17 @@ mod tests {
         // 50hz is below the 400hz cut off, so the average filtered amplitude should be similar.
         //
         assert_eq!((10430, 50), get_avg_amplitude(&mut sine_50hz));
-        assert_eq!((10428, 50), get_avg_amplitude(&mut filtered_sine_50hz));
+        assert_eq!((10425, 50), get_avg_amplitude(&mut filtered_sine_50hz));
 
         let mut sine_100hz = Oscillator::new(100 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_100hz = FilteredOscillator::new((100 * FREQUENCY_MULTIPLIER, 400));
         assert_eq!((10430, 100), get_avg_amplitude(&mut sine_100hz));
-        assert_eq!((10408, 100), get_avg_amplitude(&mut filtered_sine_100hz));
+        assert_eq!((10411, 100), get_avg_amplitude(&mut filtered_sine_100hz));
 
         let mut sine_200hz = Oscillator::new(200 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_200hz = FilteredOscillator::new((200 * FREQUENCY_MULTIPLIER, 400));
         assert_eq!((10430, 200), get_avg_amplitude(&mut sine_200hz));
-        assert_eq!((10117, 200), get_avg_amplitude(&mut filtered_sine_200hz));
+        assert_eq!((10116, 200), get_avg_amplitude(&mut filtered_sine_200hz));
 
         // This is the cut-off frequency.  The filtered average amplitude should be 1/sqrt(2)
         // of the original average amplitude, or 70.71%.  We're getting 70.72%.
@@ -329,17 +324,17 @@ mod tests {
         let mut sine_400hz = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_400hz = FilteredOscillator::new((400 * FREQUENCY_MULTIPLIER, 400));
         assert_eq!((10431, 400), get_avg_amplitude(&mut sine_400hz));
-        assert_eq!((7367, 400), get_avg_amplitude(&mut filtered_sine_400hz));
+        assert_eq!((7361, 400), get_avg_amplitude(&mut filtered_sine_400hz));
 
         let mut sine_800hz = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_800hz = FilteredOscillator::new((800 * FREQUENCY_MULTIPLIER, 400));
         assert_eq!((10404, 800), get_avg_amplitude(&mut sine_800hz));
-        assert_eq!((2521, 800), get_avg_amplitude(&mut filtered_sine_800hz));
+        assert_eq!((2520, 800), get_avg_amplitude(&mut filtered_sine_800hz));
 
         let mut sine_1600hz = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_1600hz = FilteredOscillator::new((1600 * FREQUENCY_MULTIPLIER, 400));
         assert_eq!((10404, 1600), get_avg_amplitude(&mut sine_1600hz));
-        assert_eq!((634, 1599), get_avg_amplitude(&mut filtered_sine_1600hz));
+        assert_eq!((630, 1599), get_avg_amplitude(&mut filtered_sine_1600hz));
     }
 
     #[test]
@@ -369,12 +364,12 @@ mod tests {
         let mut sine_400hz = Oscillator::new(400 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_400hz = FilteredOscillator::new((400 * FREQUENCY_MULTIPLIER, 1600));
         assert_eq!((10431, 400), get_avg_amplitude(&mut sine_400hz));
-        assert_eq!((10419, 400), get_avg_amplitude(&mut filtered_sine_400hz));
+        assert_eq!((10417, 400), get_avg_amplitude(&mut filtered_sine_400hz));
 
         let mut sine_800hz = Oscillator::new(800 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_800hz = FilteredOscillator::new((800 * FREQUENCY_MULTIPLIER, 1600));
         assert_eq!((10404, 800), get_avg_amplitude(&mut sine_800hz));
-        assert_eq!((10149, 800), get_avg_amplitude(&mut filtered_sine_800hz));
+        assert_eq!((10148, 800), get_avg_amplitude(&mut filtered_sine_800hz));
 
         // This is the cut-off frequency.  The filtered average amplitude should be 1/sqrt(2)
         // of the original average amplitude, or 70.71%.  We're getting 71.12%.
@@ -382,7 +377,7 @@ mod tests {
         let mut sine_1600hz = Oscillator::new(1600 * FREQUENCY_MULTIPLIER);
         let mut filtered_sine_1600hz = FilteredOscillator::new((1600 * FREQUENCY_MULTIPLIER, 1600));
         assert_eq!((10404, 1600), get_avg_amplitude(&mut sine_1600hz));
-        assert_eq!((7387, 1600), get_avg_amplitude(&mut filtered_sine_1600hz));
+        assert_eq!((7385, 1600), get_avg_amplitude(&mut filtered_sine_1600hz));
     }
     #[test]
     fn filter_behavior_24000() {
