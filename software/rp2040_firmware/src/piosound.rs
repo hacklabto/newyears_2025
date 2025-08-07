@@ -17,13 +17,15 @@ type NewYearsMidi<'a> = Midi<'a, 20292, { 89 * 3 }, 64, 32>;
 
 const PWM_BITS: u32 = 6;
 const REMAINDER_BITS: u32 = 10 - PWM_BITS;
-const PWM_TOP: u32 = 1 << PWM_BITS;
-const PWM_REMAINDER: u32 = 1 << REMAINDER_BITS;
-const PWM_REMAINDER_USIZE: usize = PWM_REMAINDER as usize;
+const DMA_BUFSIZE: usize = 16384;
 
-const PWM_TOP_SHIFT: u32 = 17 - PWM_BITS;
-const PWM_REMAINDER_SHIFT: u32 = PWM_TOP_SHIFT - REMAINDER_BITS;
+#[allow(clippy::declare_interior_mutable_const)]
+static mut DMA_BUFFER_0: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE ];
 
+#[allow(clippy::declare_interior_mutable_const)]
+static mut DMA_BUFFER_1: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE ];
+
+/*
 pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
     buffer: [[u8; BUFSIZE]; BUFFERS],
     being_dmaed: AtomicU16,
@@ -59,11 +61,13 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
 
 type SoundDmaType = SoundDma<2, 65536>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
+*/
 
 pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Channel> {
     state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
     dma_channel_0: PeripheralRef<'d, Dma0>,
     dma_channel_1: PeripheralRef<'d, Dma1>,
+    dma_buffer_transfering: u32,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
@@ -159,10 +163,11 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
             state_machine: sm,
             dma_channel_0: dma_channel_0.into_ref(),
             dma_channel_1: dma_channel_1.into_ref(),
+            dma_buffer_transfering: 0,
             _debug_pin,
             _ena_pin,
         };
-        // for the LED test, we'll PWM values from 0-255 with a top of 512.
+        const PWM_TOP: u32 = 1 << PWM_BITS;
         return_value.set_top(PWM_TOP as u32);
         return_value.start();
         return_value
@@ -215,28 +220,39 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
 
     pub async fn fill_dma_buffer() {}
 
-    pub fn send_dma_buffer_to_pio(&mut self) -> Transfer<'_, Dma0> {
-        unsafe {
-            let dma_buffer = SOUND_DMA.next_to_dma();
+    pub fn send_dma_buffer_to_pio(&mut self, buffer_num: u32) -> Transfer<'_, Dma0> {
+            let dma_buffer = Self::get_writable_dma_buffer(buffer_num);
             self.state_machine
                 .tx()
                 .dma_push(self.dma_channel_0.reborrow(), dma_buffer)
-        }
+    }
+
+    pub fn get_writable_dma_buffer(buffer_num: u32) -> &'static mut[u8] {
+            unsafe {
+                if buffer_num == 0 {
+                    &mut DMA_BUFFER_0
+                }
+                else {
+                    &mut DMA_BUFFER_1
+                }
+            }
+
     }
 
     pub async fn play_sound(&mut self) {
-        //let (header, tracks) = midly::parse(include_bytes!("../assets/brother.mid"))
-        let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
+        let (header, tracks) = midly::parse(include_bytes!("../assets/maple.mid"))
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 
         let mut playback_state = AudioPlayback::<PWM_BITS, REMAINDER_BITS>::new(&mut midi);
+        let mut buffer_sending: u32 = 0;
 
         while !playback_state.is_done() {
+            buffer_sending = 1 - buffer_sending;
             // Start DMA transfer
-            let dma_buffer_in_flight = self.send_dma_buffer_to_pio();
+            let dma_buffer_in_flight = self.send_dma_buffer_to_pio(buffer_sending);
             // While the DMA transfer runs, populate the next DMA buffer
-            let dma_write_buffer = SoundDmaType::get_writable_dma_buffer();
+            let dma_write_buffer = Self::get_writable_dma_buffer(1-buffer_sending);
             playback_state.populate_next_dma_buffer_with_audio(dma_write_buffer);
             //playback_state.populate_next_dma_buffer();
             // Wakes up when "DMA finished transfering" interrupt occurs.

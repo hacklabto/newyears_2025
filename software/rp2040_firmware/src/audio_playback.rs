@@ -32,7 +32,6 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32> AudioPlayback<'d, P
 
     const PWM_TOP: u32 = 1 << PWM_BITS;
     const PWM_REMAINDER: u32 = 1 << PWM_REMAINDER_BITS;
-    const PWM_REMAINDER_USIZE: usize = Self::PWM_REMAINDER as usize;
 
     const PWM_TOP_SHIFT: u32 = 17 - PWM_BITS;
     const PWM_REMAINDER_SHIFT: u32 = Self::PWM_TOP_SHIFT - PWM_REMAINDER_BITS;
