@@ -39,6 +39,7 @@ pub struct Devices<'a> {
         peripherals::PIO0,
         1, /*State machine number*/
         peripherals::DMA_CH1,
+        peripherals::DMA_CH2,
     >,
 }
 impl Devices<'_> {
@@ -78,6 +79,7 @@ impl Devices<'_> {
                 p.PIN_4,  // ENA, always on
                 p.PIN_10, // Debug
                 p.DMA_CH1,
+                p.DMA_CH2,
             ),
             display: create_ssd_display(
                 p.I2C0, p.PIN_1, // SCL

@@ -22,12 +22,10 @@ const PWM_REMAINDER_USIZE: usize = PWM_REMAINDER as usize;
 
 const PWM_TOP_SHIFT: u32 = 17 - PWM_BITS;
 const PWM_REMAINDER_SHIFT: u32 = PWM_TOP_SHIFT - REMAINDER_BITS;
-//const PWM_CYCLES_PER_READ: u64 = 6 * PWM_TOP + 4;
 
 pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
     buffer: [[u8; BUFSIZE]; BUFFERS],
     being_dmaed: AtomicU16,
-    next_available_slot: u16,
 }
 
 impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
@@ -35,40 +33,19 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
         Self {
             buffer: [[0x80; BUFSIZE]; BUFFERS],
             being_dmaed: AtomicU16::new(0),
-            next_available_slot: 2,
         }
     }
     pub const fn num_dma_buffers() -> usize {
         return BUFFERS;
     }
 
-    pub fn next_writable(&mut self) -> Option<&mut [u8]> {
-        let buffers_u16 = BUFFERS as u16;
-        let buffer_being_dmaed: u16 = self.being_dmaed.load(Ordering::Relaxed);
-        let next_available_slot = self.next_available_slot;
-
-        if next_available_slot == buffer_being_dmaed {
-            return None;
-        }
-
-        self.next_available_slot = (self.next_available_slot + 1) % buffers_u16;
-        Some(&mut self.buffer[next_available_slot as usize])
+    pub fn next_writable(&mut self) -> &mut [u8] {
+        let next_available_slot : u16 = 1-self.being_dmaed.load(Ordering::Relaxed);
+        &mut self.buffer[next_available_slot as usize]
     }
 
     pub fn get_writable_dma_buffer() -> &'static mut [u8] {
-        unsafe { SOUND_DMA.next_writable().unwrap() }
-        /*
-                loop {
-                    unsafe {
-                        let writable_maybe = SOUND_DMA.next_writable();
-                        if writable_maybe.is_some() {
-                            return writable_maybe.unwrap();
-                        }
-                    }
-                    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(25));
-                    ticker.next().await;
-                }
-        */
+        unsafe { SOUND_DMA.next_writable() }
     }
 
     pub fn next_to_dma(&mut self) -> &mut [u8] {
@@ -79,7 +56,7 @@ impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
     }
 }
 
-type SoundDmaType = SoundDma<3, 32768>;
+type SoundDmaType = SoundDma<2, 65536>;
 static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
 
 pub struct AudioPlayback<'d> {
@@ -194,15 +171,16 @@ impl<'d> AudioPlayback<'d> {
     }
 }
 
-pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
+pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Channel> {
     state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
-    dma_channel: PeripheralRef<'d, DMA>,
+    dma_channel_0: PeripheralRef<'d, Dma0>,
+    dma_channel_1: PeripheralRef<'d, Dma1>,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
 
-impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
-    PioSound<'d, PIO, STATE_MACHINE_IDX, DMA>
+impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Channel>
+    PioSound<'d, PIO, STATE_MACHINE_IDX, Dma0, Dma1>
 {
     pub fn new(
         common: &mut Common<'d, PIO>,
@@ -211,7 +189,8 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         sound_b_pin: impl PioPin,
         ena: impl Pin,
         debug: impl Pin,
-        dma_channel: DMA,
+        dma_channel_0: Dma0,
+        dma_channel_1: Dma1,
     ) -> Self {
         #[rustfmt::skip]
         let prg = pio_proc::pio_asm!(
@@ -289,7 +268,8 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         // errr
         let mut return_value = Self {
             state_machine: sm,
-            dma_channel: dma_channel.into_ref(),
+            dma_channel_0: dma_channel_0.into_ref(),
+            dma_channel_1: dma_channel_1.into_ref(),
             _debug_pin,
             _ena_pin,
         };
@@ -346,18 +326,18 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
 
     pub async fn fill_dma_buffer() {}
 
-    pub fn send_dma_buffer_to_pio(&mut self) -> Transfer<'_, DMA> {
+    pub fn send_dma_buffer_to_pio(&mut self) -> Transfer<'_, Dma0> {
         unsafe {
             let dma_buffer = SOUND_DMA.next_to_dma();
             self.state_machine
                 .tx()
-                .dma_push(self.dma_channel.reborrow(), dma_buffer)
+                .dma_push(self.dma_channel_0.reborrow(), dma_buffer)
         }
     }
 
     pub async fn play_sound(&mut self) {
         //let (header, tracks) = midly::parse(include_bytes!("../assets/brother.mid"))
-        let (header, tracks) = midly::parse(include_bytes!("../assets/entertainer.mid"))
+        let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 
