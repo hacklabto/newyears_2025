@@ -37,7 +37,7 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32> AudioPlayback<'d, P
     const PWM_TOP_SHIFT: u32 = 17 - PWM_BITS;
     const PWM_REMAINDER_SHIFT: u32 = Self::PWM_TOP_SHIFT - PWM_REMAINDER_BITS;
 
-    const DITHERS: [u32; 32] = generate_dither_array::<32>();
+    const DITHERS: [u32; 16] = generate_dither_array::<16>();
 
     pub fn new(midi: &'d mut NewYearsMidi<'d>) -> Self {
         let clear_count: u32 = 0;
