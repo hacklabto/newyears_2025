@@ -4,6 +4,9 @@
 use hackernewyears::menu::MenuBinding;
 use hackernewyears::AnimatingGif;
 use hackernewyears::AnimatingGifs;
+//use embassy_rp::multicore::{spawn_core1, Stack};
+
+//static mut CORE1_STACK: Stack<32768> = Stack::new();
 
 use defmt_rtt as _;
 use panic_probe as _;
@@ -11,7 +14,7 @@ use panic_probe as _;
 #[embassy_executor::main]
 async fn main(_spawner: embassy_executor::Spawner) {
     let p = embassy_rp::init(Default::default());
-    let mut devices = hackernewyears::Devices::new(p);
+    let mut devices = hackernewyears::DevicesCore0::new(p);
     let animating_gifs = AnimatingGifs::new();
 
     for _ in 0..5 {

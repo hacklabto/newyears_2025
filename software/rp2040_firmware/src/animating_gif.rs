@@ -1,7 +1,7 @@
 //! Bind preloaed animating gifs emums so Rust doesn't taze library users
 //! Expose a simple way to play the animating gifs
 
-use crate::devices::Devices;
+use crate::devices::DevicesCore0;
 //use crate::Timer;
 use crate::Button;
 use embassy_time::Instant;
@@ -38,7 +38,7 @@ impl AnimatingGifs<'_> {
         }
     }
 
-    pub async fn animate(&self, animating_gif: AnimatingGif, devices: &mut Devices<'_>) {
+    pub async fn animate(&self, animating_gif: AnimatingGif, devices: &mut DevicesCore0<'_>) {
         let start_time = Instant::now();
         let mut animation_time: i32 = 0;
 

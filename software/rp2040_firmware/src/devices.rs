@@ -23,7 +23,7 @@ bind_interrupts!(struct PioIrqs {
     PIO0_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO0>;
 });
 
-pub struct Devices<'a> {
+pub struct DevicesCore0<'a> {
     pub display: DisplaySSD<'a, peripherals::I2C0>,
     pub buttons: Buttons<'a>,
 
@@ -41,7 +41,7 @@ pub struct Devices<'a> {
         peripherals::DMA_CH1,
     >,
 }
-impl Devices<'_> {
+impl DevicesCore0<'_> {
     pub fn new(p: Peripherals) -> Self {
         let pio = Pio::new(p.PIO0, PioIrqs);
         let mut pio_common = pio.common;

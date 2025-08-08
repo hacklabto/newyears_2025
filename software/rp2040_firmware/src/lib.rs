@@ -17,7 +17,7 @@ pub use buttons::Button;
 pub use buttons::Buttons;
 
 pub mod devices;
-pub use devices::Devices;
+pub use devices::DevicesCore0;
 
 pub mod display;
 pub use display::DisplaySSD;
