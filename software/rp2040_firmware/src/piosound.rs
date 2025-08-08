@@ -113,6 +113,8 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
         pio_cfg.clock_divider = 1.to_fixed();
 
         sm.set_config(&pio_cfg);
+        const PWM_TOP: u32 = 1 << PWM_BITS;
+        Self::set_top(&mut sm, PWM_TOP as u32);
 
         let _debug_pin = Output::new(debug, Level::Low);
         let _ena_pin = Output::new(ena, Level::High);
@@ -125,8 +127,6 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
             _debug_pin,
             _ena_pin,
         };
-        const PWM_TOP: u32 = 1 << PWM_BITS;
-        return_value.set_top(PWM_TOP as u32);
         return_value.start();
         return_value
     }
@@ -136,20 +136,20 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
     // a suitable load immediate instruction, so instead we'll put top's
     // value into the ISR
     //
-    pub fn set_top(&mut self, top: u32) {
-        let is_enabled = self.state_machine.is_enabled();
-        while !self.state_machine.tx().empty() {} // Make sure that the queue is empty
-        self.state_machine.set_enable(false);
-        self.state_machine.tx().push(top);
+    pub fn set_top(state_machine: &mut StateMachine<'d, PIO, STATE_MACHINE_IDX>, top: u32 ) {
+        let is_enabled = state_machine.is_enabled();
+        while !state_machine.tx().empty() {} // Make sure that the queue is empty
+        state_machine.set_enable(false);
+        state_machine.tx().push(top);
         unsafe {
-            self.state_machine.exec_instr(
+            state_machine.exec_instr(
                 InstructionOperands::PULL {
                     if_empty: false,
                     block: false,
                 }
                 .encode(),
             );
-            self.state_machine.exec_instr(
+            state_machine.exec_instr(
                 InstructionOperands::OUT {
                     destination: ::pio::OutDestination::ISR,
                     bit_count: 32,
@@ -158,7 +158,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
             );
         };
         if is_enabled {
-            self.state_machine.set_enable(true) // Enable if previously enabled
+            state_machine.set_enable(true) // Enable if previously enabled
         }
     }
 
