@@ -1,5 +1,5 @@
-use embassy_rp::dma::Channel;
 use crate::audio_playback::AudioPlayback;
+use embassy_rp::dma::Channel;
 use embassy_rp::dma::Transfer;
 use embassy_rp::gpio;
 use embassy_rp::pio::{
@@ -18,12 +18,13 @@ const REMAINDER_BITS: u32 = 10 - PWM_BITS;
 const DMA_BUFSIZE: usize = 16384;
 
 #[allow(clippy::declare_interior_mutable_const)]
-static mut DMA_BUFFER_0: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE ];
+static mut DMA_BUFFER_0: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
 #[allow(clippy::declare_interior_mutable_const)]
-static mut DMA_BUFFER_1: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE ];
+static mut DMA_BUFFER_1: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
-pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Channel> {
+pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Channel>
+{
     state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
     dma_channel_0: PeripheralRef<'d, Dma0>,
     dma_channel_1: PeripheralRef<'d, Dma1>,
@@ -115,20 +116,18 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
         sm.set_config(&pio_cfg);
         const PWM_TOP: u32 = 1 << PWM_BITS;
         Self::set_top(&mut sm, PWM_TOP as u32);
+        sm.set_enable(true);
 
         let _debug_pin = Output::new(debug, Level::Low);
         let _ena_pin = Output::new(ena, Level::High);
 
-        // errr
-        let mut return_value = Self {
+        Self {
             state_machine: sm,
             dma_channel_0: dma_channel_0.into_ref(),
             dma_channel_1: dma_channel_1.into_ref(),
             _debug_pin,
             _ena_pin,
-        };
-        return_value.start();
-        return_value
+        }
     }
 
     //
@@ -136,7 +135,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
     // a suitable load immediate instruction, so instead we'll put top's
     // value into the ISR
     //
-    pub fn set_top(state_machine: &mut StateMachine<'d, PIO, STATE_MACHINE_IDX>, top: u32 ) {
+    pub fn set_top(state_machine: &mut StateMachine<'d, PIO, STATE_MACHINE_IDX>, top: u32) {
         let is_enabled = state_machine.is_enabled();
         while !state_machine.tx().empty() {} // Make sure that the queue is empty
         state_machine.set_enable(false);
@@ -179,23 +178,21 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
     pub async fn fill_dma_buffer() {}
 
     pub fn send_dma_buffer_to_pio(&mut self, buffer_num: u32) -> Transfer<'_, Dma0> {
-            let dma_buffer = Self::get_writable_dma_buffer(buffer_num);
-            self.state_machine
-                .tx()
-                .dma_push(self.dma_channel_0.reborrow(), dma_buffer)
+        let dma_buffer = Self::get_writable_dma_buffer(buffer_num);
+        self.state_machine
+            .tx()
+            .dma_push(self.dma_channel_0.reborrow(), dma_buffer)
     }
 
     #[allow(static_mut_refs)]
-    pub fn get_writable_dma_buffer(buffer_num: u32) -> &'static mut[u8] {
-            unsafe {
-                if buffer_num == 0 {
-                    &mut DMA_BUFFER_0
-                }
-                else {
-                    &mut DMA_BUFFER_1
-                }
+    pub fn get_writable_dma_buffer(buffer_num: u32) -> &'static mut [u8] {
+        unsafe {
+            if buffer_num == 0 {
+                &mut DMA_BUFFER_0
+            } else {
+                &mut DMA_BUFFER_1
             }
-
+        }
     }
 
     pub async fn play_sound(&mut self) {
@@ -211,7 +208,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
             // Start DMA transfer
             let dma_buffer_in_flight = self.send_dma_buffer_to_pio(buffer_sending);
             // While the DMA transfer runs, populate the next DMA buffer
-            let dma_write_buffer = Self::get_writable_dma_buffer(1-buffer_sending);
+            let dma_write_buffer = Self::get_writable_dma_buffer(1 - buffer_sending);
             playback_state.populate_next_dma_buffer_with_audio(dma_write_buffer);
             //playback_state.populate_next_dma_buffer();
             // Wakes up when "DMA finished transfering" interrupt occurs.

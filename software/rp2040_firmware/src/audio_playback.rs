@@ -1,7 +1,7 @@
 use midi_nostd::midi::Midi;
 type NewYearsMidi<'a> = Midi<'a, 20292, { 89 * 3 }, 64, 32>;
 
-pub struct AudioPlayback<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32 > {
+pub struct AudioPlayback<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32> {
     midi: &'d mut NewYearsMidi<'d>,
     clear_count: u32,
 }
@@ -28,8 +28,9 @@ const fn generate_dither_array<const N: usize>() -> [u32; N] {
     return array;
 }
 
-impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32> AudioPlayback<'d, PWM_BITS, PWM_REMAINDER_BITS> {
-
+impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
+    AudioPlayback<'d, PWM_BITS, PWM_REMAINDER_BITS>
+{
     const PWM_TOP: u32 = 1 << PWM_BITS;
     const PWM_REMAINDER: u32 = 1 << PWM_REMAINDER_BITS;
 
@@ -48,9 +49,7 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32> AudioPlayback<'d, P
         let mut dither: u32 = 0;
         let mut countdown: u32 = 0;
 
-
         for entry in buffer.iter_mut() {
-
             // refill at 0
             if countdown == 0 {
                 //
@@ -79,9 +78,10 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32> AudioPlayback<'d, P
                 // Remainder is the bits below value in the sound sample.  I'm
                 // ditherings I'm sending to the PIO to increase bit count.
                 //
-                let remainder = (value_abs >> Self::PWM_REMAINDER_SHIFT) & (Self::PWM_REMAINDER - 1);
+                let remainder =
+                    (value_abs >> Self::PWM_REMAINDER_SHIFT) & (Self::PWM_REMAINDER - 1);
 
-                // 
+                //
                 // DITHERs is basically a dither pattern for the current remainder.  If
                 // PWM_REMAINDER is 16 then DITHERS[remainder=0] should be
                 //
@@ -115,4 +115,3 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32> AudioPlayback<'d, P
         return self.clear_count == 1;
     }
 }
-
