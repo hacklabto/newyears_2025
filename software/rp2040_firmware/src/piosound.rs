@@ -23,17 +23,15 @@ static mut DMA_BUFFER_0: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 #[allow(clippy::declare_interior_mutable_const)]
 static mut DMA_BUFFER_1: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
-pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Channel>
-{
+pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel> {
     state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
     dma_channel_0: PeripheralRef<'d, Dma0>,
-    dma_channel_1: PeripheralRef<'d, Dma1>,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
 
-impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Channel>
-    PioSound<'d, PIO, STATE_MACHINE_IDX, Dma0, Dma1>
+impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel>
+    PioSound<'d, PIO, STATE_MACHINE_IDX, Dma0>
 {
     pub fn new(
         common: &mut Common<'d, PIO>,
@@ -43,7 +41,6 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
         ena: impl Pin,
         debug: impl Pin,
         dma_channel_0: Dma0,
-        dma_channel_1: Dma1,
     ) -> Self {
         #[rustfmt::skip]
         let prg = pio_proc::pio_asm!(
@@ -124,7 +121,6 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
         Self {
             state_machine: sm,
             dma_channel_0: dma_channel_0.into_ref(),
-            dma_channel_1: dma_channel_1.into_ref(),
             _debug_pin,
             _ena_pin,
         }
