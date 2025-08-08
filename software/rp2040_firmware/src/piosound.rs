@@ -1,5 +1,3 @@
-use core::sync::atomic::AtomicU16;
-use core::sync::atomic::Ordering;
 use embassy_rp::dma::Channel;
 use crate::audio_playback::AudioPlayback;
 use embassy_rp::dma::Transfer;
@@ -25,49 +23,10 @@ static mut DMA_BUFFER_0: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE ];
 #[allow(clippy::declare_interior_mutable_const)]
 static mut DMA_BUFFER_1: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE ];
 
-/*
-pub struct SoundDma<const BUFFERS: usize, const BUFSIZE: usize> {
-    buffer: [[u8; BUFSIZE]; BUFFERS],
-    being_dmaed: AtomicU16,
-}
-
-impl<const BUFFERS: usize, const BUFSIZE: usize> SoundDma<BUFFERS, BUFSIZE> {
-    pub const fn new() -> Self {
-        Self {
-            buffer: [[0x80; BUFSIZE]; BUFFERS],
-            being_dmaed: AtomicU16::new(0),
-        }
-    }
-    pub const fn num_dma_buffers() -> usize {
-        return BUFFERS;
-    }
-
-    pub fn next_writable(&mut self) -> &mut [u8] {
-        let next_available_slot : u16 = 1-self.being_dmaed.load(Ordering::Relaxed);
-        &mut self.buffer[next_available_slot as usize]
-    }
-
-    pub fn get_writable_dma_buffer() -> &'static mut [u8] {
-        unsafe { SOUND_DMA.next_writable() }
-    }
-
-    pub fn next_to_dma(&mut self) -> &mut [u8] {
-        let mut being_dmaed: u16 = self.being_dmaed.load(Ordering::Relaxed);
-        being_dmaed = (being_dmaed + 1) % (BUFFERS as u16);
-        self.being_dmaed.store(being_dmaed, Ordering::Relaxed);
-        &mut self.buffer[being_dmaed as usize]
-    }
-}
-
-type SoundDmaType = SoundDma<2, 65536>;
-static mut SOUND_DMA: SoundDmaType = SoundDmaType::new();
-*/
-
 pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Channel> {
     state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
     dma_channel_0: PeripheralRef<'d, Dma0>,
     dma_channel_1: PeripheralRef<'d, Dma1>,
-    dma_buffer_transfering: u32,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
@@ -163,7 +122,6 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
             state_machine: sm,
             dma_channel_0: dma_channel_0.into_ref(),
             dma_channel_1: dma_channel_1.into_ref(),
-            dma_buffer_transfering: 0,
             _debug_pin,
             _ena_pin,
         };
@@ -227,6 +185,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel, Dma1: Cha
                 .dma_push(self.dma_channel_0.reborrow(), dma_buffer)
     }
 
+    #[allow(static_mut_refs)]
     pub fn get_writable_dma_buffer(buffer_num: u32) -> &'static mut[u8] {
             unsafe {
                 if buffer_num == 0 {
