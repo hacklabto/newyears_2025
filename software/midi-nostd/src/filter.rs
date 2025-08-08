@@ -180,6 +180,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U
         };
     }
 
+    #[inline]
     fn get_next(self: &mut Self) -> SoundSampleI32 {
         if self.params.b1 == 0 {
             // Special case,
