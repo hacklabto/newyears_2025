@@ -12,8 +12,10 @@ use crate::Buttons;
 use embassy_rp::bind_interrupts;
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio;
-use embassy_rp::i2c::{Instance, SclPin, SdaPin};
+use embassy_rp::i2c;
+use embassy_rp::i2c::{SclPin, SdaPin};
 use embassy_rp::peripherals;
+use embassy_rp::pio;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
 use embassy_rp::Peripheral;
@@ -33,7 +35,7 @@ bind_interrupts!(struct PioIrqs {
 //
 pub struct Core0Resources<
     'a,
-    DisplayI2C: Instance,
+    DisplayI2C: i2c::Instance,
     DisplayI2CScl: SclPin<DisplayI2C>,
     DisplayI2CSda: SdaPin<DisplayI2C>,
 > {
@@ -48,7 +50,7 @@ pub struct Core0Resources<
 
 impl<
         'a,
-        DisplayI2C: Instance,
+        DisplayI2C: i2c::Instance,
         DisplayI2CScl: SclPin<DisplayI2C>,
         DisplayI2CSda: SdaPin<DisplayI2C>,
     > Core0Resources<'a, DisplayI2C, DisplayI2CScl, DisplayI2CSda>
@@ -75,12 +77,15 @@ impl<
 }
 
 pub struct Core1Resources<
+    'd,
+    SoundPio: pio::Instance,
     SoundDma0: Peripheral + Channel,
     SoundOut0: Pin,
     SoundOut1: Pin,
     SoundEna: Pin,
     SoundDebug: Pin,
 > {
+    pub sound_pio: embassy_rp::pio::Pio<'d, SoundPio>,
     pub sound_dma_channel_0: SoundDma0,
     pub sound_out_0: SoundOut0,
     pub sound_out_1: SoundOut1,
@@ -89,14 +94,17 @@ pub struct Core1Resources<
 }
 
 impl<
+        'd,
+        SoundPio: pio::Instance,
         SoundDma0: Peripheral + Channel,
         SoundOut0: Pin,
         SoundOut1: Pin,
         SoundEna: Pin,
         SoundDebug: Pin,
-    > Core1Resources<SoundDma0, SoundOut0, SoundOut1, SoundEna, SoundDebug>
+    > Core1Resources<'d, SoundPio, SoundDma0, SoundOut0, SoundOut1, SoundEna, SoundDebug>
 {
     pub fn new(
+        sound_pio: embassy_rp::pio::Pio<'d, SoundPio>,
         sound_dma_channel_0: SoundDma0,
         sound_out_0: SoundOut0,
         sound_out_1: SoundOut1,
@@ -104,6 +112,7 @@ impl<
         sound_debug: SoundDebug,
     ) -> Self {
         Self {
+            sound_pio,
             sound_dma_channel_0,
             sound_out_0,
             sound_out_1,
@@ -144,7 +153,9 @@ impl DevicesCore0<'_> {
         );
 
         let core1_resources = Core1Resources::new(
-            p.DMA_CH1, p.PIN_2,  // Sound A
+            Pio::new(p.PIO0, PioIrqs),
+            p.DMA_CH1,
+            p.PIN_2,  // Sound A
             p.PIN_3,  // Sound B.  Must be consequtive
             p.PIN_4,  // ENA, always on
             p.PIN_10, // Debug
@@ -179,7 +190,7 @@ impl DevicesCore0<'_> {
                         ),
             */
             piosound: PioSound::new(
-                Pio::new(p.PIO0, PioIrqs),
+                core1_resources.sound_pio,
                 core1_resources.sound_out_0,
                 core1_resources.sound_out_1,
                 core1_resources.sound_ena,
