@@ -3,7 +3,7 @@ use embassy_rp::dma::Channel;
 use embassy_rp::dma::Transfer;
 use embassy_rp::gpio;
 use embassy_rp::pio::{
-    Common, Direction, FifoJoin, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
+    Direction, FifoJoin, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
 };
 use embassy_rp::PeripheralRef;
 use fixed::traits::ToFixed;
@@ -32,14 +32,17 @@ pub struct PioSound<'d, PIO: Instance, Dma0: Channel> {
 
 impl<'d, PIO: Instance, Dma0: Channel> PioSound<'d, PIO, Dma0> {
     pub fn new(
-        common: &mut Common<'d, PIO>,
-        mut sm: StateMachine<'d, PIO, 0>,
+        pio: embassy_rp::pio::Pio<'d, PIO>,
+        //common: &mut Common<'d, PIO>,
+        //mut sm: StateMachine<'d, PIO, 0>,
         sound_a_pin: impl PioPin,
         sound_b_pin: impl PioPin,
         ena: impl Pin,
         debug: impl Pin,
         dma_channel_0: Dma0,
     ) -> Self {
+        let mut common = pio.common;
+        let mut sm = pio.sm0;
         #[rustfmt::skip]
         let prg = pio_proc::pio_asm!(
             // From the PIO PWN embassy example, for now

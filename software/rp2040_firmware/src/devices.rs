@@ -88,8 +88,6 @@ pub struct DevicesCore0<'a> {
 }
 impl DevicesCore0<'_> {
     pub fn new(p: Peripherals) -> Self {
-        let mut pio = Pio::new(p.PIO0, PioIrqs);
-
         // Eventually, we'll need to separate whatever we get from p into
         // "core 0" resources and "core 1" resources.  This will (hopefully)
         // let me do it one sub-system at a time
@@ -133,8 +131,7 @@ impl DevicesCore0<'_> {
                         ),
             */
             piosound: PioSound::new(
-                &mut pio.common,
-                pio.sm0,
+                Pio::new(p.PIO0, PioIrqs),
                 p.PIN_2,  // Sound A
                 p.PIN_3,  // Sound B.  Must be consequtive
                 p.PIN_4,  // ENA, always on
