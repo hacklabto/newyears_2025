@@ -9,26 +9,15 @@ use crate::display::{create_ssd_display, DisplaySSD};
 use crate::piosound;
 use crate::piosound::PioSound;
 use crate::Buttons;
-use embassy_rp::bind_interrupts;
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio;
 use embassy_rp::i2c;
 use embassy_rp::i2c::{SclPin, SdaPin};
 use embassy_rp::peripherals;
 use embassy_rp::peripherals::PIO0;
-use embassy_rp::pio::InterruptHandler;
-use embassy_rp::pio::Pio;
 use embassy_rp::Peripheral;
 use embassy_rp::Peripherals;
 use gpio::{Input, Pin, Pull};
-
-// PIO State machines all have IRQ flags they can set/wait on, so I think
-// that's why these are necessary? The Pio::new function internals don't actually use these, so unsure,
-// these, so not sure.
-
-bind_interrupts!(struct PioIrqs1 {
-    PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
-});
 
 //
 // Devices resources that are going to be used by Core 0.
@@ -122,7 +111,7 @@ pub struct DevicesCore0<'a> {
     pub display: DisplaySSD<'a, peripherals::I2C0>,
     pub buttons: Buttons<'a>,
 
-    pub backlight: backlight::PioBacklight<'a, peripherals::PIO1, peripherals::DMA_CH0>,
+    pub backlight: backlight::PioBacklight<'a, peripherals::DMA_CH0>,
     pub piosound: piosound::PioSound<'a, peripherals::DMA_CH1>,
 }
 
@@ -165,7 +154,7 @@ impl DevicesCore0<'_> {
                 max_row_pixels: 19,
                 num_intensity_levels: 255,
             },
-            Pio::new(p.PIO1, PioIrqs1),
+            p.PIO1,
             p.PIN_6,  // LED_CLK
             p.PIN_7,  // LED_DATA
             p.PIN_8,  // LED_LATCH

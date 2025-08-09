@@ -1,10 +1,18 @@
+use embassy_rp::bind_interrupts;
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio;
-use embassy_rp::pio::{Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine};
+use embassy_rp::peripherals::PIO1;
+use embassy_rp::pio::InterruptHandler;
+use embassy_rp::pio::Pio;
+use embassy_rp::pio::{Direction, PioPin, ShiftConfig, ShiftDirection, StateMachine};
 use embassy_time::Instant;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
+
+bind_interrupts!(struct PioIrqs1 {
+    PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
+});
 
 // The backlight is a 2D array of R,G,B LED triplets per pixel
 // Every screen update writes one row of LED on/off states at a time
@@ -17,9 +25,9 @@ pub struct Config {
     pub num_intensity_levels: u8,
 }
 
-pub struct PioBacklight<'d, PIO: Instance, DMA: Channel> {
+pub struct PioBacklight<'d, DMA: Channel> {
     pub config: Config,
-    pub state_machine: StateMachine<'d, PIO, 0>,
+    pub state_machine: StateMachine<'d, PIO1, 0>,
 
     // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
     pub dma_channel: DMA,
@@ -28,10 +36,10 @@ pub struct PioBacklight<'d, PIO: Instance, DMA: Channel> {
     test_latch_pin: Output<'d>,
     test_clear_pin: Output<'d>,
 }
-impl<'d, PIO: Instance, DMA: Channel> PioBacklight<'d, PIO, DMA> {
+impl<'d, DMA: Channel> PioBacklight<'d, DMA> {
     pub fn new(
         config: Config,
-        pio: embassy_rp::pio::Pio<'d, PIO>,
+        pio: PIO1,
         led_data_pin: impl PioPin,
         led_clk_pin: impl PioPin,
         led_latch_pin: impl PioPin,
@@ -42,6 +50,7 @@ impl<'d, PIO: Instance, DMA: Channel> PioBacklight<'d, PIO, DMA> {
         test_clear: impl Pin,
         dma_channel: DMA,
     ) -> Self {
+        let pio = Pio::new(pio, PioIrqs1);
         let mut common = pio.common;
         let mut sm = pio.sm0;
 
