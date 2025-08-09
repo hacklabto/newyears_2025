@@ -33,8 +33,6 @@ pub struct PioSound<'d, PIO: Instance, Dma0: Channel> {
 impl<'d, PIO: Instance, Dma0: Channel> PioSound<'d, PIO, Dma0> {
     pub fn new(
         pio: embassy_rp::pio::Pio<'d, PIO>,
-        //common: &mut Common<'d, PIO>,
-        //mut sm: StateMachine<'d, PIO, 0>,
         sound_a_pin: impl PioPin,
         sound_b_pin: impl PioPin,
         ena: impl Pin,

@@ -10,11 +10,13 @@ use crate::piosound;
 use crate::piosound::PioSound;
 use crate::Buttons;
 use embassy_rp::bind_interrupts;
+use embassy_rp::dma::Channel;
 use embassy_rp::gpio;
 use embassy_rp::i2c::{Instance, SclPin, SdaPin};
 use embassy_rp::peripherals;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
+use embassy_rp::Peripheral;
 use embassy_rp::Peripherals;
 use gpio::{Input, Pin, Pull};
 
@@ -72,6 +74,45 @@ impl<
     }
 }
 
+pub struct Core1Resources<
+    SoundDma0: Peripheral + Channel,
+    SoundOut0: Pin,
+    SoundOut1: Pin,
+    SoundEna: Pin,
+    SoundDebug: Pin,
+> {
+    pub sound_dma_channel_0: SoundDma0,
+    pub sound_out_0: SoundOut0,
+    pub sound_out_1: SoundOut1,
+    pub sound_ena: SoundEna,
+    pub sound_debug: SoundDebug,
+}
+
+impl<
+        SoundDma0: Peripheral + Channel,
+        SoundOut0: Pin,
+        SoundOut1: Pin,
+        SoundEna: Pin,
+        SoundDebug: Pin,
+    > Core1Resources<SoundDma0, SoundOut0, SoundOut1, SoundEna, SoundDebug>
+{
+    pub fn new(
+        sound_dma_channel_0: SoundDma0,
+        sound_out_0: SoundOut0,
+        sound_out_1: SoundOut1,
+        sound_ena: SoundEna,
+        sound_debug: SoundDebug,
+    ) -> Self {
+        Self {
+            sound_dma_channel_0,
+            sound_out_0,
+            sound_out_1,
+            sound_ena,
+            sound_debug,
+        }
+    }
+}
+
 pub struct DevicesCore0<'a> {
     pub display: DisplaySSD<'a, peripherals::I2C0>,
     pub buttons: Buttons<'a>,
@@ -100,6 +141,13 @@ impl DevicesCore0<'_> {
             p.I2C0,   // Display I2C Interface
             p.PIN_1,  // Display Scl
             p.PIN_0,  // Display SDA
+        );
+
+        let core1_resources = Core1Resources::new(
+            p.DMA_CH1, p.PIN_2,  // Sound A
+            p.PIN_3,  // Sound B.  Must be consequtive
+            p.PIN_4,  // ENA, always on
+            p.PIN_10, // Debug
         );
 
         Self {
@@ -132,11 +180,11 @@ impl DevicesCore0<'_> {
             */
             piosound: PioSound::new(
                 Pio::new(p.PIO0, PioIrqs),
-                p.PIN_2,  // Sound A
-                p.PIN_3,  // Sound B.  Must be consequtive
-                p.PIN_4,  // ENA, always on
-                p.PIN_10, // Debug
-                p.DMA_CH1,
+                core1_resources.sound_out_0,
+                core1_resources.sound_out_1,
+                core1_resources.sound_ena,
+                core1_resources.sound_debug,
+                core1_resources.sound_dma_channel_0,
             ),
             display: create_ssd_display(
                 core0_resources.display_i2c_interface,
