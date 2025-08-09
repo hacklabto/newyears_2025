@@ -3,8 +3,8 @@
 // This file keeps all the hardware assignments in one place. If the interface
 // is changed, the pins should only need to change here and nowhere else.
 
-//use crate::backlight;
-//use crate::backlight::PioBacklight;
+use crate::backlight;
+use crate::backlight::PioBacklight;
 use crate::display::{create_ssd_display, DisplaySSD};
 use crate::piosound;
 use crate::piosound::PioSound;
@@ -25,6 +25,10 @@ use gpio::{Input, Pin, Pull};
 // PIO State machines all have IRQ flags they can set/wait on, so I think
 // that's why these are necessary? The Pio::new function internals don't actually use these, so unsure,
 // these, so not sure.
+
+bind_interrupts!(struct PioIrqs0 {
+    PIO0_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO0>;
+});
 
 bind_interrupts!(struct PioIrqs1 {
     PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
@@ -126,15 +130,8 @@ pub struct DevicesCore0<'a> {
     pub display: DisplaySSD<'a, peripherals::I2C0>,
     pub buttons: Buttons<'a>,
 
-    /*
-        pub backlight: backlight::PioBacklight<
-            'a,
-            peripherals::PIO0,
-            0, //State machine number
-            peripherals::DMA_CH0,
-        >,
-    */
-    pub piosound: piosound::PioSound<'a, peripherals::PIO1, peripherals::DMA_CH1>,
+    pub backlight: backlight::PioBacklight<'a, peripherals::PIO1, peripherals::DMA_CH0>,
+    pub piosound: piosound::PioSound<'a, peripherals::PIO0, peripherals::DMA_CH1>,
 }
 impl DevicesCore0<'_> {
     pub fn new(p: Peripherals) -> Self {
@@ -153,12 +150,39 @@ impl DevicesCore0<'_> {
         );
 
         let core1_resources = Core1Resources::new(
-            Pio::new(p.PIO1, PioIrqs1),
+            Pio::new(p.PIO0, PioIrqs0),
             p.DMA_CH1,
             p.PIN_2,  // Sound A
             p.PIN_3,  // Sound B.  Must be consequtive
             p.PIN_4,  // ENA, always on
             p.PIN_10, // Debug
+        );
+
+        let piosound = PioSound::new(
+            core1_resources.sound_pio,
+            core1_resources.sound_out_0,
+            core1_resources.sound_out_1,
+            core1_resources.sound_ena,
+            core1_resources.sound_debug,
+            core1_resources.sound_dma_channel_0,
+        );
+
+        let backlight = PioBacklight::new(
+            backlight::Config {
+                rows: 7,
+                max_row_pixels: 19,
+                num_intensity_levels: 255,
+            },
+            Pio::new(p.PIO1, PioIrqs1),
+            p.PIN_6,  // LED_CLK
+            p.PIN_7,  // LED_DATA
+            p.PIN_8,  // LED_LATCH
+            p.PIN_9,  // LED_CLEAR
+            p.PIN_22, // LED_CLK
+            p.PIN_23, // LED_DATA
+            p.PIN_24, // LED_LATCH
+            p.PIN_25, // LED_CLEAR
+            p.DMA_CH0,
         );
 
         Self {
@@ -168,35 +192,8 @@ impl DevicesCore0<'_> {
                 core0_resources.button_down,
                 core0_resources.button_action,
             ),
-
-            /*
-                        backlight: PioBacklight::new(
-                            backlight::Config {
-                                rows: 7,
-                                max_row_pixels: 19,
-                                num_intensity_levels: 255,
-                            },
-                            &mut pio_common,
-                            pio_sm0,
-                            p.PIN_6,  // LED_CLK
-                            p.PIN_7,  // LED_DATA
-                            p.PIN_8,  // LED_LATCH
-                            p.PIN_9,  // LED_CLEAR
-                            p.PIN_22, // LED_CLK
-                            p.PIN_23, // LED_DATA
-                            p.PIN_24, // LED_LATCH
-                            p.PIN_25, // LED_CLEAR
-                            p.DMA_CH0,
-                        ),
-            */
-            piosound: PioSound::new(
-                core1_resources.sound_pio,
-                core1_resources.sound_out_0,
-                core1_resources.sound_out_1,
-                core1_resources.sound_ena,
-                core1_resources.sound_debug,
-                core1_resources.sound_dma_channel_0,
-            ),
+            piosound,
+            backlight,
             display: create_ssd_display(
                 core0_resources.display_i2c_interface,
                 core0_resources.display_i2c_scl,

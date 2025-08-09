@@ -1,9 +1,8 @@
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio;
-use embassy_rp::pio::{
-    Common, Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
-};
+use embassy_rp::pio::{Direction, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine};
 use embassy_time::Instant;
+use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
 
@@ -18,9 +17,9 @@ pub struct Config {
     pub num_intensity_levels: u8,
 }
 
-pub struct PioBacklight<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel> {
+pub struct PioBacklight<'d, PIO: Instance, DMA: Channel> {
     pub config: Config,
-    pub state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
+    pub state_machine: StateMachine<'d, PIO, 0>,
 
     // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
     pub dma_channel: DMA,
@@ -29,13 +28,10 @@ pub struct PioBacklight<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: 
     test_latch_pin: Output<'d>,
     test_clear_pin: Output<'d>,
 }
-impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
-    PioBacklight<'d, PIO, STATE_MACHINE_IDX, DMA>
-{
+impl<'d, PIO: Instance, DMA: Channel> PioBacklight<'d, PIO, DMA> {
     pub fn new(
         config: Config,
-        common: &mut Common<'d, PIO>,
-        mut sm: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
+        pio: embassy_rp::pio::Pio<'d, PIO>,
         led_data_pin: impl PioPin,
         led_clk_pin: impl PioPin,
         led_latch_pin: impl PioPin,
@@ -46,6 +42,9 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         test_clear: impl Pin,
         dma_channel: DMA,
     ) -> Self {
+        let mut common = pio.common;
+        let mut sm = pio.sm0;
+
         /*
             We are using daisy-chained TLC5926IDBQR shift registers, and supply
             these signals: LED_DATA, LED_CLK, LED_LATCH and LED_CLEAR.
@@ -191,6 +190,8 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, DMA: Channel>
         */
         let prg = common.load_program(&prg.program);
         pio_cfg.use_program(&prg, &[&led_clk_pin, &led_latch_pin]);
+        pio_cfg.clock_divider = 1.to_fixed();
+
         sm.set_config(&pio_cfg);
         Self {
             config: config,
