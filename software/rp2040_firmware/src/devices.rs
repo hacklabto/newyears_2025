@@ -26,8 +26,8 @@ use gpio::{Input, Pin, Pull};
 // that's why these are necessary? The Pio::new function internals don't actually use these, so unsure,
 // these, so not sure.
 
-bind_interrupts!(struct PioIrqs {
-    PIO0_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO0>;
+bind_interrupts!(struct PioIrqs1 {
+    PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
 });
 
 //
@@ -134,7 +134,7 @@ pub struct DevicesCore0<'a> {
             peripherals::DMA_CH0,
         >,
     */
-    pub piosound: piosound::PioSound<'a, peripherals::PIO0, peripherals::DMA_CH1>,
+    pub piosound: piosound::PioSound<'a, peripherals::PIO1, peripherals::DMA_CH1>,
 }
 impl DevicesCore0<'_> {
     pub fn new(p: Peripherals) -> Self {
@@ -153,7 +153,7 @@ impl DevicesCore0<'_> {
         );
 
         let core1_resources = Core1Resources::new(
-            Pio::new(p.PIO0, PioIrqs),
+            Pio::new(p.PIO1, PioIrqs1),
             p.DMA_CH1,
             p.PIN_2,  // Sound A
             p.PIN_3,  // Sound B.  Must be consequtive
