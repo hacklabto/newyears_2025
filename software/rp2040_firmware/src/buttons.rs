@@ -1,7 +1,7 @@
 //! A class to abstract buttons
 
 use embassy_rp::gpio;
-use gpio::{Input, Pin, Pull};
+use gpio::Input;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum Button {
@@ -18,12 +18,8 @@ pub struct Buttons<'a> {
     b3: Input<'a>,
 }
 
-impl Buttons<'_> {
-    pub fn new(b0_pin: impl Pin, b1_pin: impl Pin, b2_pin: impl Pin, b3_pin: impl Pin) -> Self {
-        let b0: Input<'_> = Input::new(b0_pin, Pull::Up);
-        let b1: Input<'_> = Input::new(b1_pin, Pull::Up);
-        let b2: Input<'_> = Input::new(b2_pin, Pull::Up);
-        let b3: Input<'_> = Input::new(b3_pin, Pull::Up);
+impl<'a> Buttons<'a> {
+    pub fn new(b0: Input<'a>, b1: Input<'a>, b2: Input<'a>, b3: Input<'a>) -> Self {
         Self { b0, b1, b2, b3 }
     }
 

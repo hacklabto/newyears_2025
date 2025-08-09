@@ -10,10 +10,12 @@ use crate::piosound;
 use crate::piosound::PioSound;
 use crate::Buttons;
 use embassy_rp::bind_interrupts;
+use embassy_rp::gpio;
 use embassy_rp::peripherals;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
 use embassy_rp::Peripherals;
+use gpio::{Input, Pin, Pull};
 
 // PIO State machines all have IRQ flags they can set/wait on, so I think
 // that's why these are necessary? The Pio::new function internals don't actually use these, so unsure,
@@ -22,6 +24,29 @@ use embassy_rp::Peripherals;
 bind_interrupts!(struct PioIrqs {
     PIO0_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO0>;
 });
+
+pub struct Core0Resources<'a> {
+    pub button_back: Input<'a>,
+    pub button_up: Input<'a>,
+    pub button_down: Input<'a>,
+    pub button_action: Input<'a>,
+}
+
+impl Core0Resources<'_> {
+    pub fn new(
+        button_back: impl Pin,
+        button_up: impl Pin,
+        button_down: impl Pin,
+        button_action: impl Pin,
+    ) -> Self {
+        Self {
+            button_back: Input::new(button_back, Pull::Up),
+            button_up: Input::new(button_up, Pull::Up),
+            button_down: Input::new(button_down, Pull::Up),
+            button_action: Input::new(button_action, Pull::Up),
+        }
+    }
+}
 
 pub struct DevicesCore0<'a> {
     pub display: DisplaySSD<'a, peripherals::I2C0>,
@@ -48,8 +73,19 @@ impl DevicesCore0<'_> {
         let pio_sm0 = pio.sm0;
         let pio_sm1 = pio.sm1;
 
+        // Eventually, we'll need to separate whatever we get from p into
+        // "core 0" resources and "core 1" resources.  This will (hopefully)
+        // let me do it one sub-system at a time
+
+        let core0_resources = Core0Resources::new(p.PIN_12, p.PIN_14, p.PIN_13, p.PIN_15);
+
         Self {
-            buttons: Buttons::new(p.PIN_12, p.PIN_14, p.PIN_13, p.PIN_15),
+            buttons: Buttons::new(
+                core0_resources.button_back,
+                core0_resources.button_up,
+                core0_resources.button_down,
+                core0_resources.button_action,
+            ),
 
             backlight: PioBacklight::new(
                 backlight::Config {
