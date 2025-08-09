@@ -23,19 +23,17 @@ static mut DMA_BUFFER_0: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 #[allow(clippy::declare_interior_mutable_const)]
 static mut DMA_BUFFER_1: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
-pub struct PioSound<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel> {
-    state_machine: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
+pub struct PioSound<'d, PIO: Instance, Dma0: Channel> {
+    state_machine: StateMachine<'d, PIO, 0>,
     dma_channel_0: PeripheralRef<'d, Dma0>,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
 
-impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel>
-    PioSound<'d, PIO, STATE_MACHINE_IDX, Dma0>
-{
+impl<'d, PIO: Instance, Dma0: Channel> PioSound<'d, PIO, Dma0> {
     pub fn new(
         common: &mut Common<'d, PIO>,
-        mut sm: StateMachine<'d, PIO, STATE_MACHINE_IDX>,
+        mut sm: StateMachine<'d, PIO, 0>,
         sound_a_pin: impl PioPin,
         sound_b_pin: impl PioPin,
         ena: impl Pin,
@@ -131,7 +129,7 @@ impl<'d, PIO: Instance, const STATE_MACHINE_IDX: usize, Dma0: Channel>
     // a suitable load immediate instruction, so instead we'll put top's
     // value into the ISR
     //
-    pub fn set_top(state_machine: &mut StateMachine<'d, PIO, STATE_MACHINE_IDX>, top: u32) {
+    pub fn set_top(state_machine: &mut StateMachine<'d, PIO, 0>, top: u32) {
         let is_enabled = state_machine.is_enabled();
         while !state_machine.tx().empty() {} // Make sure that the queue is empty
         state_machine.set_enable(false);
