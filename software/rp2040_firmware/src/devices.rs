@@ -11,6 +11,7 @@ use crate::piosound::PioSound;
 use crate::Buttons;
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio;
+use embassy_rp::i2c::{Instance, SclPin, SdaPin};
 use embassy_rp::peripherals;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
@@ -25,25 +26,48 @@ bind_interrupts!(struct PioIrqs {
     PIO0_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO0>;
 });
 
-pub struct Core0Resources<'a> {
+//
+// Devices resources that are going to be used by Core 0.
+//
+pub struct Core0Resources<
+    'a,
+    DisplayI2C: Instance,
+    DisplayI2CScl: SclPin<DisplayI2C>,
+    DisplayI2CSda: SdaPin<DisplayI2C>,
+> {
     pub button_back: Input<'a>,
     pub button_up: Input<'a>,
     pub button_down: Input<'a>,
     pub button_action: Input<'a>,
+    pub display_i2c_interface: DisplayI2C,
+    pub display_i2c_scl: DisplayI2CScl,
+    pub display_i2c_sda: DisplayI2CSda,
 }
 
-impl Core0Resources<'_> {
+impl<
+        'a,
+        DisplayI2C: Instance,
+        DisplayI2CScl: SclPin<DisplayI2C>,
+        DisplayI2CSda: SdaPin<DisplayI2C>,
+    > Core0Resources<'a, DisplayI2C, DisplayI2CScl, DisplayI2CSda>
+{
     pub fn new(
         button_back: impl Pin,
         button_up: impl Pin,
         button_down: impl Pin,
         button_action: impl Pin,
+        display_i2c_interface: DisplayI2C,
+        display_i2c_scl: DisplayI2CScl,
+        display_i2c_sda: DisplayI2CSda,
     ) -> Self {
         Self {
             button_back: Input::new(button_back, Pull::Up),
             button_up: Input::new(button_up, Pull::Up),
             button_down: Input::new(button_down, Pull::Up),
             button_action: Input::new(button_action, Pull::Up),
+            display_i2c_interface,
+            display_i2c_scl,
+            display_i2c_sda,
         }
     }
 }
@@ -77,7 +101,15 @@ impl DevicesCore0<'_> {
         // "core 0" resources and "core 1" resources.  This will (hopefully)
         // let me do it one sub-system at a time
 
-        let core0_resources = Core0Resources::new(p.PIN_12, p.PIN_14, p.PIN_13, p.PIN_15);
+        let core0_resources = Core0Resources::new(
+            p.PIN_12, // Button, Back
+            p.PIN_14, // Button, Up
+            p.PIN_13, // Button, Down
+            p.PIN_15, // Button, Action
+            p.I2C0,   // Display I2C Interface
+            p.PIN_1,  // Display Scl
+            p.PIN_0,  // Display SDA
+        );
 
         Self {
             buttons: Buttons::new(
@@ -116,8 +148,9 @@ impl DevicesCore0<'_> {
                 p.DMA_CH1,
             ),
             display: create_ssd_display(
-                p.I2C0, p.PIN_1, // SCL
-                p.PIN_0, // SDA
+                core0_resources.display_i2c_interface,
+                core0_resources.display_i2c_scl,
+                core0_resources.display_i2c_sda,
             ),
         }
     }
