@@ -15,7 +15,7 @@ use embassy_rp::gpio;
 use embassy_rp::i2c;
 use embassy_rp::i2c::{SclPin, SdaPin};
 use embassy_rp::peripherals;
-use embassy_rp::pio;
+use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
 use embassy_rp::Peripheral;
@@ -25,10 +25,6 @@ use gpio::{Input, Pin, Pull};
 // PIO State machines all have IRQ flags they can set/wait on, so I think
 // that's why these are necessary? The Pio::new function internals don't actually use these, so unsure,
 // these, so not sure.
-
-bind_interrupts!(struct PioIrqs0 {
-    PIO0_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO0>;
-});
 
 bind_interrupts!(struct PioIrqs1 {
     PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
@@ -81,15 +77,13 @@ impl<
 }
 
 pub struct Core1Resources<
-    'd,
-    SoundPio: pio::Instance,
     SoundDma0: Peripheral + Channel,
     SoundOut0: Pin,
     SoundOut1: Pin,
     SoundEna: Pin,
     SoundDebug: Pin,
 > {
-    pub sound_pio: embassy_rp::pio::Pio<'d, SoundPio>,
+    pub sound_pio: PIO0,
     pub sound_dma_channel_0: SoundDma0,
     pub sound_out_0: SoundOut0,
     pub sound_out_1: SoundOut1,
@@ -98,17 +92,15 @@ pub struct Core1Resources<
 }
 
 impl<
-        'd,
-        SoundPio: pio::Instance,
         SoundDma0: Peripheral + Channel,
         SoundOut0: Pin,
         SoundOut1: Pin,
         SoundEna: Pin,
         SoundDebug: Pin,
-    > Core1Resources<'d, SoundPio, SoundDma0, SoundOut0, SoundOut1, SoundEna, SoundDebug>
+    > Core1Resources<SoundDma0, SoundOut0, SoundOut1, SoundEna, SoundDebug>
 {
     pub fn new(
-        sound_pio: embassy_rp::pio::Pio<'d, SoundPio>,
+        sound_pio: PIO0,
         sound_dma_channel_0: SoundDma0,
         sound_out_0: SoundOut0,
         sound_out_1: SoundOut1,
@@ -131,8 +123,9 @@ pub struct DevicesCore0<'a> {
     pub buttons: Buttons<'a>,
 
     pub backlight: backlight::PioBacklight<'a, peripherals::PIO1, peripherals::DMA_CH0>,
-    pub piosound: piosound::PioSound<'a, peripherals::PIO0, peripherals::DMA_CH1>,
+    pub piosound: piosound::PioSound<'a, peripherals::DMA_CH1>,
 }
+
 impl DevicesCore0<'_> {
     pub fn new(p: Peripherals) -> Self {
         // Eventually, we'll need to separate whatever we get from p into
@@ -150,9 +143,8 @@ impl DevicesCore0<'_> {
         );
 
         let core1_resources = Core1Resources::new(
-            Pio::new(p.PIO0, PioIrqs0),
-            p.DMA_CH1,
-            p.PIN_2,  // Sound A
+            //  Pio::new(p.PIO0, PioIrqs0),
+            p.PIO0, p.DMA_CH1, p.PIN_2,  // Sound A
             p.PIN_3,  // Sound B.  Must be consequtive
             p.PIN_4,  // ENA, always on
             p.PIN_10, // Debug

@@ -1,17 +1,24 @@
 use crate::audio_playback::AudioPlayback;
+use embassy_rp::bind_interrupts;
 use embassy_rp::dma::Channel;
 use embassy_rp::dma::Transfer;
 use embassy_rp::gpio;
-use embassy_rp::pio::{
-    Direction, FifoJoin, Instance, PioPin, ShiftConfig, ShiftDirection, StateMachine,
-};
+use embassy_rp::peripherals::PIO0;
+use embassy_rp::pio::InterruptHandler;
+use embassy_rp::pio::Pio;
+use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine};
 use embassy_rp::PeripheralRef;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
 use midi_nostd::midi::Midi;
 use pio::InstructionOperands;
+
 // 89 and 3 are factors of 20292.  89*3 has to be a factor of 20292.
 type NewYearsMidi<'a> = Midi<'a, 20292, { 89 * 3 }, 64, 32>;
+
+bind_interrupts!(struct PioIrqs0 {
+    PIO0_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO0>;
+});
 
 const PWM_BITS: u32 = 6;
 const REMAINDER_BITS: u32 = 10 - PWM_BITS;
@@ -23,22 +30,23 @@ static mut DMA_BUFFER_0: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 #[allow(clippy::declare_interior_mutable_const)]
 static mut DMA_BUFFER_1: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
-pub struct PioSound<'d, PIO: Instance, Dma0: Channel> {
-    state_machine: StateMachine<'d, PIO, 0>,
+pub struct PioSound<'d, Dma0: Channel> {
+    state_machine: StateMachine<'d, PIO0, 0>,
     dma_channel_0: PeripheralRef<'d, Dma0>,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
 
-impl<'d, PIO: Instance, Dma0: Channel> PioSound<'d, PIO, Dma0> {
+impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
     pub fn new(
-        pio: embassy_rp::pio::Pio<'d, PIO>,
+        pio: PIO0,
         sound_a_pin: impl PioPin,
         sound_b_pin: impl PioPin,
         ena: impl Pin,
         debug: impl Pin,
         dma_channel_0: Dma0,
     ) -> Self {
+        let pio = Pio::new(pio, PioIrqs0);
         let mut common = pio.common;
         let mut sm = pio.sm0;
         #[rustfmt::skip]
@@ -130,7 +138,7 @@ impl<'d, PIO: Instance, Dma0: Channel> PioSound<'d, PIO, Dma0> {
     // a suitable load immediate instruction, so instead we'll put top's
     // value into the ISR
     //
-    pub fn set_top(state_machine: &mut StateMachine<'d, PIO, 0>, top: u32) {
+    pub fn set_top(state_machine: &mut StateMachine<'d, PIO0, 0>, top: u32) {
         let is_enabled = state_machine.is_enabled();
         while !state_machine.tx().empty() {} // Make sure that the queue is empty
         state_machine.set_enable(false);
