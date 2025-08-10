@@ -109,58 +109,48 @@ impl Core1Resources {
     }
 }
 
+pub fn split_resources_by_core<'a>(p: Peripherals) -> (Core0Resources<'a>, Core1Resources) {
+    let core0_resources = Core0Resources::new(
+        p.PIO1,    // Backlight PIO resource
+        p.DMA_CH0, // Backlight DMA channel
+        p.PIN_6,   // Backlight LED_CLK
+        p.PIN_7,   // Backlight LED_DATA
+        p.PIN_8,   // Backlight LED_LATCH
+        p.PIN_9,   // Backlight LED_CLEAR
+        p.PIN_22,  // Backlight LED_CLK
+        p.PIN_23,  // Backlight LED_DATA
+        p.PIN_24,  // Backlight LED_LATCH
+        p.PIN_25,  // Backlight LED_CLEAR
+        p.PIN_12,  // Button, Back
+        p.PIN_14,  // Button, Up
+        p.PIN_13,  // Button, Down
+        p.PIN_15,  // Button, Action
+        p.I2C0,    // Display I2C Interface
+        p.PIN_1,   // Display Scl
+        p.PIN_0,   // Display SDA
+    );
+
+    let core1_resources = Core1Resources::new(
+        p.PIO0,    // Assign PIO0 resource to Core 1
+        p.DMA_CH1, // Assign DMA Channel 1 to Core 1
+        p.PIN_2,   // Sound A Pin
+        p.PIN_3,   // Sound B Pin.  Must be consequtive
+        p.PIN_4,   // ENA Pin, always on
+        p.PIN_10,  // Debug Pin
+    );
+
+    (core0_resources, core1_resources)
+}
+
 pub struct DevicesCore0<'a> {
     pub display: DisplaySSD<'a, peripherals::I2C0>,
     pub buttons: Buttons<'a>,
 
     pub backlight: backlight::PioBacklight<'a, peripherals::DMA_CH0>,
-    pub piosound: piosound::PioSound<'a, peripherals::DMA_CH1>,
 }
 
-impl DevicesCore0<'_> {
-    pub fn new(p: Peripherals) -> Self {
-        // Eventually, we'll need to separate whatever we get from p into
-        // "core 0" resources and "core 1" resources.  This will (hopefully)
-        // let me do it one sub-system at a time
-
-        let core0_resources = Core0Resources::new(
-            p.PIO1,    // Backlight PIO resource
-            p.DMA_CH0, // Backlight DMA channel
-            p.PIN_6,   // Backlight LED_CLK
-            p.PIN_7,   // Backlight LED_DATA
-            p.PIN_8,   // Backlight LED_LATCH
-            p.PIN_9,   // Backlight LED_CLEAR
-            p.PIN_22,  // Backlight LED_CLK
-            p.PIN_23,  // Backlight LED_DATA
-            p.PIN_24,  // Backlight LED_LATCH
-            p.PIN_25,  // Backlight LED_CLEAR
-            p.PIN_12,  // Button, Back
-            p.PIN_14,  // Button, Up
-            p.PIN_13,  // Button, Down
-            p.PIN_15,  // Button, Action
-            p.I2C0,    // Display I2C Interface
-            p.PIN_1,   // Display Scl
-            p.PIN_0,   // Display SDA
-        );
-
-        let core1_resources = Core1Resources::new(
-            p.PIO0,    // Assign PIO0 resource to Core 1
-            p.DMA_CH1, // Assign DMA Channel 1 to Core 1
-            p.PIN_2,   // Sound A Pin
-            p.PIN_3,   // Sound B Pin.  Must be consequtive
-            p.PIN_4,   // ENA Pin, always on
-            p.PIN_10,  // Debug Pin
-        );
-
-        let piosound = PioSound::new(
-            core1_resources.sound_pio,
-            core1_resources.sound_out_0,
-            core1_resources.sound_out_1,
-            core1_resources.sound_ena,
-            core1_resources.sound_debug,
-            core1_resources.sound_dma_channel_0,
-        );
-
+impl<'a> DevicesCore0<'a> {
+    pub fn new(core0_resources: Core0Resources<'a>) -> Self {
         let backlight = PioBacklight::new(
             backlight::Config {
                 rows: 7,
@@ -186,7 +176,6 @@ impl DevicesCore0<'_> {
                 core0_resources.button_down,
                 core0_resources.button_action,
             ),
-            piosound,
             backlight,
             display: create_ssd_display(
                 core0_resources.display_i2c_interface,
@@ -194,5 +183,24 @@ impl DevicesCore0<'_> {
                 core0_resources.display_i2c_sda,
             ),
         }
+    }
+}
+
+pub struct DevicesCore1<'a> {
+    pub piosound: piosound::PioSound<'a, peripherals::DMA_CH1>,
+}
+
+impl DevicesCore1<'_> {
+    pub fn new(core1_resources: Core1Resources) -> Self {
+        let piosound = PioSound::new(
+            core1_resources.sound_pio,
+            core1_resources.sound_out_0,
+            core1_resources.sound_out_1,
+            core1_resources.sound_ena,
+            core1_resources.sound_debug,
+            core1_resources.sound_dma_channel_0,
+        );
+
+        Self { piosound }
     }
 }

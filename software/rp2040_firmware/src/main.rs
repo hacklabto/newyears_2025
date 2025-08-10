@@ -1,12 +1,10 @@
 #![no_std]
 #![no_main]
 
+use hackernewyears::devices::split_resources_by_core;
 use hackernewyears::menu::MenuBinding;
 use hackernewyears::AnimatingGif;
 use hackernewyears::AnimatingGifs;
-//use embassy_rp::multicore::{spawn_core1, Stack};
-
-//static mut CORE1_STACK: Stack<32768> = Stack::new();
 
 use defmt_rtt as _;
 use panic_probe as _;
@@ -14,7 +12,10 @@ use panic_probe as _;
 #[embassy_executor::main]
 async fn main(_spawner: embassy_executor::Spawner) {
     let p = embassy_rp::init(Default::default());
-    let mut devices = hackernewyears::DevicesCore0::new(p);
+    let (core0_resources, core1_resources) = split_resources_by_core(p);
+
+    let mut devices = hackernewyears::DevicesCore0::new(core0_resources);
+    let mut devices_1 = hackernewyears::DevicesCore1::new(core1_resources);
     let animating_gifs = AnimatingGifs::new();
 
     for _ in 0..5 {
@@ -61,7 +62,7 @@ async fn main(_spawner: embassy_executor::Spawner) {
                     .animate(AnimatingGif::Abstract, &mut devices)
                     .await
             }
-            MainMenuResult::Music => devices.piosound.play_sound().await,
+            MainMenuResult::Music => devices_1.piosound.play_sound().await,
         }
     }
 }
