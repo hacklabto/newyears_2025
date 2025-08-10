@@ -107,7 +107,7 @@ impl Core1Resources {
     }
 }
 
-pub fn split_resources_by_core<'a>(p: Peripherals) -> (Core0Resources, Core1Resources) {
+pub fn split_resources_by_core<'a>(p: Peripherals) -> (Core0Resources, Core1Resources, CORE1) {
     let core0_resources = Core0Resources::new(
         p.PIO1,    // Backlight PIO resource
         p.DMA_CH0, // Backlight DMA channel
@@ -137,7 +137,7 @@ pub fn split_resources_by_core<'a>(p: Peripherals) -> (Core0Resources, Core1Reso
         p.PIN_10,  // Debug Pin
     );
 
-    (core0_resources, core1_resources)
+    (core0_resources, core1_resources, p.CORE1)
 }
 
 pub struct DevicesCore0<'a> {

@@ -3,6 +3,8 @@
 
 use defmt::*;
 use embassy_executor::Executor;
+use embassy_rp::multicore::{spawn_core1, Stack};
+use embassy_time::{Duration, Timer};
 use hackernewyears::devices::split_resources_by_core;
 use hackernewyears::devices::Core0Resources;
 use hackernewyears::devices::Core1Resources;
@@ -14,22 +16,31 @@ use static_cell::StaticCell;
 use defmt_rtt as _;
 use panic_probe as _;
 
+static mut CORE1_STACK: Stack<32768> = Stack::new();
 static EXECUTOR0: StaticCell<Executor> = StaticCell::new();
+static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
     let p = embassy_rp::init(Default::default());
-    let resources = split_resources_by_core(p);
+    let (core0_resources, core1_resources, core1) = split_resources_by_core(p);
+
+    spawn_core1(
+        core1,
+        unsafe { &mut *core::ptr::addr_of_mut!(CORE1_STACK) },
+        move || {
+            let executor1 = EXECUTOR1.init(Executor::new());
+            executor1.run(|spawner| unwrap!(spawner.spawn(core1_task(core1_resources))));
+        },
+    );
 
     let executor0 = EXECUTOR0.init(Executor::new());
-    executor0.run(|spawner| unwrap!(spawner.spawn(core0_task(resources))));
+    executor0.run(|spawner| unwrap!(spawner.spawn(core0_task(core0_resources))));
 }
 
 #[embassy_executor::task]
-async fn core0_task(resources: (Core0Resources, Core1Resources)) {
-    let (core0_resources, core1_resources) = resources;
+async fn core0_task(core0_resources: Core0Resources) {
     let mut devices = hackernewyears::DevicesCore0::new(core0_resources);
-    let mut devices_1 = hackernewyears::DevicesCore1::new(core1_resources);
     let animating_gifs = AnimatingGifs::new();
 
     for _ in 0..5 {
@@ -76,7 +87,22 @@ async fn core0_task(resources: (Core0Resources, Core1Resources)) {
                     .animate(AnimatingGif::Abstract, &mut devices)
                     .await
             }
-            MainMenuResult::Music => devices_1.piosound.play_sound().await,
+            MainMenuResult::Music => {
+                animating_gifs
+                    .animate(AnimatingGif::Abstract, &mut devices)
+                    .await
+            }
         }
+    }
+}
+
+#[embassy_executor::task]
+async fn core1_task(core1_resources: Core1Resources) {
+    Timer::after(Duration::from_millis(500)).await;
+
+    let mut devices = hackernewyears::DevicesCore1::new(core1_resources);
+
+    loop {
+        devices.piosound.play_sound().await;
     }
 }
