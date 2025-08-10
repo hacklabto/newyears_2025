@@ -1,19 +1,33 @@
 #![no_std]
 #![no_main]
 
+use defmt::*;
+use embassy_executor::Executor;
 use hackernewyears::devices::split_resources_by_core;
+use hackernewyears::devices::Core0Resources;
+use hackernewyears::devices::Core1Resources;
 use hackernewyears::menu::MenuBinding;
 use hackernewyears::AnimatingGif;
 use hackernewyears::AnimatingGifs;
+use static_cell::StaticCell;
 
 use defmt_rtt as _;
 use panic_probe as _;
 
-#[embassy_executor::main]
-async fn main(_spawner: embassy_executor::Spawner) {
-    let p = embassy_rp::init(Default::default());
-    let (core0_resources, core1_resources) = split_resources_by_core(p);
+static EXECUTOR0: StaticCell<Executor> = StaticCell::new();
 
+#[cortex_m_rt::entry]
+fn main() -> ! {
+    let p = embassy_rp::init(Default::default());
+    let resources = split_resources_by_core(p);
+
+    let executor0 = EXECUTOR0.init(Executor::new());
+    executor0.run(|spawner| unwrap!(spawner.spawn(core0_task(resources))));
+}
+
+#[embassy_executor::task]
+async fn core0_task(resources: (Core0Resources, Core1Resources)) {
+    let (core0_resources, core1_resources) = resources;
     let mut devices = hackernewyears::DevicesCore0::new(core0_resources);
     let mut devices_1 = hackernewyears::DevicesCore1::new(core1_resources);
     let animating_gifs = AnimatingGifs::new();

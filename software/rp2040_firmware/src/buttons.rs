@@ -1,7 +1,7 @@
 //! A class to abstract buttons
 
 use embassy_rp::gpio;
-use gpio::Input;
+use gpio::{Input, Pin, Pull};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum Button {
@@ -19,8 +19,18 @@ pub struct Buttons<'a> {
 }
 
 impl<'a> Buttons<'a> {
-    pub fn new(b0: Input<'a>, b1: Input<'a>, b2: Input<'a>, b3: Input<'a>) -> Self {
-        Self { b0, b1, b2, b3 }
+    pub fn new(
+        button_back: impl Pin,
+        button_up: impl Pin,
+        button_down: impl Pin,
+        button_action: impl Pin,
+    ) -> Self {
+        Self {
+            b0: Input::new(button_back, Pull::Up),
+            b1: Input::new(button_up, Pull::Up),
+            b2: Input::new(button_down, Pull::Up),
+            b3: Input::new(button_action, Pull::Up),
+        }
     }
 
     pub fn is_pressed(&self, button: Button) -> bool {

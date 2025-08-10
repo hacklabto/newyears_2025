@@ -9,16 +9,14 @@ use crate::display::{create_ssd_display, DisplaySSD};
 use crate::piosound;
 use crate::piosound::PioSound;
 use crate::Buttons;
-use embassy_rp::gpio;
 use embassy_rp::peripherals;
 use embassy_rp::peripherals::*;
 use embassy_rp::Peripherals;
-use gpio::{Input, Pin, Pull};
 
 //
 // Devices resources that are going to be used by Core 0.
 //
-pub struct Core0Resources<'a> {
+pub struct Core0Resources {
     pub backlight_pio: PIO1,
     pub backlight_dma0: DMA_CH0,
     pub backlight_data: PIN_6,
@@ -29,16 +27,16 @@ pub struct Core0Resources<'a> {
     pub backlight_test_clk: PIN_23,
     pub backlight_test_latch: PIN_24,
     pub backlight_test_clr: PIN_25,
-    pub button_back: Input<'a>,
-    pub button_up: Input<'a>,
-    pub button_down: Input<'a>,
-    pub button_action: Input<'a>,
+    pub button_back: PIN_12,
+    pub button_up: PIN_14,
+    pub button_down: PIN_13,
+    pub button_action: PIN_15,
     pub display_i2c_interface: I2C0,
     pub display_i2c_scl: PIN_1,
     pub display_i2c_sda: PIN_0,
 }
 
-impl<'a> Core0Resources<'a> {
+impl Core0Resources {
     pub fn new(
         backlight_pio: PIO1,
         backlight_dma0: DMA_CH0,
@@ -50,10 +48,10 @@ impl<'a> Core0Resources<'a> {
         backlight_test_clk: PIN_23,
         backlight_test_latch: PIN_24,
         backlight_test_clr: PIN_25,
-        button_back: impl Pin,
-        button_up: impl Pin,
-        button_down: impl Pin,
-        button_action: impl Pin,
+        button_back: PIN_12,
+        button_up: PIN_14,
+        button_down: PIN_13,
+        button_action: PIN_15,
         display_i2c_interface: I2C0,
         display_i2c_scl: PIN_1,
         display_i2c_sda: PIN_0,
@@ -69,10 +67,10 @@ impl<'a> Core0Resources<'a> {
             backlight_test_clk,
             backlight_test_latch,
             backlight_test_clr,
-            button_back: Input::new(button_back, Pull::Up),
-            button_up: Input::new(button_up, Pull::Up),
-            button_down: Input::new(button_down, Pull::Up),
-            button_action: Input::new(button_action, Pull::Up),
+            button_back,
+            button_up,
+            button_down,
+            button_action,
             display_i2c_interface,
             display_i2c_scl,
             display_i2c_sda,
@@ -109,7 +107,7 @@ impl Core1Resources {
     }
 }
 
-pub fn split_resources_by_core<'a>(p: Peripherals) -> (Core0Resources<'a>, Core1Resources) {
+pub fn split_resources_by_core<'a>(p: Peripherals) -> (Core0Resources, Core1Resources) {
     let core0_resources = Core0Resources::new(
         p.PIO1,    // Backlight PIO resource
         p.DMA_CH0, // Backlight DMA channel
@@ -150,7 +148,7 @@ pub struct DevicesCore0<'a> {
 }
 
 impl<'a> DevicesCore0<'a> {
-    pub fn new(core0_resources: Core0Resources<'a>) -> Self {
+    pub fn new(core0_resources: Core0Resources) -> Self {
         let backlight = PioBacklight::new(
             backlight::Config {
                 rows: 7,
