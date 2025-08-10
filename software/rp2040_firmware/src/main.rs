@@ -13,8 +13,10 @@ use hackernewyears::AnimatingGif;
 use hackernewyears::AnimatingGifs;
 use static_cell::StaticCell;
 
-use defmt_rtt as _;
-use panic_probe as _;
+use {defmt_rtt as _, panic_probe as _};
+
+//use defmt_rtt as _;
+//use panic_probe as _;
 
 static mut CORE1_STACK: Stack<32768> = Stack::new();
 static EXECUTOR0: StaticCell<Executor> = StaticCell::new();
@@ -25,6 +27,8 @@ fn main() -> ! {
     let p = embassy_rp::init(Default::default());
     let (core0_resources, core1_resources, core1) = split_resources_by_core(p);
 
+    defmt::info!("Spawning Core 1");
+
     spawn_core1(
         core1,
         unsafe { &mut *core::ptr::addr_of_mut!(CORE1_STACK) },
@@ -33,6 +37,7 @@ fn main() -> ! {
             executor1.run(|spawner| unwrap!(spawner.spawn(core1_task(core1_resources))));
         },
     );
+    defmt::info!("Executing Core 0");
 
     let executor0 = EXECUTOR0.init(Executor::new());
     executor0.run(|spawner| unwrap!(spawner.spawn(core0_task(core0_resources))));
