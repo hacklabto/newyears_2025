@@ -9,104 +9,54 @@ use crate::display::{create_ssd_display, DisplaySSD};
 use crate::piosound;
 use crate::piosound::PioSound;
 use crate::Buttons;
-use embassy_rp::dma::Channel;
 use embassy_rp::gpio;
-use embassy_rp::i2c;
-use embassy_rp::i2c::{SclPin, SdaPin};
 use embassy_rp::peripherals;
-use embassy_rp::peripherals::PIO0;
-use embassy_rp::peripherals::PIO1;
-use embassy_rp::pio::PioPin;
-use embassy_rp::Peripheral;
+use embassy_rp::peripherals::*;
 use embassy_rp::Peripherals;
 use gpio::{Input, Pin, Pull};
 
 //
 // Devices resources that are going to be used by Core 0.
 //
-pub struct Core0Resources<
-    'a,
-    BackLightDma0: Peripheral + Channel,
-    BackLightData: PioPin,
-    BackLightClk: PioPin,
-    BackLightLatch: PioPin,
-    BackLightClr: PioPin,
-    BackLightTestData: Pin,
-    BackLightTestClk: Pin,
-    BackLightTestLatch: Pin,
-    BackLightTestClr: Pin,
-    DisplayI2C: i2c::Instance,
-    DisplayI2CScl: SclPin<DisplayI2C>,
-    DisplayI2CSda: SdaPin<DisplayI2C>,
-> {
+pub struct Core0Resources<'a> {
     pub backlight_pio: PIO1,
-    pub backlight_dma0: BackLightDma0,
-    pub backlight_data: BackLightData,
-    pub backlight_clk: BackLightClk,
-    pub backlight_latch: BackLightLatch,
-    pub backlight_clr: BackLightClr,
-    pub backlight_test_data: BackLightTestData,
-    pub backlight_test_clk: BackLightTestClk,
-    pub backlight_test_latch: BackLightTestLatch,
-    pub backlight_test_clr: BackLightTestClr,
+    pub backlight_dma0: DMA_CH0,
+    pub backlight_data: PIN_6,
+    pub backlight_clk: PIN_7,
+    pub backlight_latch: PIN_8,
+    pub backlight_clr: PIN_9,
+    pub backlight_test_data: PIN_22,
+    pub backlight_test_clk: PIN_23,
+    pub backlight_test_latch: PIN_24,
+    pub backlight_test_clr: PIN_25,
     pub button_back: Input<'a>,
     pub button_up: Input<'a>,
     pub button_down: Input<'a>,
     pub button_action: Input<'a>,
-    pub display_i2c_interface: DisplayI2C,
-    pub display_i2c_scl: DisplayI2CScl,
-    pub display_i2c_sda: DisplayI2CSda,
+    pub display_i2c_interface: I2C0,
+    pub display_i2c_scl: PIN_1,
+    pub display_i2c_sda: PIN_0,
 }
 
-impl<
-        'a,
-        BackLightDma0: Peripheral + Channel,
-        BackLightData: PioPin,
-        BackLightClk: PioPin,
-        BackLightLatch: PioPin,
-        BackLightClr: PioPin,
-        BackLightTestData: Pin,
-        BackLightTestClk: Pin,
-        BackLightTestLatch: Pin,
-        BackLightTestClr: Pin,
-        DisplayI2C: i2c::Instance,
-        DisplayI2CScl: SclPin<DisplayI2C>,
-        DisplayI2CSda: SdaPin<DisplayI2C>,
-    >
-    Core0Resources<
-        'a,
-        BackLightDma0,
-        BackLightData,
-        BackLightClk,
-        BackLightLatch,
-        BackLightClr,
-        BackLightTestData,
-        BackLightTestClk,
-        BackLightTestLatch,
-        BackLightTestClr,
-        DisplayI2C,
-        DisplayI2CScl,
-        DisplayI2CSda,
-    >
-{
+impl<'a> Core0Resources<'a> {
     pub fn new(
         backlight_pio: PIO1,
-        backlight_dma0: BackLightDma0,
-        backlight_data: BackLightData,
-        backlight_clk: BackLightClk,
-        backlight_latch: BackLightLatch,
-        backlight_clr: BackLightClr,
-        backlight_test_data: BackLightTestData,
-        backlight_test_clk: BackLightTestClk,
-        backlight_test_latch: BackLightTestLatch,
-        backlight_test_clr: BackLightTestClr,
+        backlight_dma0: DMA_CH0,
+        backlight_data: PIN_6,
+        backlight_clk: PIN_7,
+        backlight_latch: PIN_8,
+        backlight_clr: PIN_9,
+        backlight_test_data: PIN_22,
+        backlight_test_clk: PIN_23,
+        backlight_test_latch: PIN_24,
+        backlight_test_clr: PIN_25,
         button_back: impl Pin,
         button_up: impl Pin,
         button_down: impl Pin,
         button_action: impl Pin,
-        display_i2c_interface: DisplayI2C,
-        display_i2c_scl: DisplayI2CScl,
-        display_i2c_sda: DisplayI2CSda,
+        display_i2c_interface: I2C0,
+        display_i2c_scl: PIN_1,
+        display_i2c_sda: PIN_0,
     ) -> Self {
         Self {
             backlight_pio,
@@ -130,36 +80,23 @@ impl<
     }
 }
 
-pub struct Core1Resources<
-    SoundDma0: Peripheral + Channel,
-    SoundOut0: Pin,
-    SoundOut1: Pin,
-    SoundEna: Pin,
-    SoundDebug: Pin,
-> {
+pub struct Core1Resources {
     pub sound_pio: PIO0,
-    pub sound_dma_channel_0: SoundDma0,
-    pub sound_out_0: SoundOut0,
-    pub sound_out_1: SoundOut1,
-    pub sound_ena: SoundEna,
-    pub sound_debug: SoundDebug,
+    pub sound_dma_channel_0: DMA_CH1,
+    pub sound_out_0: PIN_2,
+    pub sound_out_1: PIN_3,
+    pub sound_ena: PIN_4,
+    pub sound_debug: PIN_10,
 }
 
-impl<
-        SoundDma0: Peripheral + Channel,
-        SoundOut0: Pin,
-        SoundOut1: Pin,
-        SoundEna: Pin,
-        SoundDebug: Pin,
-    > Core1Resources<SoundDma0, SoundOut0, SoundOut1, SoundEna, SoundDebug>
-{
+impl Core1Resources {
     pub fn new(
         sound_pio: PIO0,
-        sound_dma_channel_0: SoundDma0,
-        sound_out_0: SoundOut0,
-        sound_out_1: SoundOut1,
-        sound_ena: SoundEna,
-        sound_debug: SoundDebug,
+        sound_dma_channel_0: DMA_CH1,
+        sound_out_0: PIN_2,
+        sound_out_1: PIN_3,
+        sound_ena: PIN_4,
+        sound_debug: PIN_10,
     ) -> Self {
         Self {
             sound_pio,
