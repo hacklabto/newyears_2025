@@ -28,11 +28,12 @@ ssd1306 = "0.10.0"
 embedded-graphics = "0.8.1"
 
 #
-# Needed for delays
+# Needed for delays.  Up to date Aug 11 2025.
 #
 embassy-time = { version = "0.4.0", features = ["defmt", "defmt-timestamp-uptime"] }
 
-# Needed to run main
+#
+# Needed to run main.  Crash when moved to 0.8.0 and removed the target-areana-size
 #
 embassy-executor = { version = "0.7.0", features = ["task-arena-size-98304", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
 
@@ -42,10 +43,10 @@ embassy-executor = { version = "0.7.0", features = ["task-arena-size-98304", "ar
 embassy-rp = { version = "0.3.0", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl", "rp2040"] }
 
 #
-# Needed for basic debugging.
+# Needed for basic debugging.  Up to date Aug 11, 2025.
 #
-defmt = "0.3"
-defmt-rtt = "0.4"
+defmt = "1.0.1"
+defmt-rtt = "1.0.0"
 
 #
 # Fixed point, like setting the clock divider.  Up to date Aug 11th 2025
