@@ -30,16 +30,16 @@ embedded-graphics = "0.8.1"
 #
 # Needed for delays
 #
-embassy-time = { version = "0.3.2", features = ["defmt", "defmt-timestamp-uptime"] }
+embassy-time = { version = "0.4.0", features = ["defmt", "defmt-timestamp-uptime"] }
 
 # Needed to run main
 #
-embassy-executor = { version = "0.6.1", features = ["task-arena-size-98304", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
+embassy-executor = { version = "0.7.0", features = ["task-arena-size-98304", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
 
 #
 # Basic RP support
 #
-embassy-rp = { version = "0.2.0", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl"] }
+embassy-rp = { version = "0.3.0", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl", "rp2040"] }
 
 #
 # Needed for basic debugging.
