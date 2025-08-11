@@ -38,8 +38,10 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
     const PWM_REMAINDER_SHIFT: u32 = Self::PWM_TOP_SHIFT - PWM_REMAINDER_BITS;
 
     const DITHERS: [u32; 16] = generate_dither_array::<16>();
+    const DITHER_ARRAY_RIGHT_SIZE: () = assert!(16==Self::PWM_REMAINDER);    // should match array size
 
     pub fn new(midi: &'d mut NewYearsMidi<'d>) -> Self {
+        let _ = Self::DITHER_ARRAY_RIGHT_SIZE; // execute static assert
         let clear_count: u32 = 0;
         Self { midi, clear_count }
     }
@@ -63,12 +65,13 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
                 // time.  That generates a lot of noise.  The current scheme generates noise too,
                 // but at least some of the PWM noise is hidden in the music/ signal.
                 //
+
                 let value_abs: u32 = if value_raw >= 0 {
                     value_raw as u32
                 } else {
                     (-value_raw) as u32
                 };
-
+                
                 //
                 // Value is what I'm sending to the PIO hardware to be PWMed
                 //
