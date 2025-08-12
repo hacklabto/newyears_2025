@@ -6,13 +6,12 @@
 //use crate::backlight;
 //use crate::backlight::PioBacklight;
 use crate::display::{create_ssd_display, DisplaySSD};
-//use crate::piosound;
-//use crate::piosound::PioSound;
+use crate::piosound;
+use crate::piosound::PioSound;
 use crate::Buttons;
 use assign_resources::assign_resources;
 use core::marker::PhantomData;
 use embassy_rp::peripherals;
-use embassy_rp::peripherals::CORE1;
 use embassy_rp::Peri;
 use embassy_rp::Peripherals;
 
@@ -101,24 +100,22 @@ impl<'a> DevicesCore0<'a> {
 }
 
 pub struct DevicesCore1<'a> {
-    //pub piosound: piosound::PioSound<'a, peripherals::DMA_CH1>,
+    pub piosound: piosound::PioSound<'a, peripherals::DMA_CH1>,
     _phantom: PhantomData<&'a ()>,
 }
 
 impl DevicesCore1<'_> {
-    pub fn new(_core1_resources: Core1Resources) -> Self {
-        /*
-                let piosound = PioSound::new(
-                    core1_resources.sound_pio,
-                    core1_resources.sound_out_0,
-                    core1_resources.sound_out_1,
-                    core1_resources.sound_ena,
-                    core1_resources.sound_debug,
-                    core1_resources.sound_dma_channel_0,
-                );
-        */
+    pub fn new(core1_resources: Core1Resources) -> Self {
+        let piosound = PioSound::new(
+            core1_resources.sound_pio,
+            core1_resources.sound_out_0,
+            core1_resources.sound_out_1,
+            core1_resources.sound_ena,
+            core1_resources.sound_debug,
+            core1_resources.sound_dma_channel_0,
+        );
         Self {
-            //piosound,
+            piosound,
             _phantom: PhantomData,
         }
     }

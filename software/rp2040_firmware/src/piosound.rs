@@ -8,7 +8,7 @@ use embassy_rp::pio::program::pio_asm;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
 use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine};
-use embassy_rp::PeripheralRef;
+use embassy_rp::Peri;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
 use midi_nostd::midi::Midi;
@@ -33,21 +33,21 @@ static mut DMA_BUFFER_1: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
 pub struct PioSound<'d, Dma0: Channel> {
     state_machine: StateMachine<'d, PIO0, 0>,
-    dma_channel_0: PeripheralRef<'d, Dma0>,
+    dma_channel_0: Peri<'d, Dma0>,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
 
 impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
     pub fn new(
-        pio: PIO0,
-        sound_a_pin: impl PioPin,
-        sound_b_pin: impl PioPin,
-        ena: impl Pin,
-        debug: impl Pin,
-        dma_channel_0: Dma0,
+        arg_pio: Peri<'d, PIO0>,
+        sound_a_pin: Peri<'d, impl PioPin>,
+        sound_b_pin: Peri<'d, impl PioPin>,
+        ena: Peri<'d, impl Pin>,
+        debug: Peri<'d, impl Pin>,
+        dma_channel_0: Peri<'d, Dma0>,
     ) -> Self {
-        let pio = Pio::new(pio, PioIrqs0);
+        let pio = Pio::new(arg_pio, PioIrqs0);
         let mut common = pio.common;
         let mut sm = pio.sm0;
         #[rustfmt::skip]
@@ -128,7 +128,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
 
         Self {
             state_machine: sm,
-            dma_channel_0: dma_channel_0.into_ref(),
+            dma_channel_0: dma_channel_0,
             _debug_pin,
             _ena_pin,
         }

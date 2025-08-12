@@ -7,8 +7,8 @@ pub use animating_gif::AnimatingGifs;
 //pub mod backlight;
 //pub use backlight::{Config, PioBacklight};
 
-//pub mod piosound;
-//pub use piosound::PioSound;
+pub mod piosound;
+pub use piosound::PioSound;
 
 pub mod audio_playback;
 

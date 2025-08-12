@@ -2,7 +2,7 @@
 //! Plus some utilities
 
 use embassy_rp::i2c;
-use embassy_rp::i2c::{Instance, SclPin, SdaPin};
+use embassy_rp::i2c::Instance;
 //use embassy_rp::Peripheral;
 use embassy_rp::Peri;
 use embedded_graphics::mono_font::ascii::FONT_9X18;
