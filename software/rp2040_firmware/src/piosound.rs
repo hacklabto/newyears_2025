@@ -4,6 +4,7 @@ use embassy_rp::dma::Channel;
 use embassy_rp::dma::Transfer;
 use embassy_rp::gpio;
 use embassy_rp::peripherals::PIO0;
+use embassy_rp::pio::program::pio_asm;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
 use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine};
@@ -50,7 +51,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
         let mut common = pio.common;
         let mut sm = pio.sm0;
         #[rustfmt::skip]
-        let prg = pio_proc::pio_asm!(
+        let prg = pio_asm!(
             // From the PIO PWN embassy example, for now
             ".side_set 2 opt"
             "set x, 0"
@@ -184,7 +185,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
         let dma_buffer = Self::get_writable_dma_buffer(buffer_num);
         self.state_machine
             .tx()
-            .dma_push(self.dma_channel_0.reborrow(), dma_buffer)
+            .dma_push(self.dma_channel_0.reborrow(), dma_buffer, true)
     }
 
     #[allow(static_mut_refs)]

@@ -66,10 +66,9 @@ static_cell = "2.1"
 portable-atomic = { version = "1.11", features = ["critical-section"] }
 
 #
-# For loading PIO assembler and PIO interfaces.  TODO, updating breaks compile.
+# For loading PIO assembler and PIO interfaces.  Up to date Aug 11 2025
 #
-pio-proc = "0.2"
-pio = "0.2.1"
+pio = "0.3.0"
 
 [profile.release]
 debug = 2
