@@ -40,7 +40,7 @@ embassy-executor = { version = "0.7.0", features = ["task-arena-size-98304", "ar
 #
 # Basic RP support
 #
-embassy-rp = { version = "0.3.0", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl", "rp2040"] }
+embassy-rp = { version = "0.4.0", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl", "rp2040"] }
 
 #
 # Needed for basic debugging.  Up to date Aug 11, 2025.
