@@ -47,7 +47,7 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
         Self { midi, clear_count }
     }
 
-    pub fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u8]) {
+    pub fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
         let mut value: u32 = 0;
         let mut dither: u32 = 0;
         let mut countdown: u32 = 0;
@@ -57,6 +57,7 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
             if countdown == 0 {
                 //
                 // We're're here once every PWM_REMAINDER, which is, right now, every 16 iterations.
+                // Hacklab speaker loud.  Divide by 2.
                 //
                 let value_raw: i32 = self.midi.get_next().to_i32();
 
@@ -109,9 +110,12 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
             //
             // Fairly low overhead sound buffer population
             //
-            *entry = (value + (dither & 1)) as u8;
-            dither = dither >> 1;
-            countdown = countdown - 1;
+            *entry = (value + (dither & 1) << 0)
+                | ((value + ((dither & 2) >> 1)) << 8)
+                | ((value + ((dither & 4) >> 2)) << 16)
+                | ((value + ((dither & 8) >> 3)) << 24);
+            dither = dither >> 4;
+            countdown = countdown - 4;
         }
     }
 

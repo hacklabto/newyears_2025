@@ -26,10 +26,10 @@ const REMAINDER_BITS: u32 = 10 - PWM_BITS;
 const DMA_BUFSIZE: usize = 16384;
 
 #[allow(clippy::declare_interior_mutable_const)]
-static mut DMA_BUFFER_0: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
+static mut DMA_BUFFER_0: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
 #[allow(clippy::declare_interior_mutable_const)]
-static mut DMA_BUFFER_1: [u8; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
+static mut DMA_BUFFER_1: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
 pub struct PioSound<'d, Dma0: Channel> {
     state_machine: StateMachine<'d, PIO0, 0>,
@@ -64,8 +64,8 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
                 //"out x,8                   side 0b01"
                 //"out x,8                   side 0b01"
                 //"out x,8                   side 0b01"
-                "pull                     side 0b01"
-                "out x,8"
+                //"pull                     side 0b01"
+                "out x,8                    side 0b01"
                 //"mov x, osr"
                 // y is the pwm hardware's equivalent of top
                 // loaded using set_top
@@ -189,7 +189,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
     }
 
     #[allow(static_mut_refs)]
-    pub fn get_writable_dma_buffer(buffer_num: u32) -> &'static mut [u8] {
+    pub fn get_writable_dma_buffer(buffer_num: u32) -> &'static mut [u32] {
         unsafe {
             if buffer_num == 0 {
                 &mut DMA_BUFFER_0
@@ -200,7 +200,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
     }
 
     pub async fn play_sound(&mut self) {
-        let (header, tracks) = midly::parse(include_bytes!("../assets/maple.mid"))
+        let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 
