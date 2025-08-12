@@ -25,12 +25,12 @@ static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 #[cortex_m_rt::entry]
 fn main() -> ! {
     let p = embassy_rp::init(Default::default());
-    let (core0_resources, core1_resources, core1) = split_resources_by_core(p);
+    let (core0_resources, core1_resources, core1_handle) = split_resources_by_core(p);
 
     defmt::info!("Spawning Core 1");
 
     spawn_core1(
-        core1,
+        core1_handle.core_1,
         unsafe { &mut *core::ptr::addr_of_mut!(CORE1_STACK) },
         move || {
             let executor1 = EXECUTOR1.init(Executor::new());
@@ -108,6 +108,6 @@ async fn core1_task(core1_resources: Core1Resources) {
     let mut devices = hackernewyears::DevicesCore1::new(core1_resources);
 
     loop {
-        devices.piosound.play_sound().await;
+        //devices.piosound.play_sound().await;
     }
 }

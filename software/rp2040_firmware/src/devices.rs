@@ -6,39 +6,26 @@
 //use crate::backlight;
 //use crate::backlight::PioBacklight;
 use crate::display::{create_ssd_display, DisplaySSD};
-use crate::piosound;
-use crate::piosound::PioSound;
+//use crate::piosound;
+//use crate::piosound::PioSound;
 use crate::Buttons;
+use assign_resources::assign_resources;
 use core::marker::PhantomData;
 use embassy_rp::peripherals;
-use embassy_rp::peripherals::*;
+use embassy_rp::peripherals::CORE1;
+use embassy_rp::Peri;
 use embassy_rp::Peripherals;
 
-//
-// Devices resources that are going to be used by Core 0.
-//
-pub struct Core0Resources {
-    pub backlight_pio: PIO1,
-    pub backlight_dma0: DMA_CH0,
-    pub backlight_data: PIN_6,
-    pub backlight_clk: PIN_7,
-    pub backlight_latch: PIN_8,
-    pub backlight_clr: PIN_9,
-    pub backlight_test_data: PIN_22,
-    pub backlight_test_clk: PIN_23,
-    pub backlight_test_latch: PIN_24,
-    pub backlight_test_clr: PIN_25,
-    pub button_back: PIN_12,
-    pub button_up: PIN_14,
-    pub button_down: PIN_13,
-    pub button_action: PIN_15,
-    pub display_i2c_interface: I2C0,
-    pub display_i2c_scl: PIN_1,
-    pub display_i2c_sda: PIN_0,
-}
-
-impl Core0Resources {
-    pub fn new(
+assign_resources! {
+    core_1_resources: Core1Resources {
+        sound_pio: PIO0,
+        sound_dma_channel_0: DMA_CH1,
+        sound_out_0: PIN_2,
+        sound_out_1: PIN_3,
+        sound_ena: PIN_4,
+        sound_debug: PIN_10,
+    }
+    core_0_resources: Core0Resources {
         backlight_pio: PIO1,
         backlight_dma0: DMA_CH0,
         backlight_data: PIN_6,
@@ -56,89 +43,17 @@ impl Core0Resources {
         display_i2c_interface: I2C0,
         display_i2c_scl: PIN_1,
         display_i2c_sda: PIN_0,
-    ) -> Self {
-        Self {
-            backlight_pio,
-            backlight_dma0,
-            backlight_data,
-            backlight_clk,
-            backlight_latch,
-            backlight_clr,
-            backlight_test_data,
-            backlight_test_clk,
-            backlight_test_latch,
-            backlight_test_clr,
-            button_back,
-            button_up,
-            button_down,
-            button_action,
-            display_i2c_interface,
-            display_i2c_scl,
-            display_i2c_sda,
-        }
+    }
+    core_1_handle: Core1Handle {
+        core_1: CORE1
     }
 }
 
-pub struct Core1Resources {
-    pub sound_pio: PIO0,
-    pub sound_dma_channel_0: DMA_CH1,
-    pub sound_out_0: PIN_2,
-    pub sound_out_1: PIN_3,
-    pub sound_ena: PIN_4,
-    pub sound_debug: PIN_10,
-}
-
-impl Core1Resources {
-    pub fn new(
-        sound_pio: PIO0,
-        sound_dma_channel_0: DMA_CH1,
-        sound_out_0: PIN_2,
-        sound_out_1: PIN_3,
-        sound_ena: PIN_4,
-        sound_debug: PIN_10,
-    ) -> Self {
-        Self {
-            sound_pio,
-            sound_dma_channel_0,
-            sound_out_0,
-            sound_out_1,
-            sound_ena,
-            sound_debug,
-        }
-    }
-}
-
-pub fn split_resources_by_core<'a>(p: Peripherals) -> (Core0Resources, Core1Resources, CORE1) {
-    let core0_resources = Core0Resources::new(
-        p.PIO1,    // Backlight PIO resource
-        p.DMA_CH0, // Backlight DMA channel
-        p.PIN_6,   // Backlight LED_CLK
-        p.PIN_7,   // Backlight LED_DATA
-        p.PIN_8,   // Backlight LED_LATCH
-        p.PIN_9,   // Backlight LED_CLEAR
-        p.PIN_22,  // Backlight LED_CLK
-        p.PIN_23,  // Backlight LED_DATA
-        p.PIN_24,  // Backlight LED_LATCH
-        p.PIN_25,  // Backlight LED_CLEAR
-        p.PIN_12,  // Button, Back
-        p.PIN_14,  // Button, Up
-        p.PIN_13,  // Button, Down
-        p.PIN_15,  // Button, Action
-        p.I2C0,    // Display I2C Interface
-        p.PIN_1,   // Display Scl
-        p.PIN_0,   // Display SDA
-    );
-
-    let core1_resources = Core1Resources::new(
-        p.PIO0,    // Assign PIO0 resource to Core 1
-        p.DMA_CH1, // Assign DMA Channel 1 to Core 1
-        p.PIN_2,   // Sound A Pin
-        p.PIN_3,   // Sound B Pin.  Must be consequtive
-        p.PIN_4,   // ENA Pin, always on
-        p.PIN_10,  // Debug Pin
-    );
-
-    (core0_resources, core1_resources, p.CORE1)
+pub fn split_resources_by_core<'a>(
+    p: Peripherals,
+) -> (Core0Resources, Core1Resources, Core1Handle) {
+    let r = split_resources!(p);
+    (r.core_0_resources, r.core_1_resources, r.core_1_handle)
 }
 
 pub struct DevicesCore0<'a> {
@@ -186,22 +101,24 @@ impl<'a> DevicesCore0<'a> {
 }
 
 pub struct DevicesCore1<'a> {
-    pub piosound: piosound::PioSound<'a, peripherals::DMA_CH1>,
+    //pub piosound: piosound::PioSound<'a, peripherals::DMA_CH1>,
     _phantom: PhantomData<&'a ()>,
 }
 
 impl DevicesCore1<'_> {
-    pub fn new(core1_resources: Core1Resources) -> Self {
-        let piosound = PioSound::new(
-            core1_resources.sound_pio,
-            core1_resources.sound_out_0,
-            core1_resources.sound_out_1,
-            core1_resources.sound_ena,
-            core1_resources.sound_debug,
-            core1_resources.sound_dma_channel_0,
-        );
+    pub fn new(_core1_resources: Core1Resources) -> Self {
+        /*
+                let piosound = PioSound::new(
+                    core1_resources.sound_pio,
+                    core1_resources.sound_out_0,
+                    core1_resources.sound_out_1,
+                    core1_resources.sound_ena,
+                    core1_resources.sound_debug,
+                    core1_resources.sound_dma_channel_0,
+                );
+        */
         Self {
-            piosound,
+            //piosound,
             _phantom: PhantomData,
         }
     }

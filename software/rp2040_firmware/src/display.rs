@@ -3,7 +3,8 @@
 
 use embassy_rp::i2c;
 use embassy_rp::i2c::{Instance, SclPin, SdaPin};
-use embassy_rp::Peripheral;
+//use embassy_rp::Peripheral;
+use embassy_rp::Peri;
 use embedded_graphics::mono_font::ascii::FONT_9X18;
 use embedded_graphics::mono_font::ascii::FONT_9X18_BOLD;
 use embedded_graphics::mono_font::MonoTextStyle;
@@ -34,9 +35,9 @@ pub type DisplaySSD<'a, I2C> = Ssd1306<
 /// Takes ownership of interface and pins from the caller.
 ///
 pub fn create_ssd_display<'a, I2C: Instance>(
-    i2c_interface: impl Peripheral<P = I2C> + 'a,
-    sclr: impl Peripheral<P = impl SclPin<I2C>> + 'a,
-    sda: impl Peripheral<P = impl SdaPin<I2C>> + 'a,
+    i2c_interface: Peri<'a, I2C>,
+    sclr: Peri<'a, impl i2c::SclPin<I2C>>,
+    sda: Peri<'a, impl i2c::SdaPin<I2C>>,
 ) -> DisplaySSD<'a, I2C> {
     let i2c = embassy_rp::i2c::I2c::new_blocking(
         i2c_interface,
