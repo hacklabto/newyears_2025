@@ -108,6 +108,6 @@ async fn core1_task(core1_resources: Core1Resources) {
     let mut devices = hackernewyears::DevicesCore1::new(core1_resources);
 
     loop {
-        devices.piosound.play_sound().await;
+        //devices.piosound.play_sound().await;
     }
 }
