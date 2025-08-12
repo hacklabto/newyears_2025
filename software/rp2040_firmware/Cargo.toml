@@ -35,12 +35,12 @@ embassy-time = { version = "0.4.0", features = ["defmt", "defmt-timestamp-uptime
 #
 # Needed to run main.  Crash when moved to 0.8.0 and removed the target-areana-size
 #
-embassy-executor = { version = "0.7.0", features = ["task-arena-size-98304", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
+embassy-executor = { version = "0.8.0", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
 
 #
 # Basic RP support
 #
-embassy-rp = { version = "0.6.0", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl", "rp2040"] }
+embassy-rp = { version = "0.7.0", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl", "rp2040"] }
 
 #
 # Needed for basic debugging.  Up to date Aug 11, 2025.
