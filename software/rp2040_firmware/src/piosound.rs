@@ -73,7 +73,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
                 // Switch state to 0 when y matches the pwm top value
                 //
                 "jmp x!=y pwm_pos_no_reset_0"
-                "jmp pwm_pos_skip_noop_0           side 0b10"
+                "jmp pwm_pos_skip_noop_0           side 0b00"
             "pwm_pos_no_reset_0:"
                 // Nop added to make sure the delay in the loop is consistently 3 cycles.
                 "nop"
@@ -85,7 +85,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
                 "mov y, isr                         side 0b01"
             "pwm_pos_loop_1:"
                 "jmp x!=y pwm_pos_no_reset_1"
-                "jmp pwm_pos_skip_noop_1           side 0b10"
+                "jmp pwm_pos_skip_noop_1           side 0b00"
             "pwm_pos_no_reset_1:"
                 "nop"
             "pwm_pos_skip_noop_1:"
@@ -99,14 +99,14 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
                 // Gets the current volume the OSR.  Auto pulls new 32 bit values from the 
                 // FIFO being fed by the DMA when the OSR is empty
                 //
-                "out x,7                    side 0b01"
+                "out x,7                    side 0b11"  // change to 10 on final board.
                 "mov y, isr"
             "pwm_neg_loop_0:"
                 //
                 // Switch state to 0 when y matches the pwm top value
                 //
                 "jmp x!=y pwm_neg_no_reset_0"
-                "jmp pwm_neg_skip_noop_0           side 0b10"
+                "jmp pwm_neg_skip_noop_0           side 0b00"
             "pwm_neg_no_reset_0:"
                 // Nop added to make sure the delay in the loop is consistently 3 cycles.
                 "nop"
@@ -115,10 +115,10 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
 
                 // Once more, With Feeling.
 
-                "mov y, isr                         side 0b01"
+                "mov y, isr                         side 0b11"  // change to 10 on final board
             "pwm_neg_loop_1:"
                 "jmp x!=y pwm_neg_no_reset_1"
-                "jmp pwm_neg_skip_noop_1           side 0b10"
+                "jmp pwm_neg_skip_noop_1           side 0b00"
             "pwm_neg_no_reset_1:"
                 "nop"
             "pwm_neg_skip_noop_1:"

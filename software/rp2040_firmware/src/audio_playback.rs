@@ -49,7 +49,9 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
 
     pub fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
         let mut value: u32 = 0;
-        let sign_bits: u32 = 0x01010101;
+        let pos_mask: u32 = 0x01010101;
+        let neg_mask: u32 = 0x00000000;
+        let mut sign_mask: u32 = 0;
         let mut dither: u32 = 0;
         let mut countdown: u32 = 0;
 
@@ -70,8 +72,10 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
                 //
 
                 let value_abs: u32 = if value_raw >= 0 {
+                    sign_mask = pos_mask;
                     value_raw as u32
                 } else {
+                    sign_mask = neg_mask;
                     (-value_raw) as u32
                 };
 
@@ -115,7 +119,7 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
                 | ((value + ((dither & 2) >> 1)) << 9)
                 | ((value + ((dither & 4) >> 2)) << 17)
                 | ((value + ((dither & 8) >> 3)) << 25))
-                | sign_bits;
+                | sign_mask;
             dither = dither >> 4;
             countdown = countdown - 4;
         }
