@@ -52,49 +52,41 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
         let mut sm = pio.sm0;
         #[rustfmt::skip]
         let prg = pio_asm!(
-            // From the PIO PWN embassy example, for now
             ".side_set 2 opt"
-            "set x, 0"
-
             "begin:"
-                // TSX FIFO -> OSR.  Do not block if the FIFO is empty.
-                // If we run out of data, just hold the last PWM state.
-                // Set the output to 0
-                //"out x,8                   side 0b01"
-                //"out x,8                   side 0b01"
-                //"out x,8                   side 0b01"
-                //"out x,8                   side 0b01"
-                //"pull                     side 0b01"
+                //
+                // Gets the current volume the OSR.  Auto pulls new 32 bit values from the 
+                // FIFO being fed by the DMA when the OSR is empty
+                //
                 "out x,8                    side 0b01"
-                //"mov x, osr"
-                // y is the pwm hardware's equivalent of top
-                // loaded using set_top
+
+                //
+                // y = isr = pwm top = number of times we loop.
+                //
                 "mov y, isr"
 
-            // Loop y times, which is effectively top
-            "countloop1:"
-                // Switch state to 1 when y matches the pwm value
-                "jmp x!=y noset1"
-                "jmp skip1                      side 0b10"
-            "noset1:"
-                // For a consistent 3 cycle delay
+            "pwm_plus_loop_0:"
+                //
+                // Switch state to 0 when y matches the pwm top value
+                //
+                "jmp x!=y pwm_plus_no_reset_0"
+                "jmp pwm_plus_skip_noop_0           side 0b10"
+            "pwm_plus_no_reset_0:"
+                // Nop added to make sure the delay in the loop is consistently 3 cycles.
                 "nop"
-            "skip1:"
-                "jmp y-- countloop1"
+            "pwm_plus_skip_noop_0:"
+                "jmp y-- pwm_plus_loop_0"
 
-            // Do the loop a 2nd time using loop unrolling
-            "mov y, isr                         side 0b01"
+                // Once more, With Feeling.
 
-            // Loop y times, which is effectively top
-            "countloop2:"
-                // Switch state to 1 when y matches the pwm value
-                "jmp x!=y noset2"
-                "jmp skip2                      side 0b10"
-            "noset2:"
-                // For a consistent 3 cycle delay
+                "mov y, isr                         side 0b01"
+            "pwm_plus_loop_1:"
+                "jmp x!=y pwm_plus_no_reset_1"
+                "jmp pwm_plus_skip_noop_1           side 0b10"
+            "pwm_plus_no_reset_1:"
                 "nop"
-            "skip2:"
-                "jmp y-- countloop2"
+            "pwm_plus_skip_noop_1:"
+                "jmp y-- pwm_plus_loop_1"
 
             // Go back for more data.
             "jmp begin"
