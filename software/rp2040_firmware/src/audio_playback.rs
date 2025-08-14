@@ -49,7 +49,7 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
 
     pub fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
         let mut value: u32 = 0;
-        let sign_bits: u32 = 0;
+        let sign_bits: u32 = 0x01010101;
         let mut dither: u32 = 0;
         let mut countdown: u32 = 0;
 

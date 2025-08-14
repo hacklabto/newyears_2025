@@ -55,6 +55,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
             ".side_set 2 opt"
             "begin:"
                 "out x,1"
+                "jmp !x, negative_pwm"
 
                 //
                 // Gets the current volume the OSR.  Auto pulls new 32 bit values from the 
@@ -65,7 +66,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
                 //
                 // y = isr = pwm top = number of times we loop.
                 //
-                "mov y, isr                 side 0b01"
+                "mov y, isr"
 
             "pwm_pos_loop_0:"
                 //
@@ -94,7 +95,12 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
             "jmp begin"
 
             "negative_pwm:"
-                "mov y, isr                 side 0b01"
+                //
+                // Gets the current volume the OSR.  Auto pulls new 32 bit values from the 
+                // FIFO being fed by the DMA when the OSR is empty
+                //
+                "out x,7                    side 0b01"
+                "mov y, isr"
             "pwm_neg_loop_0:"
                 //
                 // Switch state to 0 when y matches the pwm top value
@@ -222,7 +228,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
     }
 
     pub async fn play_sound(&mut self) {
-        let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
+        let (header, tracks) = midly::parse(include_bytes!("../assets/maple.mid"))
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 
