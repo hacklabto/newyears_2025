@@ -54,39 +54,69 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
         let prg = pio_asm!(
             ".side_set 2 opt"
             "begin:"
+                "out x,1"
+
                 //
                 // Gets the current volume the OSR.  Auto pulls new 32 bit values from the 
                 // FIFO being fed by the DMA when the OSR is empty
                 //
-                "out x,8                    side 0b01"
+                "out x,7                    side 0b01"
 
                 //
                 // y = isr = pwm top = number of times we loop.
                 //
-                "mov y, isr"
+                "mov y, isr                 side 0b01"
 
-            "pwm_plus_loop_0:"
+            "pwm_pos_loop_0:"
                 //
                 // Switch state to 0 when y matches the pwm top value
                 //
-                "jmp x!=y pwm_plus_no_reset_0"
-                "jmp pwm_plus_skip_noop_0           side 0b10"
-            "pwm_plus_no_reset_0:"
+                "jmp x!=y pwm_pos_no_reset_0"
+                "jmp pwm_pos_skip_noop_0           side 0b10"
+            "pwm_pos_no_reset_0:"
                 // Nop added to make sure the delay in the loop is consistently 3 cycles.
                 "nop"
-            "pwm_plus_skip_noop_0:"
-                "jmp y-- pwm_plus_loop_0"
+            "pwm_pos_skip_noop_0:"
+                "jmp y-- pwm_pos_loop_0"
 
                 // Once more, With Feeling.
 
                 "mov y, isr                         side 0b01"
-            "pwm_plus_loop_1:"
-                "jmp x!=y pwm_plus_no_reset_1"
-                "jmp pwm_plus_skip_noop_1           side 0b10"
-            "pwm_plus_no_reset_1:"
+            "pwm_pos_loop_1:"
+                "jmp x!=y pwm_pos_no_reset_1"
+                "jmp pwm_pos_skip_noop_1           side 0b10"
+            "pwm_pos_no_reset_1:"
                 "nop"
-            "pwm_plus_skip_noop_1:"
-                "jmp y-- pwm_plus_loop_1"
+            "pwm_pos_skip_noop_1:"
+                "jmp y-- pwm_pos_loop_1"
+
+            // Go back for more data.
+            "jmp begin"
+
+            "negative_pwm:"
+                "mov y, isr                 side 0b01"
+            "pwm_neg_loop_0:"
+                //
+                // Switch state to 0 when y matches the pwm top value
+                //
+                "jmp x!=y pwm_neg_no_reset_0"
+                "jmp pwm_neg_skip_noop_0           side 0b10"
+            "pwm_neg_no_reset_0:"
+                // Nop added to make sure the delay in the loop is consistently 3 cycles.
+                "nop"
+            "pwm_neg_skip_noop_0:"
+                "jmp y-- pwm_neg_loop_0"
+
+                // Once more, With Feeling.
+
+                "mov y, isr                         side 0b01"
+            "pwm_neg_loop_1:"
+                "jmp x!=y pwm_neg_no_reset_1"
+                "jmp pwm_neg_skip_noop_1           side 0b10"
+            "pwm_neg_no_reset_1:"
+                "nop"
+            "pwm_neg_skip_noop_1:"
+                "jmp y-- pwm_neg_loop_1"
 
             // Go back for more data.
             "jmp begin"
@@ -103,7 +133,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
 
         pio_cfg.shift_out = ShiftConfig {
             threshold: 32,
-            direction: ShiftDirection::Left,
+            direction: ShiftDirection::Right,
             auto_fill: true,
         };
         pio_cfg.fifo_join = FifoJoin::TxOnly;

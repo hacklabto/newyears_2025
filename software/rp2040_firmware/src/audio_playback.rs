@@ -49,6 +49,7 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
 
     pub fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
         let mut value: u32 = 0;
+        let sign_bits: u32 = 0;
         let mut dither: u32 = 0;
         let mut countdown: u32 = 0;
 
@@ -110,10 +111,11 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
             //
             // Fairly low overhead sound buffer population
             //
-            *entry = (value + (dither & 1) << 0)
-                | ((value + ((dither & 2) >> 1)) << 8)
-                | ((value + ((dither & 4) >> 2)) << 16)
-                | ((value + ((dither & 8) >> 3)) << 24);
+            *entry = ((value + (dither & 1) << 1)
+                | ((value + ((dither & 2) >> 1)) << 9)
+                | ((value + ((dither & 4) >> 2)) << 17)
+                | ((value + ((dither & 8) >> 3)) << 25))
+                | sign_bits;
             dither = dither >> 4;
             countdown = countdown - 4;
         }
