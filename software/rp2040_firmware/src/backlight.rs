@@ -142,14 +142,10 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         // Set all pins to low at the start
         // The LED_CLEAR input has an internal pullup (drivers off by default),
         // so we never touch it after this to keep the LED drivers always on
-        /*
-         * TODO
-         *
         sm.set_pins(
             Level::Low,
             &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_clear_pin],
         );
-        */
 
         let mut pio_cfg = embassy_rp::pio::Config::default();
         // The PIO state machine OUT command will only control LED_DATA
