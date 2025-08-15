@@ -64,11 +64,6 @@ pub struct DevicesCore0<'a> {
 impl<'a> DevicesCore0<'a> {
     pub fn new(core0_resources: Core0Resources) -> Self {
         let backlight = PioBacklight::new(
-            backlight::Config {
-                rows: 7,
-                max_row_pixels: 19,
-                num_intensity_levels: 255,
-            },
             core0_resources.backlight_pio,
             core0_resources.backlight_data,
             core0_resources.backlight_clk,

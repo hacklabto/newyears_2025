@@ -5,7 +5,7 @@ pub use animating_gif::AnimatingGif;
 pub use animating_gif::AnimatingGifs;
 
 pub mod backlight;
-pub use backlight::{Config, PioBacklight};
+pub use backlight::PioBacklight;
 
 pub mod piosound;
 pub use piosound::PioSound;

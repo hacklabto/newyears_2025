@@ -16,19 +16,7 @@ bind_interrupts!(struct PioIrqs1 {
     PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
 });
 
-// The backlight is a 2D array of R,G,B LED triplets per pixel
-// Every screen update writes one row of LED on/off states at a time
-// The row update bitstring has the form:
-// [row_selector_bitstring], [row_pixel RGB bits]
-pub struct Config {
-    // The row_selector_bitstring has one bit for every row
-    pub rows: u8,
-    pub max_row_pixels: u8,
-    pub num_intensity_levels: u8,
-}
-
 pub struct PioBacklight<'d, Dma1: Channel> {
-    pub config: Config,
     pub state_machine: StateMachine<'d, PIO1, 0>,
 
     // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
@@ -40,7 +28,6 @@ pub struct PioBacklight<'d, Dma1: Channel> {
 }
 impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
     pub fn new(
-        config: Config,
         arg_pio: Peri<'d, PIO1>,
         led_data_pin: Peri<'d, impl PioPin>,
         led_clk_pin: Peri<'d, impl PioPin>,
@@ -248,7 +235,6 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                bits between daisy chained shift registers
         */
         Self {
-            config: config,
             state_machine: sm,
             dma_channel: dma_channel,
             test_clk_pin: Output::new(test_clk, Level::Low),
