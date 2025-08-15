@@ -59,10 +59,11 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
             // refill at 0
             if countdown == 0 {
                 //
-                // We're're here once every PWM_REMAINDER, which is, right now, every 16 iterations.
-                // Hacklab speaker loud.  Divide by 2.
+                // The commented out line is what we'll probably want on the final board.  It
+                // plays, but it does terrible things to the low frequency notes.
                 //
-                let value_raw: i32 = self.midi.get_next().to_i32();
+                //let value_raw: i32 = self.midi.get_next().to_i32();
+                let value_raw: i32 = (self.midi.get_next().to_i32() + 0x8000) / 2;
 
                 //
                 // Right now I'm taking an absolute value of the sound output so that if the sound
