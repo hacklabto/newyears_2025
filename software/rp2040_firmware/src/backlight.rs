@@ -10,7 +10,7 @@ use embassy_rp::Peri;
 use embassy_time::Instant;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
-//use pio::InstructionOperands;
+use pio::InstructionOperands;
 
 bind_interrupts!(struct PioIrqs1 {
     PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
@@ -92,40 +92,39 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             // a U8.  So 135 bytes.
             //
             //
+            "start_fill_row:"
+                "mov x, y"
 
             "fillrow:"
-                // Load the LED_DATA bit
+                // Load the LED_DATA bit from the FIFO
                 "out pins, 1"
-                // 8ns > LED_DATA t_setup (3ns) has passed, so bring CLK high
-                "nop        side 0b01"
-                // 8ns > LED_DATA t_hold (4ns) has passed
-                // Skip latch if row is not full
-                "jmp x--, skiplatch"
+                // 8ns > LED_DATA t_setup (3ns) has passed, so bring CLK high to latch LED_DATA in
+                // TODO, confirm the clock latches on a positive edge.  It looks like it does
+                // from the test program.  TODO, get this on the scope.
+                "nop        side 0b10"
+                // 8ns > LED_DATA t_hold (4ns) has passed.  Bring the clock back down
+                "nop        side 0b00"
+                // Loop around until the row is full (32 values, stored in y)
+                "jmp x--, fillrow"
 
-                // I think we need a longer delay here.  The latch is when the
-                // LED lights will be active.  My thinking is that we pause for
-                // enough cycles that we guarantee we're spending some percentage
-                // of time powering the LEDs.
+                // Row is full, so bring LED_LATCH high and keep clock low.
+                // TODO, check data sheet to see if I need a pause before I set latch to high
+                // TODO, the low clock is what we did when I doing the hardware test code,
+                // and might not be right.  Check data sheet
+                // TODO, On the same test code I also changed the clear.  Check data sheet.
 
-                // Row is full, so bring LED_LATCH high and keep clock high
                 // It's been 16ns > 15ns since LED_CLK went high, so this is ok
-                "mov x, y   side 0b11"
+                "mov x, ISR   side 0b01"
+
+            "latch_on_delay_loop:"
+                "jmp x--, latch_on_delay_loop"
+
                 // 24ns > min LED_CLK pulse (20ns) has passed, so we can set it low.
                 // Wait one extra cycle so 24ns > min LED_LATCH pulse (20ns) passes
-                "nop        side 0b01 [1]"
-
-            "skiplatch:"
-
-                // Set LED_LATCH low so there's 16ns > 15ns until the next
-                // LED_CLK high edge
-                "jmp fillrow side 0b00"
-                // Wait one extra cycle so 24ns > min LED_CLK pulse (20ns) passes
-                "nop"
-                // The shift register datasheet doesn't specify a min LED_CLK off period
-                // To be safe, turn it off and wait an extra cycle so at least
-                // 24ns (> 20ns min LED_CLK high pulse) passes before it's set high again
-                // TODO: Test whether this is necessary
+                // TODO, data sheet for any timings needed her before we latch in the next row
                 "nop        side 0b00 [1]"
+
+                "jmp start_fill_row"
         );
         let prg = common.load_program(&prg.program); // TODO, name overlap
 
@@ -165,26 +164,50 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         pio_cfg.clock_divider = 1.to_fixed();
         sm.set_config(&pio_cfg);
 
-        /* TODO
-        let bits_per_row_minus_1 = config.rows + config.max_row_pixels * 3;
-        // Load (bits per row - 1) to scratch registers so we set LED_LATCH after (bits per row) iterations
+        // TODO, improve this in terms of readability
+
+        //
+        // Set the delay for the latch on by pushing a value to the state machine,
+        // 64, and then executing some assembler to pull it and send it to the ISR
+        //
+        sm.tx().push(64);
         unsafe {
             sm.exec_instr(
-                InstructionOperands::SET {
-                    destination: pio::SetDestination::X,
-                    data: bits_per_row_minus_1,
+                InstructionOperands::PULL {
+                    if_empty: false,
+                    block: false,
                 }
                 .encode(),
             );
             sm.exec_instr(
-                InstructionOperands::SET {
-                    destination: pio::SetDestination::Y,
-                    data: bits_per_row_minus_1,
+                InstructionOperands::OUT {
+                    destination: ::pio::OutDestination::ISR,
+                    bit_count: 32,
                 }
                 .encode(),
             );
-        }
-        */
+        };
+        sm.tx().push(32);
+        unsafe {
+            sm.exec_instr(
+                InstructionOperands::PULL {
+                    if_empty: false,
+                    block: false,
+                }
+                .encode(),
+            );
+            sm.exec_instr(
+                InstructionOperands::OUT {
+                    destination: ::pio::OutDestination::Y,
+                    bit_count: 32,
+                }
+                .encode(),
+            );
+        };
+
+        // Turn on the machine.  What could go wrong.
+
+        sm.set_enable(true);
 
         /*
             Timing constraints from shift register datasheet:
