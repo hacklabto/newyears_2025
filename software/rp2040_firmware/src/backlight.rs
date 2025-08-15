@@ -5,12 +5,12 @@ use embassy_rp::peripherals::PIO1;
 use embassy_rp::pio::program::pio_asm;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
-use embassy_rp::pio::{Direction, PioPin, ShiftConfig, ShiftDirection, StateMachine};
+use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine};
 use embassy_rp::Peri;
 use embassy_time::Instant;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
-use pio::InstructionOperands;
+//use pio::InstructionOperands;
 
 bind_interrupts!(struct PioIrqs1 {
     PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
@@ -76,73 +76,6 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             https://www.ti.com/lit/ds/symlink/tlc5926.pdf?HQS=dis-dk-null-digikeymode-dsf-pf-null-wwe&ts=1732256906146&ref_url=https%253A%252F%252Fwww.ti.com%252Fgeneral%252Fdocs%252Fsuppproductinfo.tsp%253FdistId%253D10%2526gotoUrl%253Dhttps%253A%252F%252Fwww.ti.com%252Flit%252Fgpn%252Ftlc5926
         */
 
-        // Set all pins to outputs
-        let led_data_pin = common.make_pio_pin(led_data_pin);
-        let led_clk_pin = common.make_pio_pin(led_clk_pin);
-        let led_latch_pin = common.make_pio_pin(led_latch_pin);
-        let led_clear_pin = common.make_pio_pin(led_clear_pin);
-        sm.set_pin_dirs(
-            Direction::Out,
-            &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_clear_pin],
-        );
-
-        // Set all pins to low at the start
-        // The LED_CLEAR input has an internal pullup (drivers off by default),
-        // so we never touch it after this to keep the LED drivers always on
-        sm.set_pins(
-            Level::Low,
-            &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_clear_pin],
-        );
-
-        let mut pio_cfg = embassy_rp::pio::Config::default();
-        // The PIO state machine OUT command will only control LED_DATA
-        pio_cfg.set_out_pins(&[&led_data_pin]);
-
-        // Automatically refill the internal shift register from the FIFO
-        // when OUT empties it
-        pio_cfg.shift_out = ShiftConfig {
-            auto_fill: true,
-            threshold: 32,
-            direction: ShiftDirection::Left,
-        };
-
-        let bits_per_row_minus_1 = config.rows + config.max_row_pixels * 3;
-        // Load (bits per row - 1) to scratch registers so we set LED_LATCH after (bits per row) iterations
-        unsafe {
-            sm.exec_instr(
-                InstructionOperands::SET {
-                    destination: pio::SetDestination::X,
-                    data: bits_per_row_minus_1,
-                }
-                .encode(),
-            );
-            sm.exec_instr(
-                InstructionOperands::SET {
-                    destination: pio::SetDestination::Y,
-                    data: bits_per_row_minus_1,
-                }
-                .encode(),
-            );
-        }
-
-        /*
-            Timing constraints from shift register datasheet:
-            - LED_CLK: Min clock pulse width = 20ns
-            - LED_DATA needs to be held 3ns before the rising LED_CLK edge and 4ns after.
-            - LED_LATCH must be held high for 20ns, can only go low 15ns after the
-            rising clock edge, and the next rising clock edge can only start 15ns
-            after LED_LATCH goes low.
-
-            Applied to the sequence:
-            - Write to LED_DATA, hold for 3ns
-            - Rising LED_CLK, hold LED_DATA for 4ns.
-            - Clock remains high for 20ns, then we set it low for 1 cycle (we can
-                set LED_LATCH in parallel)
-            - If ready to write,
-                - Hold LED_LATCH high for at least 20ns
-                - Hold LED_LATCH low for 15ns before next clock
-        */
-
         // LED_CLK and LED_LATCH will be controlled via side-set commands
         // (i.e. can be set in parallel with other PIO assembly commands)
         let prg = pio_asm!(
@@ -194,6 +127,86 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 // TODO: Test whether this is necessary
                 "nop        side 0b00 [1]"
         );
+        let prg = common.load_program(&prg.program); // TODO, name overlap
+
+        // Set all pins to outputs
+        let led_data_pin = common.make_pio_pin(led_data_pin);
+        let led_clk_pin = common.make_pio_pin(led_clk_pin);
+        let led_latch_pin = common.make_pio_pin(led_latch_pin);
+        let led_clear_pin = common.make_pio_pin(led_clear_pin);
+        sm.set_pin_dirs(
+            Direction::Out,
+            &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_clear_pin],
+        );
+
+        // Set all pins to low at the start
+        // The LED_CLEAR input has an internal pullup (drivers off by default),
+        // so we never touch it after this to keep the LED drivers always on
+        /*
+         * TODO
+         *
+        sm.set_pins(
+            Level::Low,
+            &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_clear_pin],
+        );
+        */
+
+        let mut pio_cfg = embassy_rp::pio::Config::default();
+        // The PIO state machine OUT command will only control LED_DATA
+        pio_cfg.set_out_pins(&[&led_data_pin]);
+
+        pio_cfg.use_program(&prg, &[&led_clk_pin, &led_latch_pin]);
+
+        // Automatically refill the internal shift register from the FIFO
+        // when OUT empties it
+        pio_cfg.shift_out = ShiftConfig {
+            auto_fill: true,
+            threshold: 32,
+            direction: ShiftDirection::Right,
+        };
+        pio_cfg.fifo_join = FifoJoin::TxOnly;
+
+        pio_cfg.clock_divider = 1.to_fixed();
+        sm.set_config(&pio_cfg);
+
+        /* TODO
+        let bits_per_row_minus_1 = config.rows + config.max_row_pixels * 3;
+        // Load (bits per row - 1) to scratch registers so we set LED_LATCH after (bits per row) iterations
+        unsafe {
+            sm.exec_instr(
+                InstructionOperands::SET {
+                    destination: pio::SetDestination::X,
+                    data: bits_per_row_minus_1,
+                }
+                .encode(),
+            );
+            sm.exec_instr(
+                InstructionOperands::SET {
+                    destination: pio::SetDestination::Y,
+                    data: bits_per_row_minus_1,
+                }
+                .encode(),
+            );
+        }
+        */
+
+        /*
+            Timing constraints from shift register datasheet:
+            - LED_CLK: Min clock pulse width = 20ns
+            - LED_DATA needs to be held 3ns before the rising LED_CLK edge and 4ns after.
+            - LED_LATCH must be held high for 20ns, can only go low 15ns after the
+            rising clock edge, and the next rising clock edge can only start 15ns
+            after LED_LATCH goes low.
+
+            Applied to the sequence:
+            - Write to LED_DATA, hold for 3ns
+            - Rising LED_CLK, hold LED_DATA for 4ns.
+            - Clock remains high for 20ns, then we set it low for 1 cycle (we can
+                set LED_LATCH in parallel)
+            - If ready to write,
+                - Hold LED_LATCH high for at least 20ns
+                - Hold LED_LATCH low for 15ns before next clock
+        */
 
         /*
             update periods, assuming PULL never needs to wait on an empty FIFO:
@@ -215,11 +228,6 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             => ~181 Hz image updates, assuming no extra delays needed for cascading
                bits between daisy chained shift registers
         */
-        let prg = common.load_program(&prg.program);
-        pio_cfg.use_program(&prg, &[&led_clk_pin, &led_latch_pin]);
-        pio_cfg.clock_divider = 1.to_fixed();
-
-        sm.set_config(&pio_cfg);
         Self {
             config: config,
             state_machine: sm,

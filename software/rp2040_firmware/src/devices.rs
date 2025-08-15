@@ -3,8 +3,8 @@
 // This file keeps all the hardware assignments in one place. If the interface
 // is changed, the pins should only need to change here and nowhere else.
 
-//use crate::backlight;
-//use crate::backlight::PioBacklight;
+use crate::backlight;
+use crate::backlight::PioBacklight;
 use crate::display::{create_ssd_display, DisplaySSD};
 use crate::piosound;
 use crate::piosound::PioSound;
@@ -58,30 +58,28 @@ pub fn split_resources_by_core<'a>(
 pub struct DevicesCore0<'a> {
     pub display: DisplaySSD<'a, peripherals::I2C0>,
     pub buttons: Buttons<'a>,
-    //pub backlight: backlight::PioBacklight<'a, peripherals::DMA_CH0>,
+    pub backlight: backlight::PioBacklight<'a, peripherals::DMA_CH0>,
 }
 
 impl<'a> DevicesCore0<'a> {
     pub fn new(core0_resources: Core0Resources) -> Self {
-        /*
-                let backlight = PioBacklight::new(
-                    backlight::Config {
-                        rows: 7,
-                        max_row_pixels: 19,
-                        num_intensity_levels: 255,
-                    },
-                    core0_resources.backlight_pio,
-                    core0_resources.backlight_data,
-                    core0_resources.backlight_clk,
-                    core0_resources.backlight_latch,
-                    core0_resources.backlight_clr,
-                    core0_resources.backlight_test_data,
-                    core0_resources.backlight_test_clk,
-                    core0_resources.backlight_test_latch,
-                    core0_resources.backlight_test_clr,
-                    core0_resources.backlight_dma0,
-                );
-        */
+        let backlight = PioBacklight::new(
+            backlight::Config {
+                rows: 7,
+                max_row_pixels: 19,
+                num_intensity_levels: 255,
+            },
+            core0_resources.backlight_pio,
+            core0_resources.backlight_data,
+            core0_resources.backlight_clk,
+            core0_resources.backlight_latch,
+            core0_resources.backlight_clr,
+            core0_resources.backlight_test_data,
+            core0_resources.backlight_test_clk,
+            core0_resources.backlight_test_latch,
+            core0_resources.backlight_test_clr,
+            core0_resources.backlight_dma0,
+        );
         Self {
             buttons: Buttons::new(
                 core0_resources.button_back,
@@ -89,7 +87,7 @@ impl<'a> DevicesCore0<'a> {
                 core0_resources.button_down,
                 core0_resources.button_action,
             ),
-            //           backlight,
+            backlight,
             display: create_ssd_display(
                 core0_resources.display_i2c_interface,
                 core0_resources.display_i2c_scl,
