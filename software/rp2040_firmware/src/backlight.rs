@@ -12,6 +12,27 @@ use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
 
+const LED_ROWS: usize = 5;
+const LED_LEVELS: usize = 256;
+const LED_DMA_BUFFER_SIZE: usize = LED_ROWS * LED_LEVELS;
+
+pub const fn init_dma_buffer() -> [u32; LED_DMA_BUFFER_SIZE] {
+    let mut init_dma_buffer: [u32; LED_DMA_BUFFER_SIZE] = [0; LED_DMA_BUFFER_SIZE];
+    let mut row = 0;
+    let mut idx: usize = 0;
+
+    while idx < LED_DMA_BUFFER_SIZE {
+        init_dma_buffer[idx] = 1 << (row + 27);
+        row = (row + 1) % 5;
+        idx = idx + 1;
+    }
+
+    init_dma_buffer
+}
+
+#[allow(clippy::declare_interior_mutable_const)]
+static mut DMA_BUFFER: [u32; LED_DMA_BUFFER_SIZE] = init_dma_buffer();
+
 bind_interrupts!(struct PioIrqs1 {
     PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
 });
@@ -26,6 +47,7 @@ pub struct PioBacklight<'d, Dma1: Channel> {
     test_latch_pin: Output<'d>,
     test_clear_pin: Output<'d>,
 }
+
 impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
     pub fn new(
         arg_pio: Peri<'d, PIO1>,
@@ -72,12 +94,11 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
 
             //
             // The shift register has 32 registers in it, so we want to latch out once
-            // every 32 inputs.  The reads are 27 bits of valid "row" data and 5 bits to
-            // select a row.  So, 60 bytes gets one update.  15360, or 60*256, could get
-            // an update with 256 levels per pixel.
-            // The public interface is just 9 x 5, or 45 RGB tuples, with each value being
-            // a U8.  So 135 bytes.
+            // every 32 bits read.  The reads are 27 bits of valid "row" data and 5 bits to
+            // select a row.  So it makes sense to DMA over u32s.
             //
+            // 5 u32s give us a column, and 1280 u32s give us a pattern with 256
+            // levels of RGB for each of the 45 LEDs.
             //
             "start_fill_row:"
                 "mov x, y"
@@ -290,5 +311,19 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
 
     pub fn start(&mut self) {
         self.state_machine.set_enable(true);
+    }
+
+    #[allow(static_mut_refs)]
+    pub async fn display_and_update(&mut self) {
+        let dma_buffer = unsafe { &DMA_BUFFER };
+
+        let dma_buffer_in_flight =
+            self.state_machine
+                .tx()
+                .dma_push(self.dma_channel.reborrow(), dma_buffer, true);
+
+        // TODO, update code.
+
+        dma_buffer_in_flight.await;
     }
 }

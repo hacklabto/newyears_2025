@@ -54,7 +54,9 @@ async fn core0_task(core0_resources: Core0Resources) {
             .await;
     }
 
-    //devices.backlight.test_pattern();
+    for _ in 0..1000 {
+        devices.backlight.display_and_update().await;
+    }
 
     let mut current_pos: Option<usize> = None;
     loop {
