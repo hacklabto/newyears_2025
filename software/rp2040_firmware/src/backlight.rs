@@ -2,9 +2,11 @@ use embassy_rp::bind_interrupts;
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio;
 use embassy_rp::peripherals::PIO1;
+use embassy_rp::pio::program::pio_asm;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
 use embassy_rp::pio::{Direction, PioPin, ShiftConfig, ShiftDirection, StateMachine};
+use embassy_rp::Peri;
 use embassy_time::Instant;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
@@ -25,32 +27,32 @@ pub struct Config {
     pub num_intensity_levels: u8,
 }
 
-pub struct PioBacklight<'d, DMA: Channel> {
+pub struct PioBacklight<'d, Dma1: Channel> {
     pub config: Config,
     pub state_machine: StateMachine<'d, PIO1, 0>,
 
     // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
-    pub dma_channel: DMA,
+    pub dma_channel: Peri<'d, Dma1>,
     test_clk_pin: Output<'d>,
     test_data_pin: Output<'d>,
     test_latch_pin: Output<'d>,
     test_clear_pin: Output<'d>,
 }
-impl<'d, DMA: Channel> PioBacklight<'d, DMA> {
+impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
     pub fn new(
         config: Config,
-        pio: PIO1,
-        led_data_pin: impl PioPin,
-        led_clk_pin: impl PioPin,
-        led_latch_pin: impl PioPin,
-        led_clear_pin: impl PioPin,
-        test_clk: impl Pin,
-        test_data: impl Pin,
-        test_latch: impl Pin,
-        test_clear: impl Pin,
-        dma_channel: DMA,
+        arg_pio: Peri<'d, PIO1>,
+        led_data_pin: Peri<'d, impl PioPin>,
+        led_clk_pin: Peri<'d, impl PioPin>,
+        led_latch_pin: Peri<'d, impl PioPin>,
+        led_clear_pin: Peri<'d, impl PioPin>,
+        test_clk: Peri<'d, impl Pin>,
+        test_data: Peri<'d, impl Pin>,
+        test_latch: Peri<'d, impl Pin>,
+        test_clear: Peri<'d, impl Pin>,
+        dma_channel: Peri<'d, Dma1>,
     ) -> Self {
-        let pio = Pio::new(pio, PioIrqs1);
+        let pio = Pio::new(arg_pio, PioIrqs1);
         let mut common = pio.common;
         let mut sm = pio.sm0;
 
@@ -143,10 +145,21 @@ impl<'d, DMA: Channel> PioBacklight<'d, DMA> {
 
         // LED_CLK and LED_LATCH will be controlled via side-set commands
         // (i.e. can be set in parallel with other PIO assembly commands)
-        let prg = pio_proc::pio_asm!(
+        let prg = pio_asm!(
             // Note: At default 125MHz clock, every instruction except the
             // blocking PULL takes 8ns
             ".side_set 2 opt"
+
+            //
+            // The shift register has 32 registers in it, so we want to latch out once
+            // every 32 inputs.  The reads are 27 bits of valid "row" data and 5 bits to
+            // select a row.  So, 60 bytes gets one update.  15360, or 60*256, could get
+            // an update with 256 levels per pixel.
+            // The public interface is just 9 x 5, or 45 RGB tuples, with each value being
+            // a U8.  So 135 bytes.
+            //
+            //
+
             "fillrow:"
                 // Load the LED_DATA bit
                 "out pins, 1"
@@ -156,6 +169,11 @@ impl<'d, DMA: Channel> PioBacklight<'d, DMA> {
                 // Skip latch if row is not full
                 "jmp x--, skiplatch"
 
+                // I think we need a longer delay here.  The latch is when the
+                // LED lights will be active.  My thinking is that we pause for
+                // enough cycles that we guarantee we're spending some percentage
+                // of time powering the LEDs.
+
                 // Row is full, so bring LED_LATCH high and keep clock high
                 // It's been 16ns > 15ns since LED_CLK went high, so this is ok
                 "mov x, y   side 0b11"
@@ -163,11 +181,11 @@ impl<'d, DMA: Channel> PioBacklight<'d, DMA> {
                 // Wait one extra cycle so 24ns > min LED_LATCH pulse (20ns) passes
                 "nop        side 0b01 [1]"
 
+            "skiplatch:"
+
                 // Set LED_LATCH low so there's 16ns > 15ns until the next
                 // LED_CLK high edge
                 "jmp fillrow side 0b00"
-
-            "skiplatch:"
                 // Wait one extra cycle so 24ns > min LED_CLK pulse (20ns) passes
                 "nop"
                 // The shift register datasheet doesn't specify a min LED_CLK off period
