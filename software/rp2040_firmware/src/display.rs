@@ -2,8 +2,8 @@
 //! Plus some utilities
 
 use embassy_rp::i2c;
-use embassy_rp::i2c::Instance;
-//use embassy_rp::Peripheral;
+use embassy_rp::i2c::InterruptHandler;
+use embassy_rp::peripherals::I2C0;
 use embassy_rp::Peri;
 use embedded_graphics::mono_font::ascii::FONT_9X18;
 use embedded_graphics::mono_font::ascii::FONT_9X18_BOLD;
@@ -22,9 +22,13 @@ use ssd1306::rotation::DisplayRotation;
 use ssd1306::size::DisplaySize128x32;
 use ssd1306::Ssd1306;
 
+embassy_rp::bind_interrupts!(struct Irqs {
+    I2C0_IRQ => InterruptHandler<embassy_rp::peripherals::I2C0>;
+});
+
 /// Turn the actual display class into something readable
-pub type DisplaySSD<'a, I2C> = Ssd1306<
-    I2CInterface<i2c::I2c<'a, I2C, i2c::Blocking>>,
+pub type DisplaySSD<'a> = Ssd1306<
+    I2CInterface<i2c::I2c<'a, I2C0, i2c::Async>>,
     DisplaySize128x32,
     BufferedGraphicsMode<DisplaySize128x32>,
 >;
@@ -34,15 +38,16 @@ pub type DisplaySSD<'a, I2C> = Ssd1306<
 /// i2c0, sclr, and sda are the I2C interface and I2C Pins
 /// Takes ownership of interface and pins from the caller.
 ///
-pub fn create_ssd_display<'a, I2C: Instance>(
-    i2c_interface: Peri<'a, I2C>,
-    sclr: Peri<'a, impl i2c::SclPin<I2C>>,
-    sda: Peri<'a, impl i2c::SdaPin<I2C>>,
-) -> DisplaySSD<'a, I2C> {
-    let i2c = embassy_rp::i2c::I2c::new_blocking(
+pub fn create_ssd_display<'a>(
+    i2c_interface: Peri<'a, I2C0>,
+    sclr: Peri<'a, impl i2c::SclPin<I2C0>>,
+    sda: Peri<'a, impl i2c::SdaPin<I2C0>>,
+) -> DisplaySSD<'a> {
+    let i2c = embassy_rp::i2c::I2c::new_async(
         i2c_interface,
         sclr, // SCLR
         sda,  // SDA
+        Irqs,
         Default::default(),
     );
     let interface = ssd1306::I2CDisplayInterface::new(i2c);
@@ -52,12 +57,7 @@ pub fn create_ssd_display<'a, I2C: Instance>(
     display
 }
 
-pub fn draw_text<'a, I2C: Instance>(
-    display: &mut DisplaySSD<'a, I2C>,
-    text: &str,
-    line: i32,
-    bold: bool,
-) {
+pub fn draw_text<'a>(display: &mut DisplaySSD<'a>, text: &str, line: i32, bold: bool) {
     // Create the character style.
     let character_style = MonoTextStyle::new(
         if bold { &FONT_9X18_BOLD } else { &FONT_9X18 },

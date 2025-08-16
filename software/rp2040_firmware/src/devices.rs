@@ -68,7 +68,7 @@ pub fn split_resources_by_core<'a>(
 }
 
 pub struct DevicesCore0Menu<'a> {
-    pub display: DisplaySSD<'a, peripherals::I2C0>,
+    pub display: DisplaySSD<'a>,
     pub buttons: Buttons<'a>,
 }
 
