@@ -32,6 +32,12 @@ pub const fn init_dma_buffer() -> [u32; LED_DMA_BUFFER_SIZE] {
     init_dma_buffer
 }
 
+// Why three buffers?  Okay, first, this really should be a pipe :(
+//
+// The third buffer is giving a bit of head room between the buffer being DMAed to
+// the PIO and the buffer being written.
+//
+
 #[allow(clippy::declare_interior_mutable_const)]
 static mut DMA_BUFFER_0: [u32; LED_DMA_BUFFER_SIZE] = init_dma_buffer();
 static mut DMA_BUFFER_1: [u32; LED_DMA_BUFFER_SIZE] = init_dma_buffer();
@@ -50,6 +56,26 @@ fn get_read_dma_buffer() -> &'static [u32] {
             &DMA_BUFFER_2
         }
     }
+}
+
+#[allow(static_mut_refs)]
+fn get_write_dma_buffer() -> &'static mut [u32] {
+    let write_buffer: u8 = (DMA_READ_BUFFER.load(Ordering::Relaxed) + 1) % 3;
+    unsafe {
+        if write_buffer == 0 {
+            &mut DMA_BUFFER_0
+        } else if write_buffer == 1 {
+            &mut DMA_BUFFER_1
+        } else {
+            &mut DMA_BUFFER_2
+        }
+    }
+}
+
+fn advance_read_dma_buffer() {
+    let read_buffer: u8 = DMA_READ_BUFFER.load(Ordering::Relaxed);
+    let new_read_buffer = (read_buffer + 1) % 3;
+    DMA_READ_BUFFER.store(new_read_buffer, Ordering::Relaxed);
 }
 
 bind_interrupts!(struct PioIrqs1 {
@@ -130,6 +156,17 @@ impl BacklightUser {
             | (self.led_levels[column][24].update() << 24)
             | (self.led_levels[column][25].update() << 25)
             | (self.led_levels[column][26].update() << 26)
+    }
+
+    pub fn update_led_dma_buffer(self: &mut Self) {
+        let mut row: usize = 0;
+        let dma_buffer = get_write_dma_buffer();
+
+        for item in dma_buffer.iter_mut() {
+            *item = (*item & 0xf8000000) | self.assemble_column(row);
+            row = (row + 1) % LED_ROWS;
+        }
+        advance_read_dma_buffer();
     }
 }
 
