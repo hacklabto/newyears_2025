@@ -1,3 +1,4 @@
+use core::sync::atomic::{AtomicU8, Ordering};
 use embassy_rp::bind_interrupts;
 use embassy_rp::dma::Channel;
 use embassy_rp::gpio;
@@ -12,6 +13,7 @@ use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
 
+const LED_COLUMNS: usize = 27;
 const LED_ROWS: usize = 5;
 const LED_LEVELS: usize = 256;
 const LED_DMA_BUFFER_SIZE: usize = LED_ROWS * LED_LEVELS;
@@ -31,11 +33,115 @@ pub const fn init_dma_buffer() -> [u32; LED_DMA_BUFFER_SIZE] {
 }
 
 #[allow(clippy::declare_interior_mutable_const)]
-static mut DMA_BUFFER: [u32; LED_DMA_BUFFER_SIZE] = init_dma_buffer();
+static mut DMA_BUFFER_0: [u32; LED_DMA_BUFFER_SIZE] = init_dma_buffer();
+static mut DMA_BUFFER_1: [u32; LED_DMA_BUFFER_SIZE] = init_dma_buffer();
+static mut DMA_BUFFER_2: [u32; LED_DMA_BUFFER_SIZE] = init_dma_buffer();
+static DMA_READ_BUFFER: AtomicU8 = AtomicU8::new(0);
+
+#[allow(static_mut_refs)]
+fn get_read_dma_buffer() -> &'static [u32] {
+    let read_buffer: u8 = DMA_READ_BUFFER.load(Ordering::Relaxed);
+    unsafe {
+        if read_buffer == 0 {
+            &DMA_BUFFER_0
+        } else if read_buffer == 1 {
+            &DMA_BUFFER_1
+        } else {
+            &DMA_BUFFER_2
+        }
+    }
+}
 
 bind_interrupts!(struct PioIrqs1 {
     PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
 });
+
+pub struct LedLevel {
+    level: u8,
+    dither: u8,
+}
+
+impl LedLevel {
+    #[inline]
+    pub fn set(self: &mut Self, new_level: u8) {
+        self.level = new_level;
+    }
+    #[inline]
+    pub fn update(self: &mut Self) -> u32 {
+        let orig = self.dither;
+        self.dither = self.dither.wrapping_add(self.level);
+        if orig < self.dither {
+            1
+        } else {
+            0
+        }
+    }
+}
+
+impl Default for LedLevel {
+    fn default() -> Self {
+        Self {
+            level: 0,
+            dither: 0,
+        }
+    }
+}
+
+// User interface/ DMA buffer updater
+pub struct BacklightUser {
+    led_levels: [[LedLevel; LED_COLUMNS]; LED_ROWS],
+}
+
+impl BacklightUser {
+    pub fn set(self: &mut Self, column: usize, row: usize, r: u8, g: u8, b: u8) {
+        // I know, I'm trusting the optimizer a lot.
+        self.led_levels[column][row * 3 + 0].set(r);
+        self.led_levels[column][row * 3 + 1].set(g);
+        self.led_levels[column][row * 3 + 2].set(b);
+    }
+    #[inline]
+    pub fn assemble_column(self: &mut Self, column: usize) -> u32 {
+        // Will this go fast?  If the assembler doesn't work out, refactoring is an option
+        // Also, might need to change indexing so the index is more intuitive.
+        (self.led_levels[column][00].update() << 00)
+            | (self.led_levels[column][01].update() << 01)
+            | (self.led_levels[column][02].update() << 02)
+            | (self.led_levels[column][03].update() << 03)
+            | (self.led_levels[column][04].update() << 04)
+            | (self.led_levels[column][05].update() << 05)
+            | (self.led_levels[column][06].update() << 06)
+            | (self.led_levels[column][07].update() << 07)
+            | (self.led_levels[column][08].update() << 08)
+            | (self.led_levels[column][09].update() << 09)
+            | (self.led_levels[column][10].update() << 10)
+            | (self.led_levels[column][11].update() << 11)
+            | (self.led_levels[column][12].update() << 12)
+            | (self.led_levels[column][13].update() << 13)
+            | (self.led_levels[column][14].update() << 14)
+            | (self.led_levels[column][15].update() << 15)
+            | (self.led_levels[column][16].update() << 16)
+            | (self.led_levels[column][17].update() << 17)
+            | (self.led_levels[column][18].update() << 18)
+            | (self.led_levels[column][19].update() << 19)
+            | (self.led_levels[column][20].update() << 20)
+            | (self.led_levels[column][21].update() << 21)
+            | (self.led_levels[column][22].update() << 22)
+            | (self.led_levels[column][23].update() << 23)
+            | (self.led_levels[column][24].update() << 24)
+            | (self.led_levels[column][25].update() << 25)
+            | (self.led_levels[column][26].update() << 26)
+    }
+}
+
+impl Default for BacklightUser {
+    fn default() -> Self {
+        Self {
+            led_levels: core::array::from_fn(|_idx| {
+                core::array::from_fn(|_idx| LedLevel::default())
+            }),
+        }
+    }
+}
 
 pub struct PioBacklight<'d, Dma1: Channel> {
     pub state_machine: StateMachine<'d, PIO1, 0>,
@@ -313,9 +419,8 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         self.state_machine.set_enable(true);
     }
 
-    #[allow(static_mut_refs)]
     pub async fn display_and_update(&mut self) {
-        let dma_buffer = unsafe { &DMA_BUFFER };
+        let dma_buffer = get_read_dma_buffer();
 
         let dma_buffer_in_flight =
             self.state_machine
