@@ -17,7 +17,8 @@ pub use buttons::Button;
 pub use buttons::Buttons;
 
 pub mod devices;
-pub use devices::DevicesCore0;
+pub use devices::DevicesCore0Backlight;
+pub use devices::DevicesCore0Menu;
 pub use devices::DevicesCore1;
 
 pub mod display;

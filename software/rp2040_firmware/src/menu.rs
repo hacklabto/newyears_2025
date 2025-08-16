@@ -1,6 +1,6 @@
 use crate::display;
 use crate::Button;
-use crate::DevicesCore0;
+use crate::DevicesCore0Menu;
 use embassy_time::Instant;
 use embedded_graphics::draw_target::DrawTarget;
 use embedded_graphics::pixelcolor::BinaryColor;
@@ -34,7 +34,7 @@ fn draw_menu<T: Clone>(
     menu_items: &[MenuBinding<T>],
     menu_item: usize,
     percent_offset_from_target: i32,
-    devices: &mut DevicesCore0<'_>,
+    devices: &mut DevicesCore0Menu<'_>,
 ) {
     const GAP: i32 = 16;
     const MID: i32 = 18;
@@ -76,7 +76,7 @@ fn draw_menu<T: Clone>(
 
 pub async fn transition_to_new_target_pos<T: Clone>(
     menu_items: &[MenuBinding<'_, T>],
-    devices: &mut DevicesCore0<'_>,
+    devices: &mut DevicesCore0Menu<'_>,
     target_pos: usize,
     direction: i32,
 ) {
@@ -97,7 +97,7 @@ pub async fn run_menu<T: Clone>(
     menu_items: &[MenuBinding<'_, T>],
     up_menu: T,
     start_pos: Option<usize>,
-    devices: &mut DevicesCore0<'_>,
+    devices: &mut DevicesCore0Menu<'_>,
 ) -> (T, usize) {
     let mut current_pos: usize = if start_pos.is_some() {
         start_pos.unwrap()

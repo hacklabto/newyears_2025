@@ -6,7 +6,8 @@ use embassy_executor::Executor;
 use embassy_rp::multicore::{spawn_core1, Stack};
 use embassy_time::{Duration, Timer};
 use hackernewyears::devices::split_resources_by_core;
-use hackernewyears::devices::Core0Resources;
+use hackernewyears::devices::Core0ResourcesBacklight;
+use hackernewyears::devices::Core0ResourcesMenu;
 use hackernewyears::devices::Core1Resources;
 use hackernewyears::menu::MenuBinding;
 use hackernewyears::AnimatingGif;
@@ -25,7 +26,8 @@ static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 #[cortex_m_rt::entry]
 fn main() -> ! {
     let p = embassy_rp::init(Default::default());
-    let (core0_resources, core1_resources, core1_handle) = split_resources_by_core(p);
+    let (core0_resources_menu, core0_resources_backlight, core1_resources, core1_handle) =
+        split_resources_by_core(p);
 
     defmt::info!("Spawning Core 1");
 
@@ -40,12 +42,19 @@ fn main() -> ! {
     defmt::info!("Executing Core 0");
 
     let executor0 = EXECUTOR0.init(Executor::new());
-    executor0.run(|spawner| unwrap!(spawner.spawn(core0_task(core0_resources))));
+    executor0.run(|spawner| {
+        unwrap!(spawner.spawn(core0_task(core0_resources_menu, core0_resources_backlight)))
+    });
 }
 
 #[embassy_executor::task]
-async fn core0_task(core0_resources: Core0Resources) {
-    let mut devices = hackernewyears::DevicesCore0::new(core0_resources);
+async fn core0_task(
+    core0_resources_menu: Core0ResourcesMenu,
+    core0_resources_backlight: Core0ResourcesBacklight,
+) {
+    let mut devices = hackernewyears::DevicesCore0Menu::new(core0_resources_menu);
+    let mut devices_backlight =
+        hackernewyears::DevicesCore0Backlight::new(core0_resources_backlight);
     let animating_gifs = AnimatingGifs::new();
 
     for _ in 0..5 {
@@ -55,7 +64,7 @@ async fn core0_task(core0_resources: Core0Resources) {
     }
 
     for _ in 0..1000 {
-        devices.backlight.display_and_update().await;
+        devices_backlight.backlight.display_and_update().await;
     }
 
     let mut current_pos: Option<usize> = None;
