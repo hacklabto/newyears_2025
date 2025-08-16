@@ -2,7 +2,7 @@
 #![no_main]
 
 use defmt::*;
-use embassy_executor::Executor;
+use embassy_executor::{Executor, Spawner};
 use embassy_rp::multicore::{spawn_core1, Stack};
 use embassy_time::{Duration, Timer};
 use hackernewyears::devices::split_resources_by_core;
@@ -20,11 +20,10 @@ use {defmt_rtt as _, panic_probe as _};
 //use panic_probe as _;
 
 static mut CORE1_STACK: Stack<32768> = Stack::new();
-static EXECUTOR0: StaticCell<Executor> = StaticCell::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
-#[cortex_m_rt::entry]
-fn main() -> ! {
+#[embassy_executor::main]
+async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
     let (core0_resources_menu, core0_resources_backlight, core1_resources, core1_handle) =
         split_resources_by_core(p);
@@ -41,30 +40,23 @@ fn main() -> ! {
     );
     defmt::info!("Executing Core 0");
 
-    let executor0 = EXECUTOR0.init(Executor::new());
-    executor0.run(|spawner| {
-        unwrap!(spawner.spawn(core0_task(core0_resources_menu, core0_resources_backlight)))
-    });
+    spawner
+        .spawn(core0_backlight_task(core0_resources_backlight))
+        .unwrap();
+    spawner
+        .spawn(core0_menu_task(core0_resources_menu))
+        .unwrap();
 }
 
 #[embassy_executor::task]
-async fn core0_task(
-    core0_resources_menu: Core0ResourcesMenu,
-    core0_resources_backlight: Core0ResourcesBacklight,
-) {
+async fn core0_menu_task(core0_resources_menu: Core0ResourcesMenu) {
     let mut devices = hackernewyears::DevicesCore0Menu::new(core0_resources_menu);
-    let mut devices_backlight =
-        hackernewyears::DevicesCore0Backlight::new(core0_resources_backlight);
     let animating_gifs = AnimatingGifs::new();
 
     for _ in 0..5 {
         animating_gifs
             .animate(AnimatingGif::Logo, &mut devices)
             .await;
-    }
-
-    for _ in 0..1000 {
-        devices_backlight.backlight.display_and_update().await;
     }
 
     let mut current_pos: Option<usize> = None;
@@ -109,6 +101,14 @@ async fn core0_task(
                     .await
             }
         }
+    }
+}
+
+#[embassy_executor::task]
+async fn core0_backlight_task(core0_resources_backlight: Core0ResourcesBacklight) {
+    let mut devices = hackernewyears::DevicesCore0Backlight::new(core0_resources_backlight);
+    loop {
+        devices.backlight.display_and_update().await;
     }
 }
 
