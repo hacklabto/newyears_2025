@@ -252,7 +252,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 // 8ns > LED_DATA t_setup (3ns) has passed, so bring CLK high to latch LED_DATA in
                 // TODO, confirm the clock latches on a positive edge.  It looks like it does
                 // from the test program.  TODO, get this on the scope.
-                "nop        side 0b10"
+                "nop        side 0b01"
                 // 8ns > LED_DATA t_hold (4ns) has passed.  Bring the clock back down
                 "nop        side 0b00"
                 // Loop around until the row is full (32 values, stored in y)
@@ -265,7 +265,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 // TODO, On the same test code I also changed the clear.  Check data sheet.
 
                 // It's been 16ns > 15ns since LED_CLK went high, so this is ok
-                "mov x, ISR   side 0b01"
+                "mov x, ISR   side 0b10"
 
             "latch_on_delay_loop:"
                 "jmp x--, latch_on_delay_loop"
