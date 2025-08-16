@@ -24,7 +24,7 @@ pub const fn init_dma_buffer() -> [u32; LED_DMA_BUFFER_SIZE] {
     let mut idx: usize = 0;
 
     while idx < LED_DMA_BUFFER_SIZE {
-        init_dma_buffer[idx] = 1 << (row + 27);
+        init_dma_buffer[idx] = (1 << (row + 27)) | 0x07ffffff;
         row = (row + 1) % 5;
         idx = idx + 1;
     }
@@ -97,9 +97,9 @@ impl LedLevel {
         let orig = self.dither;
         self.dither = self.dither.wrapping_add(self.level);
         if orig < self.dither {
-            1
-        } else {
             0
+        } else {
+            1
         }
     }
 }
@@ -321,7 +321,8 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         // Set the delay for the latch on by pushing a value to the state machine,
         // 64, and then executing some assembler to pull it and send it to the ISR
         //
-        sm.tx().push(64);
+        //sm.tx().push(64);
+        sm.tx().push(1); // Drop to 1 for data debugging.
         unsafe {
             sm.exec_instr(
                 InstructionOperands::PULL {

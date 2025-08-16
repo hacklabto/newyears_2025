@@ -9,6 +9,7 @@ use hackernewyears::devices::split_resources_by_core;
 use hackernewyears::devices::Core0ResourcesBacklight;
 use hackernewyears::devices::Core0ResourcesMenu;
 use hackernewyears::devices::Core1Resources;
+use hackernewyears::led_driver::LedDriver;
 use hackernewyears::menu::MenuBinding;
 use hackernewyears::AnimatingGif;
 use hackernewyears::AnimatingGifs;
@@ -46,6 +47,7 @@ async fn main(spawner: Spawner) {
     spawner
         .spawn(core0_menu_task(core0_resources_menu))
         .unwrap();
+    spawner.spawn(led_driver()).unwrap();
 }
 
 #[embassy_executor::task]
@@ -121,4 +123,10 @@ async fn core1_task(core1_resources: Core1Resources) {
     loop {
         devices.piosound.play_sound().await;
     }
+}
+
+#[embassy_executor::task]
+async fn led_driver() {
+    let mut driver = LedDriver::default();
+    driver.run().await
 }

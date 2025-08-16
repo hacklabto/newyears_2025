@@ -24,6 +24,8 @@ pub use devices::DevicesCore1;
 pub mod display;
 pub use display::DisplaySSD;
 
+pub mod led_driver;
+
 pub mod menu;
 
 //mod sound;
