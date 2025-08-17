@@ -164,7 +164,10 @@ impl BacklightUser {
 
         for item in dma_buffer.iter_mut() {
             *item = (*item & 0xf8000000) | self.assemble_column(row);
-            row = (row + 1) % LED_ROWS;
+            row = row + 1;
+            if row >= LED_ROWS {
+                row = 0;
+            }
         }
         advance_read_dma_buffer();
     }
@@ -457,15 +460,13 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         self.state_machine.set_enable(true);
     }
 
-    pub async fn display_and_update(&mut self) {
+    pub async fn display_one_frame(&mut self) {
         let dma_buffer = get_read_dma_buffer();
 
         let dma_buffer_in_flight =
             self.state_machine
                 .tx()
                 .dma_push(self.dma_channel.reborrow(), dma_buffer, true);
-
-        // TODO, update code.
 
         dma_buffer_in_flight.await;
     }

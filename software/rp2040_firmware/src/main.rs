@@ -2,7 +2,10 @@
 #![no_main]
 
 use defmt::*;
+use embassy_executor::InterruptExecutor;
 use embassy_executor::{Executor, Spawner};
+use embassy_rp::interrupt;
+use embassy_rp::interrupt::{InterruptExt, Priority};
 use embassy_rp::multicore::{spawn_core1, Stack};
 use embassy_time::{Duration, Timer};
 use hackernewyears::devices::split_resources_by_core;
@@ -22,6 +25,12 @@ use {defmt_rtt as _, panic_probe as _};
 
 static mut CORE1_STACK: Stack<32768> = Stack::new();
 static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
+static EXECUTOR_HIGH: InterruptExecutor = InterruptExecutor::new();
+
+#[interrupt]
+unsafe fn SWI_IRQ_1() {
+    EXECUTOR_HIGH.on_interrupt()
+}
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -41,7 +50,11 @@ async fn main(spawner: Spawner) {
     );
     defmt::info!("Executing Core 0");
 
-    spawner
+    // High-priority executor: SWI_IRQ_1, priority level 2
+    interrupt::SWI_IRQ_1.set_priority(Priority::P2);
+    let spawner_high = EXECUTOR_HIGH.start(interrupt::SWI_IRQ_1);
+    //unwrap!(spawner_high.spawn(run_high()));
+    spawner_high
         .spawn(core0_backlight_task(core0_resources_backlight))
         .unwrap();
     spawner
@@ -110,7 +123,7 @@ async fn core0_menu_task(core0_resources_menu: Core0ResourcesMenu) {
 async fn core0_backlight_task(core0_resources_backlight: Core0ResourcesBacklight) {
     let mut devices = hackernewyears::DevicesCore0Backlight::new(core0_resources_backlight);
     loop {
-        devices.backlight.display_and_update().await;
+        devices.backlight.display_one_frame().await;
     }
 }
 
