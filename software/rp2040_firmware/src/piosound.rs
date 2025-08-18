@@ -23,6 +23,9 @@ bind_interrupts!(struct PioIrqs0 {
 
 const PWM_BITS: u32 = 6;
 const REMAINDER_BITS: u32 = 10 - PWM_BITS;
+
+// Right noiw the playback time for each buffer is 16384/20292/16 seconds, ~= .05s
+//
 const DMA_BUFSIZE: usize = 16384;
 
 #[allow(clippy::declare_interior_mutable_const)]

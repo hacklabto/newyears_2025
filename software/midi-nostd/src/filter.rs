@@ -81,7 +81,7 @@ struct FilterParams {
 impl FilterParams {
     const fn new(cutoff_frequency: u32, sample_frequency: u32) -> Self {
         let raw_params = lowpass_butterworth(cutoff_frequency as i64, sample_frequency as i64);
-        const ONE: f32 = (1i32<< 15) as f32;
+        const ONE: f32 = (1i32 << 15) as f32;
         Self {
             b1: (raw_params.1 * ONE) as i32,
             a1: (raw_params.3 * ONE) as i32,
@@ -210,7 +210,7 @@ impl<const P_FREQ: u32, const U_FREQ: u32, Source: OscillatorInterface<P_FREQ, U
             //
             // I'm using 32 bit numbers here, which is a bit sketchy.
             // If I have a 400hz filter and a 24000hz playback, b0 will be about
-            // 0.0027137.  The input will be from -(1<<15) to (1<<15), so 
+            // 0.0027137.  The input will be from -(1<<15) to (1<<15), so
             // b0_input_term will be from -88 to 88.  That's a lot of precision loss
             // on the values going into d1 and d2.  And yet it seems to sound okay.
             //

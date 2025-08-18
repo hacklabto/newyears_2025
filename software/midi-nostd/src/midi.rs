@@ -151,6 +151,12 @@ impl<
         }
         self.amp_adder.get_next()
     }
+    pub fn get_note_state(self: &Self, note_volume: &mut [u8; 128]) {
+        for item in note_volume.iter_mut() {
+            *item = 0;
+        }
+        self.channels.get_note_state(note_volume);
+    }
 
     pub fn has_next(self: &Self) -> bool {
         self.tracks_still_playing
