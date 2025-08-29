@@ -1,3 +1,55 @@
+//
+// High level sound playback documentation
+// =======================================
+//
+// Sound playback in hacker new year is done using reasonably high frequency
+// pulse width modulation. The number of pulses / second is given by
+// 125,000,000 mhz (the IO frequency) /
+// 64 (the number of levels of each output pulse) /
+// 3  (the approximate numer of IO clock cycles per pulse pulse level)
+//
+// or about 651000 pulses per second.  The hope is that, by outputting the pulses this fast,
+// any weird harmonic problems from trying to trying to use a digial output - two IO pins that
+// can only bet set on and off, will be high frequency enough that they'll be out of the range
+// humans can hear.
+//
+// As just mentioned, the output is two IO pins.  The three legal configurations supported
+// are...
+//
+// 0  0     Speaker is off, no sound
+// 1  0     Speaker wire 1 has voltage, Speaker wire 2 is grounded
+// 0  1     Speaker wire 2 has voltage, Speaker wire 2 is grounded
+//
+// A nice thing about this configuration is that we won't needed to genrate pulses to output
+// silence, which is when imperfections in the scheme are most noticable.
+//
+// Why not output pulses faster, or slower?  Right now, the answer is that this seems to
+// work in testing.
+//
+// Problems with outputting pulses faster
+// ======================================
+//
+// The current implementation has one of the cores prepare a DMA buffer that goes to the
+// RPi Pico's PIO hardware and is then played back.  Faster playback increases the chance
+// that the PIO will run out of bytes before the next DMA buffer can be lauched.  This
+// could be fixed of embassy supported ping pong style DMA output.  The actual hardware
+// totally supports it, but the embassy framework is stll a work in progress.
+//
+// The second problem is that the DMA buffer has to be prepared on the core. Outputting
+// pulses faster puts more load on the core, which is already struggling to do the midi
+// playback.
+//
+// Problems with output pulses slower
+// ==================================
+//
+// It just doesn't sound as good.  When PWM is used on slower hardware, like a stepper motor
+// or a selonoid, you take advantage of the fact that the hardware can't physically move that
+// fast, but speakers are designed to move fast.
+//
+// Should we just put a low pass filter into the hardware?  Hey, I'm a programmer, not a
+// hardware designer.
+//
+
 use crate::audio_playback::AudioPlayback;
 use embassy_rp::bind_interrupts;
 use embassy_rp::dma::Channel;
