@@ -6,6 +6,8 @@ pub use animating_gif::AnimatingGifs;
 
 pub mod backlight;
 pub use backlight::PioBacklight;
+pub use backlight::LED_COLUMNS;
+pub use backlight::LED_ROWS;
 
 pub mod piosound;
 pub use piosound::PioSound;

@@ -13,8 +13,9 @@ use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
 
-const LED_COLUMNS: usize = 27;
-const LED_ROWS: usize = 5;
+pub const LED_COLUMNS: usize = 9;
+pub const LED_ROWS: usize = 5;
+const COLORS_PER_LED: usize = 3;
 const LED_LEVELS: usize = 256;
 const LED_DMA_BUFFER_SIZE: usize = LED_ROWS * LED_LEVELS;
 
@@ -115,7 +116,7 @@ impl Default for LedLevel {
 
 // User interface/ DMA buffer updater
 pub struct BacklightUser {
-    led_levels: [[LedLevel; LED_COLUMNS]; LED_ROWS],
+    led_levels: [[LedLevel; LED_COLUMNS * COLORS_PER_LED]; LED_ROWS],
 }
 
 impl BacklightUser {
