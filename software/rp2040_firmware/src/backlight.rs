@@ -251,24 +251,22 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 "mov x, y"
 
             "fillrow:"
-                // Load the LED_DATA bit from the FIFO
+                // Get a bit from the FIFO and send it to LED_DATA/ SDI
                 "out pins, 1"
-                // 8ns > LED_DATA t_setup (3ns) has passed, so bring CLK high to latch LED_DATA in
-                // TODO, confirm the clock latches on a positive edge.  It looks like it does
-                // from the test program.  TODO, get this on the scope.
+                // The delay to the next instruction is 1/125000000, or 8ns.
+                // 8ns > LED_DATA t_setup (3ns) has passed, so bring CLK high to latch LED_DATA in.
+                // From the spec sheet, data latches in on a positive clock edge.
                 "nop        side 0b01"
+                // The delay to the next instruction is 1/125000000, or 8ns.
                 // 8ns > LED_DATA t_hold (4ns) has passed.  Bring the clock back down
                 "nop        side 0b00"
                 // Loop around until the row is full (32 values, stored in y)
                 "jmp x--, fillrow"
 
-                // Row is full, so bring LED_LATCH high and keep clock low.
-                // TODO, check data sheet to see if I need a pause before I set latch to high
-                // TODO, the low clock is what we did when I doing the hardware test code,
-                // and might not be right.  Check data sheet
                 // TODO, On the same test code I also changed the clear.  Check data sheet.
 
-                // It's been 16ns > 15ns since LED_CLK went high, so this is ok
+                // It's been 16ns > 15ns since LED_CLK went high, so this is ok.  Also, we're
+                // holding this high for a good block of time.
                 "mov x, ISR   side 0b10"
 
             "latch_on_delay_loop:"
@@ -278,6 +276,12 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 // Wait one extra cycle so 24ns > min LED_LATCH pulse (20ns) passes
                 // TODO, data sheet for any timings needed her before we latch in the next row
                 "nop        side 0b00 [1]"
+
+                // I'm going to toss some nops in because I'm too lazy to work out the proper delay
+                // between taking down the latch and the start of the next clock
+                "nop"
+                "nop"
+                "nop"
 
                 "jmp start_fill_row"
         );
@@ -318,8 +322,6 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
 
         pio_cfg.clock_divider = 1.to_fixed();
         sm.set_config(&pio_cfg);
-
-        // TODO, improve this in terms of readability
 
         //
         // Set the delay for the latch on by pushing a value to the state machine,
