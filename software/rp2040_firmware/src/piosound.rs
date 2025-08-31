@@ -49,6 +49,12 @@
 // Should we just put a low pass filter into the hardware?  Hey, I'm a programmer, not a
 // hardware designer.
 //
+// Sound sample Dithering
+// ======================
+//
+// The midi playback rate is defined in audio_playback.rs and is currenty 20292hz
+// which means we generate 65100/20292, or 32 pulses per audio sample played back
+//
 
 use crate::audio_playback::AudioPlayback;
 use embassy_rp::bind_interrupts;
@@ -73,6 +79,8 @@ bind_interrupts!(struct PioIrqs0 {
     PIO0_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO0>;
 });
 
+// Defines the 64 PWM levels per sample.  2^6 = 64
+//
 const PWM_BITS: u32 = 6;
 const REMAINDER_BITS: u32 = 10 - PWM_BITS;
 
