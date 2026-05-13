@@ -1,33 +1,18 @@
 //! Midi playback example using PortAudio
 
-extern crate portaudio;
 use midi_nostd::midi::Midi;
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use std::time::Duration;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
-use portaudio as pa;
-
-const CHANNELS: i32 = 2;
-const SAMPLE_RATE: f64 = 24_000.0;
-const FRAMES_PER_BUFFER: u32 = 64;
-
-fn main() {
-    match run() {
-        Ok(_) => {}
-        e => {
-            eprintln!("Example failed with the following: {:?}", e);
-        }
-    }
-}
-
-fn run() -> Result<(), pa::Error> {
-    println!(
-        "Midi Playback Example.  SR = {}, BufSize = {}",
-        SAMPLE_RATE, FRAMES_PER_BUFFER
-    );
-
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Bring up midi player
     let (header, tracks) = midly::parse(include_bytes!("../assets/pineapple_rag.mid"))
         .expect("It's inlined data, so its expected to parse");
 
-    type MyMidi<'a> = Midi<'a, 24000, 240, 64, 32>;
+    type MyMidi<'a> = Midi<'a, 44100, 441, 64, 32>;
+
     println!(
         "Midi structure is currently using {} bytes",
         std::mem::size_of::<MyMidi>()
@@ -35,46 +20,57 @@ fn run() -> Result<(), pa::Error> {
 
     let mut midi = MyMidi::new(&header, tracks);
     
-    /*
-        for _ in 0..24000*60 {
-            midi.get_next();
-        }
-    */
+    // 1. Initialize the audio host (ALSA on Ubuntu)
+    let host = cpal::default_host();
 
-    let pa = pa::PortAudio::new()?;
+    // 2. Get the default output device
+    let device = host.default_output_device()
+        .ok_or("No output device found")?;
 
-    let mut settings =
-        pa.default_output_stream_settings(CHANNELS, SAMPLE_RATE, FRAMES_PER_BUFFER)?;
-    // we won't output out of range samples so don't bother clipping them.
-    settings.flags = pa::StreamFlags::CLIP_OFF;
+    // 3. Get the default configuration
+    let config = device.default_output_config()?;
+    let sample_rate = config.sample_rate().0 as f32;
+    let channels = config.channels() as usize;
 
-    let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
-        let mut idx = 0;
-        //println!("Simultaneous notes {}", midi.get_current_num_mixed_notes());
+    // Make sure the sample rate is 44100, which is what I set the
+    // midi player to.  Knowing values like sample rate at compile
+    // time helps keep the size of the midi library small (10400
+    // bytes) and helps Rust optimize playback, but the cost is needing
+    // to know the playback rate in advance.
+    //
+    println!("Playing on: {} Sample rate {}", device.name()?, sample_rate);
+    assert!( sample_rate == 44100.0 );
 
-        for _ in 0..frames {
-            let current = (midi.get_next().clip().to_i32() as f32) / 32768.0;
-            buffer[idx] = current;
-            buffer[idx + 1] = current;
-            idx += 2;
-        }
-        if midi.has_next() {
-            pa::Continue
-        } else {
-            pa::Complete
-        }
-    };
+    // 5. Build the output stream
+    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+ 
+    // Shared state: 'false' means still playing, 'true' means source exhausted
+    let finished = Arc::new(AtomicBool::new(false));
+    let finished_for_callback = finished.clone();
 
-    let mut stream = pa.open_non_blocking_stream(settings, callback)?;
+    let stream = device.build_output_stream(
+        &config.into(),
+        move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+            for frame in data.chunks_mut(channels) {
+                let value = (midi.get_next().clip().to_i32() as f32) / 32768.0;
+                for sample in frame.iter_mut() {
+                    *sample = value;
+                }
+                if !midi.has_next() {
+                    finished_for_callback.store(true, Ordering::Relaxed);
+                }
+            }
+        },
+        err_fn,
+        None,
+    )?;
 
-    stream.start()?;
-    while stream.is_active()? {
-        pa.sleep(100);
+    // 6. Start the stream and wait
+    stream.play()?;
+    while !finished.load(Ordering::Relaxed) {
+        std::thread::sleep(Duration::from_millis(100));
     }
-    stream.stop()?;
-    stream.close()?;
-
-    println!("Midi Playback Example Finished.");
+    stream.pause()?;
 
     Ok(())
 }
