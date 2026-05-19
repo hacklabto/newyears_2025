@@ -1,0 +1,3 @@
+[submodule "Paw-Connect"]
+	path = Paw-Connect
+	url = https://github.com/LeoDJ/Paw-Connect.git
