@@ -62,7 +62,11 @@ impl<'d, const PWM_BITS: u32, const PWM_REMAINDER_BITS: u32>
                 // The commented out line is what we'll probably want on the final board.  It
                 // plays, but it does terrible things to the low frequency notes.
                 //
-                //let value_raw: i32 = self.midi.get_next().to_i32();
+                // June 25/26 edit.  I'm going to keep the audio sample positive right now,
+                // which will generate a PWM on one pin and GND the other.  It creates a
+                // "static static" audio out of the speaker and faint music.
+                //
+                //let value_raw: i32 = self.midi.get_next().to_i32()/2;
                 let value_raw: i32 = (self.midi.get_next().to_i32() + 0x8000) / 2;
 
                 //

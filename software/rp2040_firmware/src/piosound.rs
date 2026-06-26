@@ -162,7 +162,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
                 // Gets the current volume the OSR.  Auto pulls new 32 bit values from the 
                 // FIFO being fed by the DMA when the OSR is empty
                 //
-                "out x,7                    side 0b11"  // change to 10 on final board.
+                "out x,7                    side 0b10"  // Inverse of the positive PID
                 "mov y, isr"
             "pwm_neg_loop_0:"
                 //
@@ -178,7 +178,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
 
                 // Once more, With Feeling.
 
-                "mov y, isr                         side 0b11"  // change to 10 on final board
+                "mov y, isr                         side 0b10"  // Inverse of the positive PID
             "pwm_neg_loop_1:"
                 "jmp x!=y pwm_neg_no_reset_1"
                 "jmp pwm_neg_skip_noop_1           side 0b00"
