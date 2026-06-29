@@ -28,12 +28,13 @@ ssd1306 = "0.10.0"
 embedded-graphics = "0.8.1"
 
 #
-# Needed for delays.  Up to date Aug 11 2025.
+# Needed for delays.  Up to date Jun 28 2026.
 #
-embassy-time = { version = "0.4.0", features = ["defmt", "defmt-timestamp-uptime"] }
+embassy-time = { version = "0.5.1", features = ["defmt", "defmt-timestamp-uptime"] }
 
 #
 # Needed to run main.  Crash when moved to 0.8.0 and removed the target-areana-size
+# Attempted to move to 0.9.0 as an incremental change.  Crashed.  So, yeah.
 #
 embassy-executor = { version = "0.8.0", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
 
