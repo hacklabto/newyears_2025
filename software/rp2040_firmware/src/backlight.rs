@@ -12,6 +12,7 @@ use embassy_time::Instant;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
+use embassy_time::{Duration, Timer};
 
 pub const LED_COLUMNS: usize = 9;
 pub const LED_ROWS: usize = 5;
@@ -192,7 +193,7 @@ pub struct PioBacklight<'d, Dma1: Channel> {
     test_clk_pin: Output<'d>,
     test_data_pin: Output<'d>,
     test_latch_pin: Output<'d>,
-    test_clear_pin: Output<'d>,
+    test_blank_pin: Output<'d>,
 }
 
 impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
@@ -201,11 +202,11 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         led_data_pin: Peri<'d, impl PioPin>,
         led_clk_pin: Peri<'d, impl PioPin>,
         led_latch_pin: Peri<'d, impl PioPin>,
-        led_clear_pin: Peri<'d, impl PioPin>,
-        test_clk: Peri<'d, impl Pin>,
+        led_blank_pin: Peri<'d, impl PioPin>,
         test_data: Peri<'d, impl Pin>,
+        test_clk: Peri<'d, impl Pin>,
         test_latch: Peri<'d, impl Pin>,
-        test_clear: Peri<'d, impl Pin>,
+        test_blank: Peri<'d, impl Pin>,
         dma_channel: Peri<'d, Dma1>,
     ) -> Self {
         let pio = Pio::new(arg_pio, PioIrqs1);
@@ -291,10 +292,10 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         let led_data_pin = common.make_pio_pin(led_data_pin);
         let led_clk_pin = common.make_pio_pin(led_clk_pin);
         let led_latch_pin = common.make_pio_pin(led_latch_pin);
-        let led_clear_pin = common.make_pio_pin(led_clear_pin);
+        let led_blank_pin = common.make_pio_pin(led_blank_pin);
         sm.set_pin_dirs(
             Direction::Out,
-            &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_clear_pin],
+            &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_blank_pin],
         );
 
         // Set all pins to low at the start
@@ -302,7 +303,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         // so we never touch it after this to keep the LED drivers always on
         sm.set_pins(
             Level::Low,
-            &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_clear_pin],
+            &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_blank_pin],
         );
 
         let mut pio_cfg = embassy_rp::pio::Config::default();
@@ -411,7 +412,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             test_clk_pin: Output::new(test_clk, Level::Low),
             test_data_pin: Output::new(test_data, Level::Low),
             test_latch_pin: Output::new(test_latch, Level::Low),
-            test_clear_pin: Output::new(test_clear, Level::Low),
+            test_blank_pin: Output::new(test_blank, Level::Low),
         }
     }
 
@@ -420,19 +421,36 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         while start_time.elapsed().as_millis() < 2 {}
     }
 
-    pub fn test_pattern(&mut self) {
+    // Test Pattern Notes...
+    //
+    // CLK is documented as clock input pin for data shift on rising edge...
+    // SDI/ data is latched in on the falling clock 
+    // LE data strobe.  Data is latched when LE goes low.
+    // Blank is active high
+    //
+    // The bc807 might be active low.
+    //
+    pub async fn test_pattern(&mut self) {
+        // Set latch to high so we just output whatever comes in
         self.test_latch_pin.set_high();
-        self.test_clear_pin.set_low();
-        let mut count: u32 = 0;
-        while count < 20 {
+        // Clear/ blank is active low
+        self.test_blank_pin.set_low();
             let mut bit_count: u32 = 0;
-            while bit_count < 32 {
-                self.test_data_pin.set_high();
+            while bit_count < 16
+            {
+                // 32 shift registers total...
+                //
+                // This pattern (alternating on and off) does not appear
+                // when the transistor board pins are tested.  
+                // TODO, get the scope on the breadboard outputs.
+                //
+                self.test_data_pin.set_low();
                 Self::delay();
                 self.test_clk_pin.set_high();
                 Self::delay();
                 self.test_clk_pin.set_low();
                 Self::delay();
+
                 self.test_data_pin.set_high();
                 Self::delay();
                 self.test_clk_pin.set_high();
@@ -441,27 +459,26 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 Self::delay();
                 bit_count = bit_count + 1;
             }
-            self.test_clear_pin.set_high();
-            Self::delay();
-            self.test_latch_pin.set_high();
-            Self::delay();
-            self.test_latch_pin.set_low();
-            Self::delay();
-            self.test_clear_pin.set_low();
-            Self::delay();
+            //self.test_blank_pin.set_high();
+            //Self::delay();
+            //self.test_latch_pin.set_low();
+            //Self::delay();
+            //self.test_latch_pin.set_high();
+            //Self::delay();
+            //self.test_blank_pin.set_low();
+            //Self::delay();
 
             let mut delay_count: u32 = 0;
             while delay_count < 50 {
                 Self::delay();
                 delay_count = delay_count + 1;
             }
-            count = count + 1;
-        }
+        Timer::after(Duration::from_millis(100)).await;
     }
 
-    pub fn start(&mut self) {
-        self.state_machine.set_enable(true);
-    }
+    //pub fn start(&mut self) {
+    //    self.state_machine.set_enable(true);
+    //}
 
     pub async fn display_one_frame(&mut self) {
         let dma_buffer = get_read_dma_buffer();

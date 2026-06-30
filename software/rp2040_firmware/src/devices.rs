@@ -40,8 +40,8 @@ assign_resources! {
         backlight_clk: PIN_7,
         backlight_latch: PIN_8,
         backlight_clr: PIN_9,
-        backlight_test_data: PIN_22,
-        backlight_test_clk: PIN_23,
+        backlight_test_data: PIN_23,
+        backlight_test_clk: PIN_22,
         backlight_test_latch: PIN_24,
         backlight_test_clr: PIN_25,
     }
