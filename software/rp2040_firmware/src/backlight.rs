@@ -432,7 +432,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
     //
     pub async fn test_pattern(&mut self) {
         // Set latch to high so we just output whatever comes in
-        self.test_latch_pin.set_high();
+        self.test_latch_pin.set_low();
         // Clear/ blank is active low
         self.test_blank_pin.set_low();
             let mut bit_count: u32 = 0;
@@ -459,14 +459,17 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 Self::delay();
                 bit_count = bit_count + 1;
             }
-            //self.test_blank_pin.set_high();
-            //Self::delay();
-            //self.test_latch_pin.set_low();
-            //Self::delay();
-            //self.test_latch_pin.set_high();
-            //Self::delay();
-            //self.test_blank_pin.set_low();
-            //Self::delay();
+
+            // From the data sheet...  I'm not 100% sure how
+            // much this pattern is needed...
+            self.test_blank_pin.set_high();
+            Self::delay();
+            self.test_latch_pin.set_high();
+            Self::delay();
+            self.test_latch_pin.set_low();
+            Self::delay();
+            self.test_blank_pin.set_low();
+            Self::delay();
 
             let mut delay_count: u32 = 0;
             while delay_count < 50 {
