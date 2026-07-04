@@ -436,7 +436,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         // Clear/ blank is active low
         self.test_blank_pin.set_low();
             let mut bit_count: u32 = 0;
-            while bit_count < 16
+            while bit_count < 32
             {
                 // 32 shift registers total...
                 //
@@ -444,19 +444,24 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 // when the transistor board pins are tested.  
                 // TODO, get the scope on the breadboard outputs.
                 //
-                self.test_data_pin.set_low();
+                if bit_count >= 32-4 {
+                    // Active high = current sink = enable BC807
+                    self.test_data_pin.set_high();
+                }
+                else if bit_count == 32-5 {
+                    // Turn one BC807 off for testing
+                    self.test_data_pin.set_low();
+                }
+                else {
+                    // set the LED low lines to "current sink"
+                    self.test_data_pin.set_high();
+                }
                 Self::delay();
                 self.test_clk_pin.set_high();
                 Self::delay();
                 self.test_clk_pin.set_low();
                 Self::delay();
 
-                self.test_data_pin.set_high();
-                Self::delay();
-                self.test_clk_pin.set_high();
-                Self::delay();
-                self.test_clk_pin.set_low();
-                Self::delay();
                 bit_count = bit_count + 1;
             }
 
