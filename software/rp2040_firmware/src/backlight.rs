@@ -295,7 +295,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         let led_blank_pin = common.make_pio_pin(led_blank_pin);
         sm.set_pin_dirs(
             Direction::Out,
-            &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_blank_pin],
+            &[&led_clk_pin, &led_data_pin, &led_latch_pin, &led_blank_pin],
         );
 
         // Set all pins to low at the start
@@ -303,14 +303,14 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         // so we never touch it after this to keep the LED drivers always on
         sm.set_pins(
             Level::Low,
-            &[&led_data_pin, &led_clk_pin, &led_latch_pin, &led_blank_pin],
+            &[&led_clk_pin, &led_data_pin, &led_latch_pin, &led_blank_pin],
         );
 
         let mut pio_cfg = embassy_rp::pio::Config::default();
         // The PIO state machine OUT command will only control LED_DATA
-        pio_cfg.set_out_pins(&[&led_data_pin]);
+        pio_cfg.set_out_pins(&[&led_clk_pin]);
 
-        pio_cfg.use_program(&prg, &[&led_clk_pin, &led_latch_pin]);
+        pio_cfg.use_program(&prg, &[&led_data_pin, &led_latch_pin]);
 
         // Automatically refill the internal shift register from the FIFO
         // when OUT empties it

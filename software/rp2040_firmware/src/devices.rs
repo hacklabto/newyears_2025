@@ -36,14 +36,28 @@ assign_resources! {
     core_0_resources_backlight: Core0ResourcesBacklight {
         backlight_pio: PIO1,
         backlight_dma0: DMA_CH0,
-        backlight_data: PIN_6,
-        backlight_clk: PIN_7,
+
+        // For testing on the current board
+        backlight_clk: PIN_6,
+        backlight_data: PIN_7,
         backlight_latch: PIN_8,
         backlight_clr: PIN_9,
-        backlight_test_data: PIN_23,
         backlight_test_clk: PIN_22,
+        backlight_test_data: PIN_23,
         backlight_test_latch: PIN_24,
         backlight_test_clr: PIN_25,
+
+        // For testing on the breadboard (pin 22-25 isn't exposed)
+        /*
+        backlight_clk: PIN_22,
+        backlight_data: PIN_23,
+        backlight_latch: PIN_24,
+        backlight_clr: PIN_25,
+        backlight_test_clk: PIN_6,
+        backlight_test_data: PIN_7,
+        backlight_test_latch: PIN_8,
+        backlight_test_clr: PIN_9,
+        */
     }
     core_1_handle: Core1Handle {
         core_1: CORE1
