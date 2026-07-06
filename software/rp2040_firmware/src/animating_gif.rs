@@ -47,7 +47,7 @@ impl AnimatingGifs<'_> {
             AnimatingGif::Abstract => &self.abstract_animation,
             AnimatingGif::Logo => &self.logo,
         };
-        //devices.display.clear(BinaryColor::Off).unwrap();
+        devices.display.clear(BinaryColor::Off).unwrap();
 
         for frame in gif.frames() {
             if devices.buttons.is_pressed(Button::B0) {
@@ -60,8 +60,8 @@ impl AnimatingGifs<'_> {
                     time_to_frame.try_into().unwrap(),
                 ));
                 ticker.next().await;
-                //frame.draw(&mut devices.display).unwrap();
-                //devices.display.flush().unwrap();
+                frame.draw(&mut devices.display).unwrap();
+                devices.display.flush().unwrap();
             }
             animation_time += (frame.delay_centis as i32) * 10;
         }

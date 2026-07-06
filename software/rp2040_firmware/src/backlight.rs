@@ -455,13 +455,17 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                     self.test_data_pin.set_low();
                 }
                 else {
-                    let channel:u32 = (bit_count - 6) % 6;
-                    if ((self.cycle >> channel) & 1) == 1 {
+                    if self.cycle == bit_count {
                         self.test_data_pin.set_high();
                     }
                     else {
                         self.test_data_pin.set_low();
                     }
+                    //let channel:u32 = bit_count - 6) % 6;
+                    //if ((self.cycle >> channel) & 1) == 1 {
+                   //// }
+                    //else {
+                   // }
                 }
                 Self::delay();
                 self.test_clk_pin.set_high();
@@ -490,6 +494,9 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             }
 
         self.cycle = self.cycle + 1;
+        if self.cycle > 32-5 {
+            self.cycle = 0;
+        }
 
         Timer::after(Duration::from_millis(100)).await;
     }

@@ -82,7 +82,7 @@ pub fn split_resources_by_core<'a>(
 }
 
 pub struct DevicesCore0Menu<'a> {
-    //pub display: DisplaySSD<'a>,
+    pub display: DisplaySSD<'a>,
     pub buttons: Buttons<'a>,
 }
 
@@ -95,13 +95,11 @@ impl<'a> DevicesCore0Menu<'a> {
                 core0_resources.button_down,
                 core0_resources.button_action,
             ),
-            /*
             display: create_ssd_display(
                 core0_resources.display_i2c_interface,
                 core0_resources.display_i2c_scl,
                 core0_resources.display_i2c_sda,
             ),
-            */
         }
     }
 }
