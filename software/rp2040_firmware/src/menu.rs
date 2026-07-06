@@ -36,6 +36,7 @@ fn draw_menu<T: Clone>(
     percent_offset_from_target: i32,
     devices: &mut DevicesCore0Menu<'_>,
 ) {
+    /*
     const GAP: i32 = 16;
     const MID: i32 = 18;
     let main_loc = MID - GAP * percent_offset_from_target / (ONE_HUNDRED_PERCENT as i32);
@@ -72,6 +73,7 @@ fn draw_menu<T: Clone>(
         );
     }
     devices.display.flush().unwrap();
+    */
 }
 
 pub async fn transition_to_new_target_pos<T: Clone>(

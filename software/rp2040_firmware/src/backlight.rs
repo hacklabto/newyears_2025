@@ -194,6 +194,7 @@ pub struct PioBacklight<'d, Dma1: Channel> {
     test_data_pin: Output<'d>,
     test_latch_pin: Output<'d>,
     test_blank_pin: Output<'d>,
+    cycle: u32,
 }
 
 impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
@@ -413,12 +414,13 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             test_data_pin: Output::new(test_data, Level::Low),
             test_latch_pin: Output::new(test_latch, Level::Low),
             test_blank_pin: Output::new(test_blank, Level::Low),
+            cycle: 0,
         }
     }
 
     pub fn delay() {
         let start_time = Instant::now();
-        while start_time.elapsed().as_millis() < 2 {}
+        while start_time.elapsed().as_millis() < 1 {}
     }
 
     // Test Pattern Notes...
@@ -453,8 +455,13 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                     self.test_data_pin.set_low();
                 }
                 else {
-                    // set the LED low lines to "current sink"
-                    self.test_data_pin.set_high();
+                    let channel:u32 = (bit_count - 6) % 6;
+                    if ((self.cycle >> channel) & 1) == 1 {
+                        self.test_data_pin.set_high();
+                    }
+                    else {
+                        self.test_data_pin.set_low();
+                    }
                 }
                 Self::delay();
                 self.test_clk_pin.set_high();
@@ -481,6 +488,9 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 Self::delay();
                 delay_count = delay_count + 1;
             }
+
+        self.cycle = self.cycle + 1;
+
         Timer::after(Duration::from_millis(100)).await;
     }
 
