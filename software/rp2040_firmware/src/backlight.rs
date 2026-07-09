@@ -253,7 +253,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             // levels of RGB for each of the 45 LEDs.
             //
             "start_fill_row:"
-                "mov y, ISR"
+                "set y, 31"
 
             "fillrow_bit:"
                 // Get a bit from the FIFO...
@@ -505,7 +505,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
     pub async fn test_pattern(&mut self) {
         let dma_buffer = get_read_dma_buffer();
 
-        dma_buffer[0] = 0x80000000;
+        dma_buffer[0] = 0x000f0000;
 
         let dma_buffer_in_flight =
             self.state_machine
