@@ -8,7 +8,6 @@ use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
 use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine};
 use embassy_rp::Peri;
-use embassy_time::Instant;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
 use pio::InstructionOperands;
@@ -418,9 +417,10 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         }
     }
 
-    pub fn delay() {
-        let start_time = Instant::now();
-        while start_time.elapsed().as_millis() < 1 {}
+    pub async fn delay() {
+        Timer::after(Duration::from_millis(1)).await;
+        //let start_time = Instant::now();
+        //while start_time.elapsed().as_millis() < 1 {}
     }
 
     // Test Pattern Notes...
@@ -467,11 +467,11 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                     //else {
                    // }
                 }
-                Self::delay();
+                Self::delay().await;
                 self.test_clk_pin.set_high();
-                Self::delay();
+                Self::delay().await;
                 self.test_clk_pin.set_low();
-                Self::delay();
+                Self::delay().await;
 
                 bit_count = bit_count + 1;
             }
@@ -479,19 +479,15 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             // From the data sheet...  I'm not 100% sure how
             // much this pattern is needed...
             self.test_blank_pin.set_high();
-            Self::delay();
+            Self::delay().await;
             self.test_latch_pin.set_high();
-            Self::delay();
+            Self::delay().await;
             self.test_latch_pin.set_low();
-            Self::delay();
+            Self::delay().await;
             self.test_blank_pin.set_low();
-            Self::delay();
+            Self::delay().await;
 
-            let mut delay_count: u32 = 0;
-            while delay_count < 50 {
-                Self::delay();
-                delay_count = delay_count + 1;
-            }
+            Timer::after(Duration::from_millis(50)).await;
 
         self.cycle = self.cycle + 1;
         if self.cycle > 32-5 {
