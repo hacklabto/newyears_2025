@@ -17,7 +17,8 @@ pub const LED_COLUMNS: usize = 9;
 pub const LED_ROWS: usize = 5;
 const COLORS_PER_LED: usize = 3;
 const LED_LEVELS: usize = 256;
-const LED_DMA_BUFFER_SIZE: usize = LED_ROWS * LED_LEVELS;
+//const LED_DMA_BUFFER_SIZE: usize = LED_ROWS * LED_LEVELS;
+const LED_DMA_BUFFER_SIZE: usize = 1;
 
 pub const fn init_dma_buffer() -> [u32; LED_DMA_BUFFER_SIZE] {
     let mut init_dma_buffer: [u32; LED_DMA_BUFFER_SIZE] = [0; LED_DMA_BUFFER_SIZE];
@@ -25,7 +26,7 @@ pub const fn init_dma_buffer() -> [u32; LED_DMA_BUFFER_SIZE] {
     let mut idx: usize = 0;
 
     while idx < LED_DMA_BUFFER_SIZE {
-        init_dma_buffer[idx] = (1 << (row + 27)) | 0x07ffffff;
+        init_dma_buffer[idx] = 0xf800000; //(1 << (row + 27)) | 0x07ffffff;
         row = (row + 1) % 5;
         idx = idx + 1;
     }
@@ -46,15 +47,15 @@ static mut DMA_BUFFER_2: [u32; LED_DMA_BUFFER_SIZE] = init_dma_buffer();
 static DMA_READ_BUFFER: AtomicU8 = AtomicU8::new(0);
 
 #[allow(static_mut_refs)]
-fn get_read_dma_buffer() -> &'static [u32] {
+fn get_read_dma_buffer() -> &'static mut [u32] {
     let read_buffer: u8 = DMA_READ_BUFFER.load(Ordering::Relaxed);
     unsafe {
         if read_buffer == 0 {
-            &DMA_BUFFER_0
+            &mut DMA_BUFFER_0
         } else if read_buffer == 1 {
-            &DMA_BUFFER_1
+            &mut DMA_BUFFER_1
         } else {
-            &DMA_BUFFER_2
+            &mut DMA_BUFFER_2
         }
     }
 }
@@ -160,6 +161,7 @@ impl BacklightUser {
     }
 
     pub fn update_led_dma_buffer(self: &mut Self) {
+        /*
         let mut row: usize = 0;
         let dma_buffer = get_write_dma_buffer();
 
@@ -171,6 +173,7 @@ impl BacklightUser {
             }
         }
         advance_read_dma_buffer();
+        */
     }
 }
 
@@ -195,6 +198,7 @@ pub struct PioBacklight<'d, Dma1: Channel> {
     test_blank_pin: Output<'d>,
     cycle: u32,
 }
+
 
 impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
     pub fn new(
@@ -238,7 +242,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         let prg = pio_asm!(
             // Note: At default 125MHz clock, every instruction except the
             // blocking PULL takes 8ns
-            ".side_set 2 opt"
+            ".side_set 3 opt"
 
             //
             // The shift register has 32 registers in it, so we want to latch out once
@@ -249,40 +253,45 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             // levels of RGB for each of the 45 LEDs.
             //
             "start_fill_row:"
-                "mov x, y"
+                "mov y, ISR"
 
-            "fillrow:"
-                // Get a bit from the FIFO and send it to LED_DATA/ SDI
-                "out pins, 1"
+            "fillrow_bit:"
+                // Get a bit from the FIFO...
+                "out x, 1"
+                "jmp !x, input_is_one"
+                // Input is 0.  Bit 0 = clk, bit 1 = data, bit 2 = latch
+                // shift in a a 0
+                "nop        side 0b000 [1]"
                 // The delay to the next instruction is 1/125000000, or 8ns.
                 // 8ns > LED_DATA t_setup (3ns) has passed, so bring CLK high to latch LED_DATA in.
                 // From the spec sheet, data latches in on a positive clock edge.
-                "nop        side 0b01"
+                "nop        side 0b001 [1]"
                 // The delay to the next instruction is 1/125000000, or 8ns.
                 // 8ns > LED_DATA t_hold (4ns) has passed.  Bring the clock back down
-                "nop        side 0b00"
+                "nop        side 0b000"
                 // Loop around until the row is full (32 values, stored in y)
-                "jmp x--, fillrow"
+                "jmp y--, fillrow_bit"
+                "jmp do_latching"
 
-                // TODO, On the same test code I also changed the clear.  Check data sheet.
+            "input_is_one:"
+                // Input is 1.  Bit 0 = clk, bit 1 = data, bit 2 = latch
+                // shift in a a 0
+                "nop        side 0b010 [1]"
+                // The delay to the next instruction is 1/125000000, or 8ns.
+                // 8ns > LED_DATA t_setup (3ns) has passed, so bring CLK high to latch LED_DATA in.
+                // From the spec sheet, data latches in on a positive clock edge.
+                "nop        side 0b011 [1]"
+                // The delay to the next instruction is 1/125000000, or 8ns.
+                // 8ns > LED_DATA t_hold (4ns) has passed.  Bring the clock back down
+                "nop        side 0b010"
+                // Loop around until the row is full (32 values, stored in y)
+                "jmp y--, fillrow_bit"
 
+            "do_latching:"
                 // It's been 16ns > 15ns since LED_CLK went high, so this is ok.  Also, we're
                 // holding this high for a good block of time.
-                "mov x, ISR   side 0b10"
-
-            "latch_on_delay_loop:"
-                "jmp x--, latch_on_delay_loop"
-
-                // 24ns > min LED_CLK pulse (20ns) has passed, so we can set it low.
-                // Wait one extra cycle so 24ns > min LED_LATCH pulse (20ns) passes
-                // TODO, data sheet for any timings needed her before we latch in the next row
-                "nop        side 0b00 [1]"
-
-                // I'm going to toss some nops in because I'm too lazy to work out the proper delay
-                // between taking down the latch and the start of the next clock
-                "nop"
-                "nop"
-                "nop"
+                "nop        side 0b100 [1]"
+                "nop        side 0b000"
 
                 "jmp start_fill_row"
         );
@@ -310,7 +319,10 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         // The PIO state machine OUT command will only control LED_DATA
         pio_cfg.set_out_pins(&[&led_clk_pin]);
 
-        pio_cfg.use_program(&prg, &[&led_data_pin, &led_latch_pin]);
+        // 0 - data pin
+        // 1 - clk pin
+        // 2 - latch pin
+        pio_cfg.use_program(&prg, &[&led_clk_pin, &led_data_pin, &led_latch_pin]);
 
         // Automatically refill the internal shift register from the FIFO
         // when OUT empties it
@@ -363,6 +375,9 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 .encode(),
             );
         };
+
+        // Shift 32 bits then latch
+        Self::set_top(&mut sm, 32);
 
         // Turn on the machine.  What could go wrong.
 
@@ -418,9 +433,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
     }
 
     pub async fn delay() {
-        Timer::after(Duration::from_millis(1)).await;
-        //let start_time = Instant::now();
-        //while start_time.elapsed().as_millis() < 1 {}
+        Timer::after(Duration::from_micros(10)).await;
     }
 
     // Test Pattern Notes...
@@ -432,7 +445,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
     //
     // The bc807 might be active low.
     //
-    pub async fn test_pattern(&mut self) {
+    pub async fn test_pattern_2(&mut self) {
         // Set latch to high so we just output whatever comes in
         self.test_latch_pin.set_low();
         // Clear/ blank is active low
@@ -461,11 +474,6 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                     else {
                         self.test_data_pin.set_low();
                     }
-                    //let channel:u32 = bit_count - 6) % 6;
-                    //if ((self.cycle >> channel) & 1) == 1 {
-                   //// }
-                    //else {
-                   // }
                 }
                 Self::delay().await;
                 self.test_clk_pin.set_high();
@@ -478,16 +486,13 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
 
             // From the data sheet...  I'm not 100% sure how
             // much this pattern is needed...
-            self.test_blank_pin.set_high();
-            Self::delay().await;
+            
             self.test_latch_pin.set_high();
             Self::delay().await;
             self.test_latch_pin.set_low();
             Self::delay().await;
-            self.test_blank_pin.set_low();
-            Self::delay().await;
 
-            Timer::after(Duration::from_millis(50)).await;
+            Timer::after(Duration::from_millis(1)).await;
 
         self.cycle = self.cycle + 1;
         if self.cycle > 32-5 {
@@ -497,6 +502,19 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         Timer::after(Duration::from_millis(100)).await;
     }
 
+    pub async fn test_pattern(&mut self) {
+        let dma_buffer = get_read_dma_buffer();
+
+        dma_buffer[0] = 0x80000000;
+
+        let dma_buffer_in_flight =
+            self.state_machine
+                .tx()
+                .dma_push(self.dma_channel.reborrow(), dma_buffer, true);
+
+        dma_buffer_in_flight.await;
+        Timer::after(Duration::from_millis(1000)).await;
+    }
     //pub fn start(&mut self) {
     //    self.state_machine.set_enable(true);
     //}
@@ -511,4 +529,36 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
 
         dma_buffer_in_flight.await;
     }
+
+    //
+    // Set the "top" of the PWM.  The PIO assembly doesn't seem to have
+    // a suitable load immediate instruction, so instead we'll put top's
+    // value into the ISR
+    //
+    pub fn set_top(state_machine: &mut StateMachine<'d, PIO1, 0>, top: u32) {
+        let is_enabled = state_machine.is_enabled();
+        while !state_machine.tx().empty() {} // Make sure that the queue is empty
+        state_machine.set_enable(false);
+        state_machine.tx().push(top);
+        unsafe {
+            state_machine.exec_instr(
+                InstructionOperands::PULL {
+                    if_empty: false,
+                    block: false,
+                }
+                .encode(),
+            );
+            state_machine.exec_instr(
+                InstructionOperands::OUT {
+                    destination: ::pio::OutDestination::ISR,
+                    bit_count: 32,
+                }
+                .encode(),
+            );
+        };
+        if is_enabled {
+            state_machine.set_enable(true) // Enable if previously enabled
+        }
+    }
+
 }
