@@ -36,7 +36,7 @@ impl LedDriver {
             }
             self.back_light_user.update_led_dma_buffer();
 
-            let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(10));
+            let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(50));
             ticker.next().await;
         }
     }
