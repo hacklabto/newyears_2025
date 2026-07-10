@@ -17,20 +17,10 @@ pub const LED_COLUMNS: usize = 9;
 pub const LED_ROWS: usize = 5;
 const COLORS_PER_LED: usize = 3;
 const LED_LEVELS: usize = 256;
-//const LED_DMA_BUFFER_SIZE: usize = LED_ROWS * LED_LEVELS;
-const LED_DMA_BUFFER_SIZE: usize = 1;
+const LED_DMA_BUFFER_SIZE: usize = LED_ROWS * LED_LEVELS;
 
 pub const fn init_dma_buffer() -> [u32; LED_DMA_BUFFER_SIZE] {
     let mut init_dma_buffer: [u32; LED_DMA_BUFFER_SIZE] = [0; LED_DMA_BUFFER_SIZE];
-    let mut row = 0;
-    let mut idx: usize = 0;
-
-    while idx < LED_DMA_BUFFER_SIZE {
-        init_dma_buffer[idx] = 0xf800000; //(1 << (row + 27)) | 0x07ffffff;
-        row = (row + 1) % 5;
-        idx = idx + 1;
-    }
-
     init_dma_buffer
 }
 
@@ -129,51 +119,90 @@ impl BacklightUser {
     }
     #[inline]
     pub fn assemble_column(self: &mut Self, column: usize) -> u32 {
+        //
+        // u32 stored as little endian, read into the IO as big endian.  Lol.
+        //
+        // Shere's the shift register bit to u32 mapping
+        //
+        // Hardware shift reg 00     u32 bit 7
+        // Hardware shift reg 01     u32 bit 6
+        // Hardware shift reg 02     u32 bit 5
+        // Hardware shift reg 03     u32 bit 4
+        // Hardware shift reg 04     u32 bit 3
+        // Hardware shift reg 05     u32 bit 2
+        // Hardware shift reg 06     u32 bit 1
+        // Hardware shift reg 07     u32 bit 0
+        // Hardware shift reg 08     u32 bit 15 
+        // Hardware shift reg 09     u32 bit 14
+        // Hardware shift reg 10     u32 bit 13
+        // Hardware shift reg 11     u32 bit 12
+        // Hardware shift reg 12     u32 bit 11
+        // Hardware shift reg 13     u32 bit 10
+        // Hardware shift reg 14     u32 bit 9
+        // Hardware shift reg 15     u32 bit 8
+        // Hardware shift reg 16     u32 bit 23
+        // Hardware shift reg 17     u32 bit 22
+        // Hardware shift reg 18     u32 bit 21
+        // Hardware shift reg 19     u32 bit 20
+        // Hardware shift reg 20     u32 bit 19
+        // Hardware shift reg 21     u32 bit 18
+        // Hardware shift reg 22     u32 bit 17
+        // Hardware shift reg 23     u32 bit 16
+        // Hardware shift reg 24     u32 bit 31
+        // Hardware shift reg 25     u32 bit 30
+        // Hardware shift reg 26     u32 bit 29
+        // Hardware shift reg 27     u32 bit 28
+        // Hardware shift reg 28     u32 bit 27
+        // Hardware shift reg 29     u32 bit 26
+        // Hardware shift reg 30     u32 bit 25
+        // Hardware shift reg 31     u32 bit 24
+
         // Will this go fast?  If the assembler doesn't work out, refactoring is an option
         // Also, might need to change indexing so the index is more intuitive.
-        (self.led_levels[column][00].update() << 00)
+        (self.led_levels[column][00].update() << 02)
             | (self.led_levels[column][01].update() << 01)
-            | (self.led_levels[column][02].update() << 02)
-            | (self.led_levels[column][03].update() << 03)
-            | (self.led_levels[column][04].update() << 04)
-            | (self.led_levels[column][05].update() << 05)
-            | (self.led_levels[column][06].update() << 06)
-            | (self.led_levels[column][07].update() << 07)
-            | (self.led_levels[column][08].update() << 08)
-            | (self.led_levels[column][09].update() << 09)
-            | (self.led_levels[column][10].update() << 10)
-            | (self.led_levels[column][11].update() << 11)
-            | (self.led_levels[column][12].update() << 12)
-            | (self.led_levels[column][13].update() << 13)
-            | (self.led_levels[column][14].update() << 14)
-            | (self.led_levels[column][15].update() << 15)
-            | (self.led_levels[column][16].update() << 16)
+            | (self.led_levels[column][02].update() << 00)
+            | (self.led_levels[column][03].update() << 15)
+            | (self.led_levels[column][04].update() << 14)
+            | (self.led_levels[column][05].update() << 13)
+            | (self.led_levels[column][06].update() << 12)
+            | (self.led_levels[column][07].update() << 11)
+            | (self.led_levels[column][08].update() << 10)
+            | (self.led_levels[column][09].update() <<  9)
+            | (self.led_levels[column][10].update() <<  8)
+            | (self.led_levels[column][11].update() << 23)
+            | (self.led_levels[column][12].update() << 22)
+            | (self.led_levels[column][13].update() << 21)
+            | (self.led_levels[column][14].update() << 20)
+            | (self.led_levels[column][15].update() << 19)
+            | (self.led_levels[column][16].update() << 18)
             | (self.led_levels[column][17].update() << 17)
-            | (self.led_levels[column][18].update() << 18)
-            | (self.led_levels[column][19].update() << 19)
-            | (self.led_levels[column][20].update() << 20)
-            | (self.led_levels[column][21].update() << 21)
-            | (self.led_levels[column][22].update() << 22)
-            | (self.led_levels[column][23].update() << 23)
-            | (self.led_levels[column][24].update() << 24)
+            | (self.led_levels[column][18].update() << 16)
+            | (self.led_levels[column][19].update() << 31)
+            | (self.led_levels[column][20].update() << 30)
+            | (self.led_levels[column][21].update() << 29)
+            | (self.led_levels[column][22].update() << 28)
+            | (self.led_levels[column][23].update() << 27)
+            | (self.led_levels[column][24].update() << 26)
             | (self.led_levels[column][25].update() << 25)
-            | (self.led_levels[column][26].update() << 26)
+            | (self.led_levels[column][26].update() << 24)
     }
 
     pub fn update_led_dma_buffer(self: &mut Self) {
-        /*
-        let mut row: usize = 0;
+        let mut row:  u32 = 0;
+        let mut row_usize:  usize = 0;
         let dma_buffer = get_write_dma_buffer();
 
         for item in dma_buffer.iter_mut() {
-            *item = (*item & 0xf8000000) | self.assemble_column(row);
+            *item = (8 << row) | self.assemble_column(row_usize);
             row = row + 1;
-            if row >= LED_ROWS {
+            row_usize = row_usize + 1;
+            if row_usize >= LED_ROWS {
                 row = 0;
+                row_usize = 0;
             }
         }
         advance_read_dma_buffer();
-        */
     }
 }
 
@@ -505,8 +534,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
     pub async fn test_pattern(&mut self) {
         let dma_buffer = get_read_dma_buffer();
 
-        // u32 stored as little endian, read into the IO as big endian.  Lol.
-        dma_buffer[0] = 0x000000f8 | (self.cycle & 7) | ((self.cycle >> 3) << 8);
+        //dma_buffer[0] = 0x000000f8 | (self.cycle & 7) | ((self.cycle >> 3) << 8);
 
         let dma_buffer_in_flight =
             self.state_machine

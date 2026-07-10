@@ -5,6 +5,7 @@ use crate::backlight::LED_ROWS;
 pub struct LedDriver {
     back_light_user: BacklightUser,
     counter: u32,
+    counter_2: u8
 }
 
 impl Default for LedDriver {
@@ -12,6 +13,7 @@ impl Default for LedDriver {
         Self {
             back_light_user: BacklightUser::default(),
             counter: 0,
+            counter_2: 0,
         }
     }
 }
@@ -20,17 +22,21 @@ impl LedDriver {
     pub async fn run(self: &mut Self) {
         loop {
             self.counter = (self.counter + 3) & 0xff;
+            self.counter_2 = self.counter_2.wrapping_add(1);
             let led_level: u8 = self.counter as u8;
+            let mut position:u8 = 0;
 
             for row in 0..LED_ROWS {
                 for column in 0..LED_COLUMNS {
+                    position = position.wrapping_add(28);
+                    let blue:u8= led_level.wrapping_add(position).wrapping_add(self.counter_2);
                     self.back_light_user
-                        .set(row, column, led_level, led_level, led_level);
+                        .set(row, column, led_level.wrapping_add(self.counter_2), led_level, blue );
                 }
             }
             self.back_light_user.update_led_dma_buffer();
 
-            let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(100));
+            let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(10));
             ticker.next().await;
         }
     }
