@@ -258,23 +258,8 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             "fillrow_bit:"
                 // Get a bit from the FIFO...
                 "out x, 1"
-                "jmp !x, input_is_one"
+                "jmp !x, input_is_zero"
                 // Input is 0.  Bit 0 = clk, bit 1 = data, bit 2 = latch
-                // shift in a a 0
-                "nop        side 0b000 [1]"
-                // The delay to the next instruction is 1/125000000, or 8ns.
-                // 8ns > LED_DATA t_setup (3ns) has passed, so bring CLK high to latch LED_DATA in.
-                // From the spec sheet, data latches in on a positive clock edge.
-                "nop        side 0b001 [1]"
-                // The delay to the next instruction is 1/125000000, or 8ns.
-                // 8ns > LED_DATA t_hold (4ns) has passed.  Bring the clock back down
-                "nop        side 0b000"
-                // Loop around until the row is full (32 values, stored in y)
-                "jmp y--, fillrow_bit"
-                "jmp do_latching"
-
-            "input_is_one:"
-                // Input is 1.  Bit 0 = clk, bit 1 = data, bit 2 = latch
                 // shift in a a 0
                 "nop        side 0b010 [1]"
                 // The delay to the next instruction is 1/125000000, or 8ns.
@@ -284,6 +269,21 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 // The delay to the next instruction is 1/125000000, or 8ns.
                 // 8ns > LED_DATA t_hold (4ns) has passed.  Bring the clock back down
                 "nop        side 0b010"
+                // Loop around until the row is full (32 values, stored in y)
+                "jmp y--, fillrow_bit"
+                "jmp do_latching"
+
+            "input_is_zero:"
+                // Input is 1.  Bit 0 = clk, bit 1 = data, bit 2 = latch
+                // shift in a a 0
+                "nop        side 0b000 [1]"
+                // The delay to the next instruction is 1/125000000, or 8ns.
+                // 8ns > LED_DATA t_setup (3ns) has passed, so bring CLK high to latch LED_DATA in.
+                // From the spec sheet, data latches in on a positive clock edge.
+                "nop        side 0b001 [1]"
+                // The delay to the next instruction is 1/125000000, or 8ns.
+                // 8ns > LED_DATA t_hold (4ns) has passed.  Bring the clock back down
+                "nop        side 0b000"
                 // Loop around until the row is full (32 values, stored in y)
                 "jmp y--, fillrow_bit"
 
@@ -505,15 +505,18 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
     pub async fn test_pattern(&mut self) {
         let dma_buffer = get_read_dma_buffer();
 
-        dma_buffer[0] = 0x000f0000;
+        // u32 stored as little endian, read into the IO as big endian.  Lol.
+        dma_buffer[0] = 0x000000f8 | (self.cycle & 7) | ((self.cycle >> 3) << 8);
 
         let dma_buffer_in_flight =
             self.state_machine
                 .tx()
                 .dma_push(self.dma_channel.reborrow(), dma_buffer, true);
 
+        self.cycle = self.cycle + 1;
+
         dma_buffer_in_flight.await;
-        Timer::after(Duration::from_millis(1000)).await;
+        Timer::after(Duration::from_micros(1)).await;
     }
     //pub fn start(&mut self) {
     //    self.state_machine.set_enable(true);
