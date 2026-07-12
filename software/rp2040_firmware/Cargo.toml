@@ -35,7 +35,7 @@ embassy-time = { version = "0.5.1", features = ["defmt", "defmt-timestamp-uptime
 #
 # Needed to run main.
 #
-embassy-executor = { version = "0.9.0", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
+embassy-executor = { version = "0.9.1", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
 
 #
 # Basic RP support
