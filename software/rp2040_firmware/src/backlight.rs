@@ -20,7 +20,7 @@ const LED_LEVELS: usize = 256;
 const LED_DMA_BUFFER_SIZE: usize = LED_ROWS * LED_LEVELS;
 
 pub const fn init_dma_buffer() -> [u32; LED_DMA_BUFFER_SIZE] {
-    let mut init_dma_buffer: [u32; LED_DMA_BUFFER_SIZE] = [0; LED_DMA_BUFFER_SIZE];
+    let init_dma_buffer: [u32; LED_DMA_BUFFER_SIZE] = [0; LED_DMA_BUFFER_SIZE];
     init_dma_buffer
 }
 
@@ -405,9 +405,6 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             );
         };
 
-        // Shift 32 bits then latch
-        Self::set_top(&mut sm, 32);
-
         // Turn on the machine.  What could go wrong.
 
         sm.set_enable(true);
@@ -560,36 +557,4 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
 
         dma_buffer_in_flight.await;
     }
-
-    //
-    // Set the "top" of the PWM.  The PIO assembly doesn't seem to have
-    // a suitable load immediate instruction, so instead we'll put top's
-    // value into the ISR
-    //
-    pub fn set_top(state_machine: &mut StateMachine<'d, PIO1, 0>, top: u32) {
-        let is_enabled = state_machine.is_enabled();
-        while !state_machine.tx().empty() {} // Make sure that the queue is empty
-        state_machine.set_enable(false);
-        state_machine.tx().push(top);
-        unsafe {
-            state_machine.exec_instr(
-                InstructionOperands::PULL {
-                    if_empty: false,
-                    block: false,
-                }
-                .encode(),
-            );
-            state_machine.exec_instr(
-                InstructionOperands::OUT {
-                    destination: ::pio::OutDestination::ISR,
-                    bit_count: 32,
-                }
-                .encode(),
-            );
-        };
-        if is_enabled {
-            state_machine.set_enable(true) // Enable if previously enabled
-        }
-    }
-
 }
