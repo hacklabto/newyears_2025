@@ -6,11 +6,10 @@ use embassy_rp::peripherals::PIO1;
 use embassy_rp::pio::program::pio_asm;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
-use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine};
+use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine, Common};
 use embassy_rp::Peri;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
-use pio::InstructionOperands;
 use embassy_time::{Duration, Timer};
 
 pub const LED_COLUMNS: usize = 9;
@@ -219,6 +218,7 @@ impl Default for BacklightUser {
 
 pub struct PioBacklight<'d, Dma1: Channel> {
     pub state_machine: StateMachine<'d, PIO1, 0>,
+    common: Common<'d, PIO1>,
 
     // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
     pub dma_channel: Peri<'d, Dma1>,
@@ -339,7 +339,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
             // 1 - clk pin
             // 2 - latch pin
             cfg.use_program(&program, &[&led_clk_pin, &led_data_pin, &led_latch_pin]);
-            // No out ins used by this set machine...
+            cfg.set_out_pins(&[&led_clk_pin, &led_data_pin, &led_latch_pin,&led_blank_pin]);
 
             cfg.clock_divider = 1.to_fixed();
 
@@ -404,6 +404,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         */
         Self {
             state_machine: sm,
+            common: common,
             dma_channel: dma_channel,
             test_clk_pin: Output::new(test_clk, Level::Low),
             test_data_pin: Output::new(test_data, Level::Low),

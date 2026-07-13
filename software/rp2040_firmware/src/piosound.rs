@@ -65,7 +65,7 @@ use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::program::pio_asm;
 use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
-use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine};
+use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine, Common};
 use embassy_rp::Peri;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
@@ -96,6 +96,7 @@ static mut DMA_BUFFER_1: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
 pub struct PioSound<'d, Dma0: Channel> {
     state_machine: StateMachine<'d, PIO0, 0>,
+    common: Common<'d, PIO0>,
     dma_channel_0: Peri<'d, Dma0>,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
@@ -219,6 +220,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
 
         Self {
             state_machine: sm,
+            common: common,
             dma_channel_0: dma_channel_0,
             _debug_pin,
             _ena_pin,
