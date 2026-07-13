@@ -20,7 +20,8 @@ const LED_LEVELS: usize = 256;
 const LED_DMA_BUFFER_SIZE: usize = LED_ROWS * LED_LEVELS;
 
 pub const fn init_dma_buffer() -> [u32; LED_DMA_BUFFER_SIZE] {
-    let init_dma_buffer: [u32; LED_DMA_BUFFER_SIZE] = [0; LED_DMA_BUFFER_SIZE];
+    // This should light up all the LEDs
+    let init_dma_buffer: [u32; LED_DMA_BUFFER_SIZE] = [0xffffffff; LED_DMA_BUFFER_SIZE];
     init_dma_buffer
 }
 
@@ -324,87 +325,41 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
 
                 "jmp start_fill_row"
         );
-        let prg = common.load_program(&prg.program); // TODO, name overlap
+        let program = common.load_program(&prg.program);
 
         // Set all pins to outputs
         let led_data_pin = common.make_pio_pin(led_data_pin);
         let led_clk_pin = common.make_pio_pin(led_clk_pin);
         let led_latch_pin = common.make_pio_pin(led_latch_pin);
         let led_blank_pin = common.make_pio_pin(led_blank_pin);
+
+        let pio1_cfg = {
+            let mut cfg = embassy_rp::pio::Config::default();
+            // 0 - data pin
+            // 1 - clk pin
+            // 2 - latch pin
+            cfg.use_program(&program, &[&led_clk_pin, &led_data_pin, &led_latch_pin]);
+            // No out ins used by this set machine...
+
+            cfg.clock_divider = 1.to_fixed();
+
+            // Automatically refill the internal shift register from the FIFO
+            // when OUT empties it
+            cfg.shift_out = ShiftConfig {
+                auto_fill: true,
+                threshold: 32,
+                direction: ShiftDirection::Right,
+            };
+            cfg.fifo_join = FifoJoin::TxOnly;
+            cfg
+        };
+
+        sm.set_config(&pio1_cfg);
+
         sm.set_pin_dirs(
             Direction::Out,
             &[&led_clk_pin, &led_data_pin, &led_latch_pin, &led_blank_pin],
         );
-
-        // Set all pins to low at the start
-        // The LED_CLEAR input has an internal pullup (drivers off by default),
-        // so we never touch it after this to keep the LED drivers always on
-        sm.set_pins(
-            Level::Low,
-            &[&led_clk_pin, &led_data_pin, &led_latch_pin, &led_blank_pin],
-        );
-
-        let mut pio_cfg = embassy_rp::pio::Config::default();
-        // The PIO state machine OUT command will only control LED_DATA
-        pio_cfg.set_out_pins(&[&led_clk_pin]);
-
-        // 0 - data pin
-        // 1 - clk pin
-        // 2 - latch pin
-        pio_cfg.use_program(&prg, &[&led_clk_pin, &led_data_pin, &led_latch_pin]);
-
-        // Automatically refill the internal shift register from the FIFO
-        // when OUT empties it
-        pio_cfg.shift_out = ShiftConfig {
-            auto_fill: true,
-            threshold: 32,
-            direction: ShiftDirection::Right,
-        };
-        pio_cfg.fifo_join = FifoJoin::TxOnly;
-
-        pio_cfg.clock_divider = 1.to_fixed();
-        sm.set_config(&pio_cfg);
-
-        //
-        // Set the delay for the latch on by pushing a value to the state machine,
-        // 64, and then executing some assembler to pull it and send it to the ISR
-        //
-        //sm.tx().push(64);
-        sm.tx().push(1); // Drop to 1 for data debugging.
-        unsafe {
-            sm.exec_instr(
-                InstructionOperands::PULL {
-                    if_empty: false,
-                    block: false,
-                }
-                .encode(),
-            );
-            sm.exec_instr(
-                InstructionOperands::OUT {
-                    destination: ::pio::OutDestination::ISR,
-                    bit_count: 32,
-                }
-                .encode(),
-            );
-        };
-        sm.tx().push(32);
-        unsafe {
-            sm.exec_instr(
-                InstructionOperands::PULL {
-                    if_empty: false,
-                    block: false,
-                }
-                .encode(),
-            );
-            sm.exec_instr(
-                InstructionOperands::OUT {
-                    destination: ::pio::OutDestination::Y,
-                    bit_count: 32,
-                }
-                .encode(),
-            );
-        };
-
         // Turn on the machine.  What could go wrong.
 
         sm.set_enable(true);
@@ -533,15 +488,17 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
 
         //dma_buffer[0] = 0x000000f8 | (self.cycle & 7) | ((self.cycle >> 3) << 8);
 
+            defmt::info!("Single DMA Launch");
         let dma_buffer_in_flight =
             self.state_machine
                 .tx()
                 .dma_push(self.dma_channel.reborrow(), dma_buffer, true);
-
-        self.cycle = self.cycle + 1;
+            defmt::info!("Single DMA Launch Return");
 
         dma_buffer_in_flight.await;
-        Timer::after(Duration::from_micros(1)).await;
+            defmt::info!("Dma Packet Await Finished");
+        Timer::after(Duration::from_millis(1)).await;
+        self.cycle = self.cycle + 1;
     }
     //pub fn start(&mut self) {
     //    self.state_machine.set_enable(true);
@@ -556,5 +513,6 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
                 .dma_push(self.dma_channel.reborrow(), dma_buffer, true);
 
         dma_buffer_in_flight.await;
+        Timer::after(Duration::from_micros(1)).await;
     }
 }

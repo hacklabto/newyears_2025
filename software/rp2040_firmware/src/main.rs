@@ -125,7 +125,7 @@ async fn core0_backlight_task(core0_resources_backlight: Core0ResourcesBacklight
     let mut devices = hackernewyears::DevicesCore0Backlight::new(core0_resources_backlight);
     loop {
         devices.backlight.display_one_frame().await;
-        devices.backlight.test_pattern().await;
+        //devices.backlight.test_pattern().await;
     }
 }
 
