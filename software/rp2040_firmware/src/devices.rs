@@ -14,6 +14,16 @@ use core::marker::PhantomData;
 use embassy_rp::peripherals;
 use embassy_rp::Peri;
 use embassy_rp::Peripherals;
+use embassy_rp::bind_interrupts;
+use embassy_rp::pio;
+
+bind_interrupts!(struct PioIrqs0 {
+    PIO0_IRQ_0 => pio::InterruptHandler<embassy_rp::peripherals::PIO0>;
+});
+
+bind_interrupts!(struct PioIrqs1 {
+    PIO1_IRQ_0 => pio::InterruptHandler<embassy_rp::peripherals::PIO1>;
+});
 
 assign_resources! {
     core_1_resources: Core1Resources {
@@ -121,6 +131,7 @@ impl<'a> DevicesCore0Backlight<'a> {
             resources.backlight_test_latch,
             resources.backlight_test_clr,
             resources.backlight_dma0,
+            PioIrqs1,
         );
         Self { backlight }
     }
@@ -140,6 +151,7 @@ impl DevicesCore1<'_> {
             core1_resources.sound_ena,
             core1_resources.sound_debug,
             core1_resources.sound_dma_channel_0,
+            PioIrqs0,
         );
         Self {
             piosound,

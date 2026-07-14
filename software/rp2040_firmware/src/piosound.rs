@@ -57,16 +57,15 @@
 //
 
 use crate::audio_playback::AudioPlayback;
-use embassy_rp::bind_interrupts;
 use embassy_rp::dma::Channel;
 use embassy_rp::dma::Transfer;
 use embassy_rp::gpio;
 use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::program::pio_asm;
-use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
 use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine, Common};
 use embassy_rp::Peri;
+use embassy_rp::interrupt;
 use fixed::traits::ToFixed;
 use gpio::{Level, Output, Pin};
 use midi_nostd::midi::Midi;
@@ -74,10 +73,6 @@ use pio::InstructionOperands;
 
 // 89 and 3 are factors of 20292.  89*3 has to be a factor of 20292.
 type NewYearsMidi<'a> = Midi<'a, 20292, { 89 * 3 }, 64, 32>;
-
-bind_interrupts!(struct PioIrqs0 {
-    PIO0_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO0>;
-});
 
 // Defines the 64 PWM levels per sample.  2^6 = 64
 //
@@ -96,7 +91,7 @@ static mut DMA_BUFFER_1: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
 pub struct PioSound<'d, Dma0: Channel> {
     state_machine: StateMachine<'d, PIO0, 0>,
-    common: Common<'d, PIO0>,
+    _common: Common<'d, PIO0>,
     dma_channel_0: Peri<'d, Dma0>,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
@@ -110,8 +105,9 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
         ena: Peri<'d, impl Pin>,
         debug: Peri<'d, impl Pin>,
         dma_channel_0: Peri<'d, Dma0>,
+        irq: impl interrupt::typelevel::Binding<embassy_rp::interrupt::typelevel::PIO0_IRQ_0, embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO0>>
     ) -> Self {
-        let pio = Pio::new(arg_pio, PioIrqs0);
+        let pio = Pio::new(arg_pio, irq);
         let mut common = pio.common;
         let mut sm = pio.sm0;
         #[rustfmt::skip]
@@ -220,7 +216,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
 
         Self {
             state_machine: sm,
-            common: common,
+            _common: common,
             dma_channel_0: dma_channel_0,
             _debug_pin,
             _ena_pin,

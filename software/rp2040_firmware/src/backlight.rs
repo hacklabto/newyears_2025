@@ -1,10 +1,9 @@
 use core::sync::atomic::{AtomicU8, Ordering};
-use embassy_rp::bind_interrupts;
-use embassy_rp::dma::Channel;
+use embassy_rp::dma;
 use embassy_rp::gpio;
+use embassy_rp::interrupt;
 use embassy_rp::peripherals::PIO1;
 use embassy_rp::pio::program::pio_asm;
-use embassy_rp::pio::InterruptHandler;
 use embassy_rp::pio::Pio;
 use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine, Common};
 use embassy_rp::Peri;
@@ -70,9 +69,9 @@ fn advance_read_dma_buffer() {
     DMA_READ_BUFFER.store(new_read_buffer, Ordering::Relaxed);
 }
 
-bind_interrupts!(struct PioIrqs1 {
-    PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
-});
+//bind_interrupts!(struct PioIrqs1 {
+//    PIO1_IRQ_0 => InterruptHandler<embassy_rp::peripherals::PIO1>;
+//});
 
 pub struct LedLevel {
     level: u8,
@@ -216,9 +215,9 @@ impl Default for BacklightUser {
     }
 }
 
-pub struct PioBacklight<'d, Dma1: Channel> {
+pub struct PioBacklight<'d, Dma1: dma::Channel> {
     pub state_machine: StateMachine<'d, PIO1, 0>,
-    common: Common<'d, PIO1>,
+    _common: Common<'d, PIO1>,
 
     // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
     pub dma_channel: Peri<'d, Dma1>,
@@ -230,8 +229,8 @@ pub struct PioBacklight<'d, Dma1: Channel> {
 }
 
 
-impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
-    pub fn new(
+impl<'d, Dma1: dma::Channel> PioBacklight<'d, Dma1> {
+    pub fn new (
         arg_pio: Peri<'d, PIO1>,
         led_data_pin: Peri<'d, impl PioPin>,
         led_clk_pin: Peri<'d, impl PioPin>,
@@ -242,8 +241,9 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         test_latch: Peri<'d, impl Pin>,
         test_blank: Peri<'d, impl Pin>,
         dma_channel: Peri<'d, Dma1>,
-    ) -> Self {
-        let pio = Pio::new(arg_pio, PioIrqs1);
+        irq: impl interrupt::typelevel::Binding<embassy_rp::interrupt::typelevel::PIO1_IRQ_0, embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO1>>
+        ) -> Self {
+        let pio = Pio::new(arg_pio, irq);
         let mut common = pio.common;
         let mut sm = pio.sm0;
 
@@ -404,7 +404,7 @@ impl<'d, Dma1: Channel> PioBacklight<'d, Dma1> {
         */
         Self {
             state_machine: sm,
-            common: common,
+            _common: common,
             dma_channel: dma_channel,
             test_clk_pin: Output::new(test_clk, Level::Low),
             test_data_pin: Output::new(test_data, Level::Low),
