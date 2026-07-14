@@ -4,7 +4,6 @@ use embassy_rp::gpio;
 use embassy_rp::interrupt;
 use embassy_rp::peripherals::PIO1;
 use embassy_rp::pio::program::pio_asm;
-use embassy_rp::pio::Pio;
 use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine, Common};
 use embassy_rp::Peri;
 use fixed::traits::ToFixed;
@@ -217,7 +216,6 @@ impl Default for BacklightUser {
 
 pub struct PioBacklight<'d, D: dma::Channel> {
     pub state_machine: StateMachine<'d, PIO1, 0>,
-    _common: Common<'d, PIO1>,
 
     // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
     dma: Peri<'d, D>,
@@ -231,7 +229,10 @@ pub struct PioBacklight<'d, D: dma::Channel> {
 
 impl<'d, D: dma::Channel> PioBacklight<'d, D> {
     pub fn new (
-        arg_pio: Peri<'d, PIO1>,
+        common: &mut Common<'d, PIO1>,
+        mut sm: StateMachine<'d, PIO1, 0>,
+        dma: Peri<'d, D>,
+        _irq: impl interrupt::typelevel::Binding<embassy_rp::interrupt::typelevel::PIO1_IRQ_0, embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO1>>,
         led_data_pin: Peri<'d, impl PioPin>,
         led_clk_pin: Peri<'d, impl PioPin>,
         led_latch_pin: Peri<'d, impl PioPin>,
@@ -240,13 +241,7 @@ impl<'d, D: dma::Channel> PioBacklight<'d, D> {
         test_clk: Peri<'d, impl Pin>,
         test_latch: Peri<'d, impl Pin>,
         test_blank: Peri<'d, impl Pin>,
-        dma: Peri<'d, D>,
-        irq: impl interrupt::typelevel::Binding<embassy_rp::interrupt::typelevel::PIO1_IRQ_0, embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO1>>
         ) -> Self {
-        let pio = Pio::new(arg_pio, irq);
-        let mut common = pio.common;
-        let mut sm = pio.sm0;
-
         /*
             We are using daisy-chained TLC5926IDBQR shift registers, and supply
             these signals: LED_DATA, LED_CLK, LED_LATCH and LED_CLEAR.
@@ -404,7 +399,6 @@ impl<'d, D: dma::Channel> PioBacklight<'d, D> {
         */
         Self {
             state_machine: sm,
-            _common: common,
             dma: dma,
             test_clk_pin: Output::new(test_clk, Level::Low),
             test_data_pin: Output::new(test_data, Level::Low),

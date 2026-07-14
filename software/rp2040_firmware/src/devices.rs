@@ -116,12 +116,18 @@ impl<'a> DevicesCore0Menu<'a> {
 
 pub struct DevicesCore0Backlight<'a> {
     pub backlight: backlight::PioBacklight<'a, peripherals::DMA_CH0>,
+    _common: pio::Common<'a, peripherals::PIO1>,
 }
 
 impl<'a> DevicesCore0Backlight<'a> {
     pub fn new(resources: Core0ResourcesBacklight) -> Self {
+        let pio::Pio { mut common, sm0, .. } = 
+            pio::Pio::new( resources.backlight_pio, PioIrqs1 );
         let backlight = PioBacklight::new(
-            resources.backlight_pio,
+            &mut common,
+            sm0,
+            resources.backlight_dma0,
+            PioIrqs1,
             resources.backlight_data,
             resources.backlight_clk,
             resources.backlight_latch,
@@ -130,10 +136,8 @@ impl<'a> DevicesCore0Backlight<'a> {
             resources.backlight_test_clk,
             resources.backlight_test_latch,
             resources.backlight_test_clr,
-            resources.backlight_dma0,
-            PioIrqs1,
         );
-        Self { backlight }
+        Self { backlight, _common: common }
     }
 }
 
