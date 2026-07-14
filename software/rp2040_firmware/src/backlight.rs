@@ -215,12 +215,12 @@ impl Default for BacklightUser {
     }
 }
 
-pub struct PioBacklight<'d, Dma1: dma::Channel> {
+pub struct PioBacklight<'d, D: dma::Channel> {
     pub state_machine: StateMachine<'d, PIO1, 0>,
     _common: Common<'d, PIO1>,
 
     // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
-    pub dma_channel: Peri<'d, Dma1>,
+    dma: Peri<'d, D>,
     test_clk_pin: Output<'d>,
     test_data_pin: Output<'d>,
     test_latch_pin: Output<'d>,
@@ -229,7 +229,7 @@ pub struct PioBacklight<'d, Dma1: dma::Channel> {
 }
 
 
-impl<'d, Dma1: dma::Channel> PioBacklight<'d, Dma1> {
+impl<'d, D: dma::Channel> PioBacklight<'d, D> {
     pub fn new (
         arg_pio: Peri<'d, PIO1>,
         led_data_pin: Peri<'d, impl PioPin>,
@@ -240,7 +240,7 @@ impl<'d, Dma1: dma::Channel> PioBacklight<'d, Dma1> {
         test_clk: Peri<'d, impl Pin>,
         test_latch: Peri<'d, impl Pin>,
         test_blank: Peri<'d, impl Pin>,
-        dma_channel: Peri<'d, Dma1>,
+        dma: Peri<'d, D>,
         irq: impl interrupt::typelevel::Binding<embassy_rp::interrupt::typelevel::PIO1_IRQ_0, embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO1>>
         ) -> Self {
         let pio = Pio::new(arg_pio, irq);
@@ -405,7 +405,7 @@ impl<'d, Dma1: dma::Channel> PioBacklight<'d, Dma1> {
         Self {
             state_machine: sm,
             _common: common,
-            dma_channel: dma_channel,
+            dma: dma,
             test_clk_pin: Output::new(test_clk, Level::Low),
             test_data_pin: Output::new(test_data, Level::Low),
             test_latch_pin: Output::new(test_latch, Level::Low),
@@ -493,7 +493,7 @@ impl<'d, Dma1: dma::Channel> PioBacklight<'d, Dma1> {
         let dma_buffer_in_flight =
             self.state_machine
                 .tx()
-                .dma_push(self.dma_channel.reborrow(), dma_buffer, true);
+                .dma_push(self.dma.reborrow(), dma_buffer, true);
             defmt::info!("Single DMA Launch Return");
 
         dma_buffer_in_flight.await;
@@ -511,7 +511,7 @@ impl<'d, Dma1: dma::Channel> PioBacklight<'d, Dma1> {
         let dma_buffer_in_flight =
             self.state_machine
                 .tx()
-                .dma_push(self.dma_channel.reborrow(), dma_buffer, true);
+                .dma_push(self.dma.reborrow(), dma_buffer, true);
 
         dma_buffer_in_flight.await;
         Timer::after(Duration::from_micros(1)).await;

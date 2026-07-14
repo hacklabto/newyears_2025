@@ -57,7 +57,7 @@
 //
 
 use crate::audio_playback::AudioPlayback;
-use embassy_rp::dma::Channel;
+use embassy_rp::dma;
 use embassy_rp::dma::Transfer;
 use embassy_rp::gpio;
 use embassy_rp::peripherals::PIO0;
@@ -89,22 +89,22 @@ static mut DMA_BUFFER_0: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 #[allow(clippy::declare_interior_mutable_const)]
 static mut DMA_BUFFER_1: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
-pub struct PioSound<'d, Dma0: Channel> {
+pub struct PioSound<'d, D: dma::Channel> {
     state_machine: StateMachine<'d, PIO0, 0>,
     _common: Common<'d, PIO0>,
-    dma_channel_0: Peri<'d, Dma0>,
+    dma: Peri<'d, D>,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
 
-impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
+impl<'d, D: dma::Channel> PioSound<'d, D> {
     pub fn new(
         arg_pio: Peri<'d, PIO0>,
         sound_a_pin: Peri<'d, impl PioPin>,
         sound_b_pin: Peri<'d, impl PioPin>,
         ena: Peri<'d, impl Pin>,
         debug: Peri<'d, impl Pin>,
-        dma_channel_0: Peri<'d, Dma0>,
+        dma: Peri<'d, D>,
         irq: impl interrupt::typelevel::Binding<embassy_rp::interrupt::typelevel::PIO0_IRQ_0, embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO0>>
     ) -> Self {
         let pio = Pio::new(arg_pio, irq);
@@ -217,7 +217,7 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
         Self {
             state_machine: sm,
             _common: common,
-            dma_channel_0: dma_channel_0,
+            dma: dma,
             _debug_pin,
             _ena_pin,
         }
@@ -270,11 +270,11 @@ impl<'d, Dma0: Channel> PioSound<'d, Dma0> {
 
     pub async fn fill_dma_buffer() {}
 
-    pub fn send_dma_buffer_to_pio(&mut self, buffer_num: u32) -> Transfer<'_, Dma0> {
+    pub fn send_dma_buffer_to_pio(&mut self, buffer_num: u32) -> Transfer<'_, D> {
         let dma_buffer = Self::get_writable_dma_buffer(buffer_num);
         self.state_machine
             .tx()
-            .dma_push(self.dma_channel_0.reborrow(), dma_buffer, true)
+            .dma_push(self.dma.reborrow(), dma_buffer, true)
     }
 
     #[allow(static_mut_refs)]
