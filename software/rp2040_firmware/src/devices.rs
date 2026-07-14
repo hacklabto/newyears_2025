@@ -143,22 +143,27 @@ impl<'a> DevicesCore0Backlight<'a> {
 
 pub struct DevicesCore1<'a> {
     pub piosound: piosound::PioSound<'a, peripherals::DMA_CH1>,
+    _common: pio::Common<'a, peripherals::PIO0>,
     _phantom: PhantomData<&'a ()>,
 }
 
 impl DevicesCore1<'_> {
     pub fn new(core1_resources: Core1Resources) -> Self {
+        let pio::Pio { mut common, sm0, .. } = 
+            pio::Pio::new( core1_resources.sound_pio, PioIrqs0 );
         let piosound = PioSound::new(
-            core1_resources.sound_pio,
+            &mut common,
+            sm0,
+            core1_resources.sound_dma_channel_0,
+            PioIrqs0,
             core1_resources.sound_out_0,
             core1_resources.sound_out_1,
             core1_resources.sound_ena,
             core1_resources.sound_debug,
-            core1_resources.sound_dma_channel_0,
-            PioIrqs0,
         );
         Self {
             piosound,
+            _common: common,
             _phantom: PhantomData,
         }
     }

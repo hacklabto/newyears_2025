@@ -62,7 +62,6 @@ use embassy_rp::dma::Transfer;
 use embassy_rp::gpio;
 use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::program::pio_asm;
-use embassy_rp::pio::Pio;
 use embassy_rp::pio::{Direction, FifoJoin, PioPin, ShiftConfig, ShiftDirection, StateMachine, Common};
 use embassy_rp::Peri;
 use embassy_rp::interrupt;
@@ -91,7 +90,6 @@ static mut DMA_BUFFER_1: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
 pub struct PioSound<'d, D: dma::Channel> {
     state_machine: StateMachine<'d, PIO0, 0>,
-    _common: Common<'d, PIO0>,
     dma: Peri<'d, D>,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
@@ -99,17 +97,15 @@ pub struct PioSound<'d, D: dma::Channel> {
 
 impl<'d, D: dma::Channel> PioSound<'d, D> {
     pub fn new(
-        arg_pio: Peri<'d, PIO0>,
+        common: &mut Common<'d, PIO0>,
+        mut sm: StateMachine<'d, PIO0, 0>,
+        dma: Peri<'d, D>,
+        _irq: impl interrupt::typelevel::Binding<embassy_rp::interrupt::typelevel::PIO0_IRQ_0, embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO0>>,
         sound_a_pin: Peri<'d, impl PioPin>,
         sound_b_pin: Peri<'d, impl PioPin>,
         ena: Peri<'d, impl Pin>,
         debug: Peri<'d, impl Pin>,
-        dma: Peri<'d, D>,
-        irq: impl interrupt::typelevel::Binding<embassy_rp::interrupt::typelevel::PIO0_IRQ_0, embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO0>>
     ) -> Self {
-        let pio = Pio::new(arg_pio, irq);
-        let mut common = pio.common;
-        let mut sm = pio.sm0;
         #[rustfmt::skip]
         let prg = pio_asm!(
             ".side_set 2 opt"
@@ -216,7 +212,6 @@ impl<'d, D: dma::Channel> PioSound<'d, D> {
 
         Self {
             state_machine: sm,
-            _common: common,
             dma: dma,
             _debug_pin,
             _ena_pin,
