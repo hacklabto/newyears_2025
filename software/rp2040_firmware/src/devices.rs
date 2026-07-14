@@ -16,13 +16,12 @@ use embassy_rp::Peri;
 use embassy_rp::Peripherals;
 use embassy_rp::bind_interrupts;
 use embassy_rp::pio;
+use embassy_rp::dma;
 
-bind_interrupts!(struct PioIrqs0 {
+bind_interrupts!(struct PioIrqs {
     PIO0_IRQ_0 => pio::InterruptHandler<embassy_rp::peripherals::PIO0>;
-});
-
-bind_interrupts!(struct PioIrqs1 {
     PIO1_IRQ_0 => pio::InterruptHandler<embassy_rp::peripherals::PIO1>;
+    DMA_IRQ_0 => dma::InterruptHandler<peripherals::DMA_CH0>, dma::InterruptHandler<peripherals::DMA_CH1>;
 });
 
 assign_resources! {
@@ -115,19 +114,19 @@ impl<'a> DevicesCore0Menu<'a> {
 }
 
 pub struct DevicesCore0Backlight<'a> {
-    pub backlight: backlight::PioBacklight<'a, peripherals::DMA_CH0>,
+    pub backlight: backlight::PioBacklight<'a>,
     _common: pio::Common<'a, peripherals::PIO1>,
 }
 
 impl<'a> DevicesCore0Backlight<'a> {
     pub fn new(resources: Core0ResourcesBacklight) -> Self {
         let pio::Pio { mut common, sm0, .. } = 
-            pio::Pio::new( resources.backlight_pio, PioIrqs1 );
+            pio::Pio::new( resources.backlight_pio, PioIrqs );
         let backlight = PioBacklight::new(
             &mut common,
             sm0,
             resources.backlight_dma0,
-            PioIrqs1,
+            PioIrqs,
             resources.backlight_data,
             resources.backlight_clk,
             resources.backlight_latch,
@@ -142,7 +141,7 @@ impl<'a> DevicesCore0Backlight<'a> {
 }
 
 pub struct DevicesCore1<'a> {
-    pub piosound: piosound::PioSound<'a, peripherals::DMA_CH1>,
+    pub piosound: piosound::PioSound<'a>,
     _common: pio::Common<'a, peripherals::PIO0>,
     _phantom: PhantomData<&'a ()>,
 }
@@ -150,12 +149,12 @@ pub struct DevicesCore1<'a> {
 impl DevicesCore1<'_> {
     pub fn new(core1_resources: Core1Resources) -> Self {
         let pio::Pio { mut common, sm0, .. } = 
-            pio::Pio::new( core1_resources.sound_pio, PioIrqs0 );
+            pio::Pio::new( core1_resources.sound_pio, PioIrqs );
         let piosound = PioSound::new(
             &mut common,
             sm0,
             core1_resources.sound_dma_channel_0,
-            PioIrqs0,
+            PioIrqs,
             core1_resources.sound_out_0,
             core1_resources.sound_out_1,
             core1_resources.sound_ena,

@@ -88,19 +88,19 @@ static mut DMA_BUFFER_0: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 #[allow(clippy::declare_interior_mutable_const)]
 static mut DMA_BUFFER_1: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 
-pub struct PioSound<'d, D: dma::Channel> {
+pub struct PioSound<'d> {
     state_machine: StateMachine<'d, PIO0, 0>,
-    dma: Peri<'d, D>,
+    dma: dma::Channel<'d>,
     _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
 
-impl<'d, D: dma::Channel> PioSound<'d, D> {
-    pub fn new(
+impl<'d> PioSound<'d> {
+    pub fn new<D: dma::ChannelInstance> (
         common: &mut Common<'d, PIO0>,
         mut sm: StateMachine<'d, PIO0, 0>,
         dma: Peri<'d, D>,
-        _irq: impl interrupt::typelevel::Binding<embassy_rp::interrupt::typelevel::PIO0_IRQ_0, embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO0>>,
+        irq: impl interrupt::typelevel::Binding<D::Interrupt, dma::InterruptHandler<D>> + 'd,
         sound_a_pin: Peri<'d, impl PioPin>,
         sound_b_pin: Peri<'d, impl PioPin>,
         ena: Peri<'d, impl Pin>,
@@ -212,7 +212,7 @@ impl<'d, D: dma::Channel> PioSound<'d, D> {
 
         Self {
             state_machine: sm,
-            dma: dma,
+            dma: dma::Channel::new(dma, irq),
             _debug_pin,
             _ena_pin,
         }
@@ -265,11 +265,11 @@ impl<'d, D: dma::Channel> PioSound<'d, D> {
 
     pub async fn fill_dma_buffer() {}
 
-    pub fn send_dma_buffer_to_pio(&mut self, buffer_num: u32) -> Transfer<'_, D> {
+    pub fn send_dma_buffer_to_pio(&mut self, buffer_num: u32) -> Transfer<'_> {
         let dma_buffer = Self::get_writable_dma_buffer(buffer_num);
         self.state_machine
             .tx()
-            .dma_push(self.dma.reborrow(), dma_buffer, true)
+            .dma_push(&mut self.dma, dma_buffer, true)
     }
 
     #[allow(static_mut_refs)]

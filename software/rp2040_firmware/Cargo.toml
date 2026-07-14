@@ -40,7 +40,8 @@ embassy-executor = { version = "0.9.1", features = ["arch-cortex-m", "executor-t
 #
 # Basic RP support
 #
-embassy-rp = { version = "0.9.0", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl", "rp2040"] }
+embassy-rp = { version = "0.10.0", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl", "rp2040"] }
+cortex-m = "0.7"
 
 #
 # Needed for basic debugging.  Up to date Aug 11, 2025.

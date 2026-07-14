@@ -214,11 +214,11 @@ impl Default for BacklightUser {
     }
 }
 
-pub struct PioBacklight<'d, D: dma::Channel> {
+pub struct PioBacklight<'d> {
     pub state_machine: StateMachine<'d, PIO1, 0>,
 
     // TODO: May need to add double buffering. Decide after testing on the hardware. For now, just use it for testing.
-    dma: Peri<'d, D>,
+    dma: dma::Channel<'d>,
     test_clk_pin: Output<'d>,
     test_data_pin: Output<'d>,
     test_latch_pin: Output<'d>,
@@ -227,12 +227,12 @@ pub struct PioBacklight<'d, D: dma::Channel> {
 }
 
 
-impl<'d, D: dma::Channel> PioBacklight<'d, D> {
-    pub fn new (
+impl<'d> PioBacklight<'d> {
+    pub fn new<D: dma::ChannelInstance> (
         common: &mut Common<'d, PIO1>,
         mut sm: StateMachine<'d, PIO1, 0>,
         dma: Peri<'d, D>,
-        _irq: impl interrupt::typelevel::Binding<embassy_rp::interrupt::typelevel::PIO1_IRQ_0, embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO1>>,
+        irq: impl interrupt::typelevel::Binding<D::Interrupt, dma::InterruptHandler<D>> + 'd,
         led_data_pin: Peri<'d, impl PioPin>,
         led_clk_pin: Peri<'d, impl PioPin>,
         led_latch_pin: Peri<'d, impl PioPin>,
@@ -399,7 +399,7 @@ impl<'d, D: dma::Channel> PioBacklight<'d, D> {
         */
         Self {
             state_machine: sm,
-            dma: dma,
+            dma: dma::Channel::new(dma, irq),
             test_clk_pin: Output::new(test_clk, Level::Low),
             test_data_pin: Output::new(test_data, Level::Low),
             test_latch_pin: Output::new(test_latch, Level::Low),
@@ -487,7 +487,7 @@ impl<'d, D: dma::Channel> PioBacklight<'d, D> {
         let dma_buffer_in_flight =
             self.state_machine
                 .tx()
-                .dma_push(self.dma.reborrow(), dma_buffer, true);
+                .dma_push(&mut self.dma, dma_buffer, true);
             defmt::info!("Single DMA Launch Return");
 
         dma_buffer_in_flight.await;
@@ -505,7 +505,7 @@ impl<'d, D: dma::Channel> PioBacklight<'d, D> {
         let dma_buffer_in_flight =
             self.state_machine
                 .tx()
-                .dma_push(self.dma.reborrow(), dma_buffer, true);
+                .dma_push(&mut self.dma, dma_buffer, true);
 
         dma_buffer_in_flight.await;
         Timer::after(Duration::from_micros(1)).await;

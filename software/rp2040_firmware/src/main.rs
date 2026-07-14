@@ -131,9 +131,23 @@ async fn core0_backlight_task(core0_resources_backlight: Core0ResourcesBacklight
 
 #[embassy_executor::task]
 async fn core1_task(core1_resources: Core1Resources) {
-    Timer::after(Duration::from_millis(500)).await;
+    Timer::after(Duration::from_millis(2500)).await;
 
     let mut devices = hackernewyears::DevicesCore1::new(core1_resources);
+
+    //
+    // WTF, why does this work?
+    //
+    // Okay, I tried masking the interrupt here in the hope that we wouldn't
+    // get an interrupt on the core 1 sound when DMAs are launched.  The
+    // thought was that I could poll for DMA completion on core 1 and have
+    // the core 0 LEDs work normally.
+    //
+    // Except when I do this everything works.
+    //
+    // Best guess is that core0 is sending a notice to core 1 on interrupt.
+    //
+    cortex_m::peripheral::NVIC::mask(embassy_rp::pac::Interrupt::DMA_IRQ_0);
 
     loop {
         devices.piosound.play_sound().await;
