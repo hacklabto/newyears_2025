@@ -73,14 +73,9 @@ use pio::InstructionOperands;
 // 89 and 3 are factors of 20292.  89*3 has to be a factor of 20292.
 type NewYearsMidi<'a> = Midi<'a, 20292, { 89 * 3 }, 64, 32>;
 
-// Defines the 64 PWM levels per sample.  2^6 = 64
-//
-const PWM_BITS: u32 = 6;
-const REMAINDER_BITS: u32 = 10 - PWM_BITS;
-
 // Right noiw the playback time for each buffer is 16384/20292/16 seconds, ~= .05s
 //
-const DMA_BUFSIZE: usize = 16384;
+const DMA_BUFSIZE: usize = 8192;
 
 #[allow(clippy::declare_interior_mutable_const)]
 static mut DMA_BUFFER_0: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
@@ -91,7 +86,6 @@ static mut DMA_BUFFER_1: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
 pub struct PioSound<'d> {
     state_machine: StateMachine<'d, PIO0, 0>,
     dma: dma::Channel<'d>,
-    _ena_pin: Output<'d>,
     _debug_pin: Output<'d>,
 }
 
@@ -101,151 +95,68 @@ impl<'d> PioSound<'d> {
         mut sm: StateMachine<'d, PIO0, 0>,
         dma: Peri<'d, D>,
         irq: impl interrupt::typelevel::Binding<D::Interrupt, dma::InterruptHandler<D>> + 'd,
-        sound_a_pin: Peri<'d, impl PioPin>,
-        sound_b_pin: Peri<'d, impl PioPin>,
-        ena: Peri<'d, impl Pin>,
+        sound_data_pin: Peri<'d, impl PioPin>,
+        sound_bclk_pin: Peri<'d, impl PioPin>,
+        sound_lrclk_pin: Peri<'d, impl PioPin>,
         debug: Peri<'d, impl Pin>,
     ) -> Self {
+
         #[rustfmt::skip]
         let prg = pio_asm!(
+            // All BCLK toggles should be 2 cycles to guarantee we output
+            // a square wave...
             ".side_set 2 opt"
-            "begin:"
-                "out x,1"
-                "jmp !x, negative_pwm"
+            ".wrap_target"
+            "start_sample_left:"
+                "out pins, 1                    side 0b00 [1]"
+                // Toggle CLK to register LRCLOCK change
+                "set y, 14                      side 0b01 [1]"
+            "fillrow_bit_left:"
+                // Output pin and toggle clock
+                "out pins,1                     side 0b00 [1]"
+                "jmp y--, fillrow_bit_left      side 0b01 [1]"
 
-                //
-                // Gets the current volume the OSR.  Auto pulls new 32 bit values from the 
-                // FIFO being fed by the DMA when the OSR is empty
-                //
-                "out x,7                    side 0b01"
-
-                //
-                // y = isr = pwm top = number of times we loop.
-                //
-                "mov y, isr"
-
-            "pwm_pos_loop_0:"
-                //
-                // Switch state to 0 when y matches the pwm top value
-                //
-                "jmp x!=y pwm_pos_no_reset_0"
-                "jmp pwm_pos_skip_noop_0           side 0b00"
-            "pwm_pos_no_reset_0:"
-                // Nop added to make sure the delay in the loop is consistently 3 cycles.
-                "nop"
-            "pwm_pos_skip_noop_0:"
-                "jmp y-- pwm_pos_loop_0"
-
-                // Once more, With Feeling.
-
-                "mov y, isr                         side 0b01"
-            "pwm_pos_loop_1:"
-                "jmp x!=y pwm_pos_no_reset_1"
-                "jmp pwm_pos_skip_noop_1           side 0b00"
-            "pwm_pos_no_reset_1:"
-                "nop"
-            "pwm_pos_skip_noop_1:"
-                "jmp y-- pwm_pos_loop_1"
-
-            // Go back for more data.
-            "jmp begin"
-
-            "negative_pwm:"
-                //
-                // Gets the current volume the OSR.  Auto pulls new 32 bit values from the 
-                // FIFO being fed by the DMA when the OSR is empty
-                //
-                "out x,7                    side 0b10"  // Inverse of the positive PID
-                "mov y, isr"
-            "pwm_neg_loop_0:"
-                //
-                // Switch state to 0 when y matches the pwm top value
-                //
-                "jmp x!=y pwm_neg_no_reset_0"
-                "jmp pwm_neg_skip_noop_0           side 0b00"
-            "pwm_neg_no_reset_0:"
-                // Nop added to make sure the delay in the loop is consistently 3 cycles.
-                "nop"
-            "pwm_neg_skip_noop_0:"
-                "jmp y-- pwm_neg_loop_0"
-
-                // Once more, With Feeling.
-
-                "mov y, isr                         side 0b10"  // Inverse of the positive PID
-            "pwm_neg_loop_1:"
-                "jmp x!=y pwm_neg_no_reset_1"
-                "jmp pwm_neg_skip_noop_1           side 0b00"
-            "pwm_neg_no_reset_1:"
-                "nop"
-            "pwm_neg_skip_noop_1:"
-                "jmp y-- pwm_neg_loop_1"
-
-            // Go back for more data.
-            "jmp begin"
+            "start_sample_right:"
+                // Repeat logic for right side
+                "out pins, 1                    side 0b10 [1]"
+                "set y, 14                      side 0b11 [1]"
+            "fillrow_bit_right:"
+                "out pins,1                     side 0b10 [1]"
+                "jmp y--, fillrow_bit_right     side 0b11 [1]"
+            ".wrap"
         );
         let prg = common.load_program(&prg.program);
 
-        let sound_a_pin = common.make_pio_pin(sound_a_pin);
-        let sound_b_pin = common.make_pio_pin(sound_b_pin);
-        sm.set_pin_dirs(Direction::Out, &[&sound_a_pin, &sound_b_pin]);
-        sm.set_pins(Level::Low, &[&sound_a_pin, &sound_b_pin]);
+        let sound_data_pin = common.make_pio_pin(sound_data_pin);
+        let sound_bclk_pin = common.make_pio_pin(sound_bclk_pin);
+        let sound_lrclk_pin = common.make_pio_pin(sound_lrclk_pin);
 
-        let mut pio_cfg = embassy_rp::pio::Config::default();
-        pio_cfg.use_program(&prg, &[&sound_a_pin, &sound_b_pin]);
-
-        pio_cfg.shift_out = ShiftConfig {
-            threshold: 32,
-            direction: ShiftDirection::Right,
-            auto_fill: true,
+        let pio0_cfg = {
+            let mut cfg = embassy_rp::pio::Config::default();
+            cfg.use_program(&prg, &[&sound_bclk_pin, &sound_lrclk_pin]);
+            cfg.set_out_pins(&[&sound_data_pin]);
+            cfg.clock_divider = 50.to_fixed();
+            cfg.shift_out = ShiftConfig {
+                auto_fill: true,
+                threshold: 32,
+                direction: ShiftDirection::Right,
+            };
+            cfg.fifo_join = FifoJoin::TxOnly;
+            cfg
         };
-        pio_cfg.fifo_join = FifoJoin::TxOnly;
-
-        pio_cfg.clock_divider = 1.to_fixed();
-
-        sm.set_config(&pio_cfg);
-        const PWM_TOP: u32 = 1 << PWM_BITS;
-        Self::set_top(&mut sm, PWM_TOP as u32);
+        sm.set_config(&pio0_cfg);
+        sm.set_pin_dirs(
+            Direction::Out,
+            &[&sound_data_pin, &sound_bclk_pin, &sound_lrclk_pin],
+        );
         sm.set_enable(true);
 
         let _debug_pin = Output::new(debug, Level::Low);
-        let _ena_pin = Output::new(ena, Level::High);
 
         Self {
             state_machine: sm,
             dma: dma::Channel::new(dma, irq),
             _debug_pin,
-            _ena_pin,
-        }
-    }
-
-    //
-    // Set the "top" of the PWM.  The PIO assembly doesn't seem to have
-    // a suitable load immediate instruction, so instead we'll put top's
-    // value into the ISR
-    //
-    pub fn set_top(state_machine: &mut StateMachine<'d, PIO0, 0>, top: u32) {
-        let is_enabled = state_machine.is_enabled();
-        while !state_machine.tx().empty() {} // Make sure that the queue is empty
-        state_machine.set_enable(false);
-        state_machine.tx().push(top);
-        unsafe {
-            state_machine.exec_instr(
-                InstructionOperands::PULL {
-                    if_empty: false,
-                    block: false,
-                }
-                .encode(),
-            );
-            state_machine.exec_instr(
-                InstructionOperands::OUT {
-                    destination: ::pio::OutDestination::ISR,
-                    bit_count: 32,
-                }
-                .encode(),
-            );
-        };
-        if is_enabled {
-            state_machine.set_enable(true) // Enable if previously enabled
         }
     }
 
@@ -288,7 +199,7 @@ impl<'d> PioSound<'d> {
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 
-        let mut playback_state = AudioPlayback::<PWM_BITS, REMAINDER_BITS>::new(&mut midi);
+        let mut playback_state = AudioPlayback::new(&mut midi);
         let mut buffer_sending: u32 = 0;
 
         while !playback_state.is_done() {
