@@ -78,10 +78,10 @@ type NewYearsMidi<'a> = Midi<'a, 20292, { 89 * 3 }, 64, 32>;
 const DMA_BUFSIZE: usize = 8192;
 
 #[allow(clippy::declare_interior_mutable_const)]
-static mut DMA_BUFFER_0: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
+static mut DMA_BUFFER_0: [u32; DMA_BUFSIZE] = [0x00; DMA_BUFSIZE];
 
 #[allow(clippy::declare_interior_mutable_const)]
-static mut DMA_BUFFER_1: [u32; DMA_BUFSIZE] = [0x80; DMA_BUFSIZE];
+static mut DMA_BUFFER_1: [u32; DMA_BUFSIZE] = [0x00; DMA_BUFSIZE];
 
 pub struct PioSound<'d> {
     state_machine: StateMachine<'d, PIO0, 0>,
@@ -108,20 +108,20 @@ impl<'d> PioSound<'d> {
             ".side_set 2 opt"
             ".wrap_target"
             "start_sample_left:"
-                "set pins, 0                    side 0b00"
-                "set y, 15                      side 0b01"
+                "set pins, 0                    side 0b00 [2]"
+                "set y, 15                      side 0b01 [2]"
             "fillrow_bit_left:"
                 // Left channel is unused.
-                "set pins,0                     side 0b00"
-                "jmp y--, fillrow_bit_left      side 0b01"
+                "set pins,0                     side 0b00 [2]"
+                "jmp y--, fillrow_bit_left      side 0b01 [2]"
 
             "start_sample_right:"
                 // Repeat logic for right side
-                "set pins, 0                    side 0b10"
-                "set y, 15                      side 0b11"
+                "set pins, 0                    side 0b10 [2]"
+                "set y, 15                      side 0b11 [2]"
             "fillrow_bit_right:"
-                "out pins,1                     side 0b10"
-                "jmp y--, fillrow_bit_right     side 0b11"
+                "out pins,1                     side 0b10 [2]"
+                "jmp y--, fillrow_bit_right     side 0b11 [2]"
             ".wrap"
         );
         let prg = common.load_program(&prg.program);
@@ -134,11 +134,12 @@ impl<'d> PioSound<'d> {
             let mut cfg = embassy_rp::pio::Config::default();
             cfg.use_program(&prg, &[&sound_bclk_pin, &sound_lrclk_pin]);
             cfg.set_out_pins(&[&sound_data_pin]);
-            cfg.clock_divider = 100.to_fixed();
+            // Note 100% right, but close...
+            cfg.clock_divider = 30.to_fixed();
             cfg.shift_out = ShiftConfig {
                 auto_fill: true,
                 threshold: 32,
-                direction: ShiftDirection::Right,
+                direction: ShiftDirection::Left,
             };
             cfg.fifo_join = FifoJoin::TxOnly;
             cfg

@@ -37,17 +37,46 @@ impl<'d>
         */
     pub fn populate_next_dma_buffer_with_audio(&mut self, buffer: &mut [u32]) {
         for entry in buffer.iter_mut() {
+            let mut v0: i32 = self.midi.get_next().to_i32() * 2;
+            let mut v1: i32 = self.midi.get_next().to_i32() * 2;
 
+            if v0 < -0x7fff {
+                v0 = -0x7fff;
+            }
+            if v0 > 0x7fff {
+                v0 = 0x7fff;
+            }
+            if v1 < -0x7fff {
+                v1 = -0x7fff;
+            }
+            if v1 > 0x7fff {
+                v1 = 0x7fff;
+            }
+
+            let v0_u32 : u32 = v0 as u32;
+            let v1_u32 : u32 = v1 as u32;
+    
+            let output: u32 =
+                ((v0_u32 >> 8 ) & 0xff) << 0 |
+                ((v0_u32 >> 0 ) & 0xff) << 8 |
+                ((v1_u32 >> 8 ) & 0xff) << 16 |
+                ((v1_u32 >> 0 ) & 0xff) << 24;
+            *entry = output;
+
+            if !self.midi.has_next() {
+                self.clear_count = 1;
+            }
+            /*
             self.cycle = self.cycle + 1;
             let value_u32: u32 = if (self.cycle & 16)==0 {
-                0x0200
+                0x0020
             }
             else {
                 0x0000
             };
+            */
             //let value_u32: u32 = 0;
 
-            *entry = value_u32 | (value_u32 << 16); 
         }
     }
 
