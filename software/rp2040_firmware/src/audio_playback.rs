@@ -40,11 +40,12 @@ impl<'d>
 
             self.cycle = self.cycle + 1;
             let value_u32: u32 = if (self.cycle & 16)==0 {
-                0x4444
+                0x0200
             }
             else {
                 0x0000
             };
+            //let value_u32: u32 = 0;
 
             *entry = value_u32 | (value_u32 << 16); 
         }

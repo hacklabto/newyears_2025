@@ -108,21 +108,20 @@ impl<'d> PioSound<'d> {
             ".side_set 2 opt"
             ".wrap_target"
             "start_sample_left:"
-                "out pins, 1                    side 0b00 [1]"
-                // Toggle CLK to register LRCLOCK change
-                "set y, 14                      side 0b01 [1]"
+                "set pins, 0                    side 0b00"
+                "set y, 15                      side 0b01"
             "fillrow_bit_left:"
-                // Output pin and toggle clock
-                "out pins,1                     side 0b00 [1]"
-                "jmp y--, fillrow_bit_left      side 0b01 [1]"
+                // Left channel is unused.
+                "set pins,0                     side 0b00"
+                "jmp y--, fillrow_bit_left      side 0b01"
 
             "start_sample_right:"
                 // Repeat logic for right side
-                "out pins, 1                    side 0b10 [1]"
-                "set y, 14                      side 0b11 [1]"
+                "set pins, 0                    side 0b10"
+                "set y, 15                      side 0b11"
             "fillrow_bit_right:"
-                "out pins,1                     side 0b10 [1]"
-                "jmp y--, fillrow_bit_right     side 0b11 [1]"
+                "out pins,1                     side 0b10"
+                "jmp y--, fillrow_bit_right     side 0b11"
             ".wrap"
         );
         let prg = common.load_program(&prg.program);
@@ -135,7 +134,7 @@ impl<'d> PioSound<'d> {
             let mut cfg = embassy_rp::pio::Config::default();
             cfg.use_program(&prg, &[&sound_bclk_pin, &sound_lrclk_pin]);
             cfg.set_out_pins(&[&sound_data_pin]);
-            cfg.clock_divider = 50.to_fixed();
+            cfg.clock_divider = 100.to_fixed();
             cfg.shift_out = ShiftConfig {
                 auto_fill: true,
                 threshold: 32,
