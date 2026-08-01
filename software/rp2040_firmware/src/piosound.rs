@@ -194,7 +194,9 @@ impl<'d> PioSound<'d> {
     }
 
     pub async fn play_sound(&mut self) {
-        let (header, tracks) = midly::parse(include_bytes!("../assets/maple.mid"))
+        //let (header, tracks) = midly::parse(include_bytes!("../assets/maple.mid"))
+        //let (header, tracks) = midly::parse(include_bytes!("../assets/vivaldi.mid"))
+        let (header, tracks) = midly::parse(include_bytes!("../assets/entertainer.mid"))
             .expect("It's inlined data, so its expected to parse");
         let mut midi = NewYearsMidi::new(&header, tracks);
 
