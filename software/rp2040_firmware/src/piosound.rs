@@ -107,18 +107,25 @@ impl<'d> PioSound<'d> {
             ".side_set 2 opt"
             ".wrap_target"
             "start_sample_left:"
+                // Toggle BCLK once witn 0 on data.
+                // The data pin is in a don't care state for this bclk pulse
                 "set pins, 0                    side 0b00 [2]"
                 "set y, 15                      side 0b01 [2]"
             "fillrow_bit_left:"
                 // Left channel is unused.
+                // Output 16 "0" bits
                 "set pins,0                     side 0b00 [2]"
                 "jmp y--, fillrow_bit_left      side 0b01 [2]"
 
             "start_sample_right:"
                 // Repeat logic for right side
+                //
+                // Toggle BCLK once witn 0 on data.
+                // The data pin is in a don't care state for this bclk pulse
                 "set pins, 0                    side 0b10 [2]"
                 "set y, 15                      side 0b11 [2]"
             "fillrow_bit_right:"
+                // Now actually output 16 bits from the fifo
                 "out pins,1                     side 0b10 [2]"
                 "jmp y--, fillrow_bit_right     side 0b11 [2]"
             ".wrap"
